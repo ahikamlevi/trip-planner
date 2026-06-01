@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
+import { useTripRealtime } from '../lib/useTripRealtime'
 import type { Area, Day, Place, Stop } from '../lib/database.types'
 import { categoryMeta } from '../places/categories'
 import { MapView } from '../map/MapView'
@@ -103,6 +104,8 @@ export function ItineraryBoard({
   useEffect(() => {
     void load()
   }, [load])
+
+  useTripRealtime(tripId, load)
 
   const placeMap = useMemo(() => new Map(places.map((p) => [p.id, p])), [places])
 

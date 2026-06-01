@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { useTripRealtime } from '../lib/useTripRealtime'
 import type { BudgetEntry, Day, Place, Stop } from '../lib/database.types'
 import { categoryMeta, CATEGORIES } from '../places/categories'
 import { formatDayLabel } from '../itinerary/dates'
@@ -43,6 +44,8 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
   useEffect(() => {
     void load()
   }, [load])
+
+  useTripRealtime(tripId, load)
 
   const placeMap = useMemo(() => new Map(places.map((p) => [p.id, p])), [places])
 

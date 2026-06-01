@@ -126,4 +126,9 @@ Features added: Itinerary map view (Day view shows numbered stop markers + dashe
 order path, via extended MapRenderer adapter: badge/popup/setPath); Day notes
 (migration `0006_day_notes.sql` adds days.note; editable in Day view, shown in Week);
 Map pin popups on Places tab (name/category/cost/hours/notes).
-PARKED: live realtime sync, mobile polish pass, other Stage 7 items.
+Live realtime sync DONE: `useTripRealtime` hook subscribes to Supabase Realtime
+postgres_changes for the trip's tables and debounce-reloads; wired into TripView,
+PlacesWorkspace, ItineraryBoard, BudgetPanel. Migration `0007_realtime.sql` adds the
+tables to the supabase_realtime publication (idempotent). RLS still governs reads;
+realtime only triggers re-fetch. Edits now appear for both users without refresh.
+PARKED: mobile polish pass, other Stage 7 items (onboarding, landing, rate limiting).

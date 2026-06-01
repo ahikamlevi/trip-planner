@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useTripRealtime } from '../lib/useTripRealtime'
 import type { Place, PlaceCategory } from '../lib/database.types'
 import { MapView } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
@@ -41,6 +42,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   useEffect(() => {
     void load()
   }, [load])
+
+  useTripRealtime(tripId, load)
 
   const addPlace = useCallback(
     async (input: { name: string; lat: number; lng: number; category?: PlaceCategory }) => {

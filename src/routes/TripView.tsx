@@ -8,6 +8,7 @@ import { BudgetPanel } from '../budget/BudgetPanel'
 import { CURRENCIES } from '../budget/money'
 import { today } from '../itinerary/dates'
 import { supabase } from '../lib/supabase'
+import { useTripRealtime } from '../lib/useTripRealtime'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
 
 type Tab = 'places' | 'itinerary' | 'budget'
@@ -52,6 +53,8 @@ export function TripView() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useTripRealtime(tripId, load)
 
   // Auto-open to the itinerary when today falls within the trip (the "Today" feel).
   useEffect(() => {
