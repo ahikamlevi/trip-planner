@@ -25,6 +25,7 @@ export interface Database {
           end_date: string | null
           owner_id: string
           currency: string
+          notes: string | null
           created_at: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export interface Database {
           end_date?: string | null
           owner_id: string
           currency?: string
+          notes?: string | null
           created_at?: string
         }
         Update: {
@@ -45,6 +47,7 @@ export interface Database {
           end_date?: string | null
           owner_id?: string
           currency?: string
+          notes?: string | null
           created_at?: string
         }
         Relationships: []
@@ -175,6 +178,12 @@ export interface Database {
         }
         Relationships: []
       }
+      packing_items: {
+        Row: { id: string; trip_id: string; label: string; packed: boolean; sort_order: number; created_at: string }
+        Insert: { id?: string; trip_id: string; label: string; packed?: boolean; sort_order?: number; created_at?: string }
+        Update: { id?: string; trip_id?: string; label?: string; packed?: boolean; sort_order?: number; created_at?: string }
+        Relationships: []
+      }
       budget_entries: {
         Row: {
           id: string
@@ -235,3 +244,4 @@ export type Area = Database['public']['Tables']['areas']['Row']
 export type Day = Database['public']['Tables']['days']['Row']
 export type Stop = Database['public']['Tables']['stops']['Row']
 export type BudgetEntry = Database['public']['Tables']['budget_entries']['Row']
+export type PackingItem = Database['public']['Tables']['packing_items']['Row']

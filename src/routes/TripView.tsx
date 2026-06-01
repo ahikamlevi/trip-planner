@@ -5,13 +5,14 @@ import { AppHeader } from '../components/AppHeader'
 import { PlacesWorkspace } from '../places/PlacesWorkspace'
 import { ItineraryBoard } from '../itinerary/ItineraryBoard'
 import { BudgetPanel } from '../budget/BudgetPanel'
+import { PackingPanel } from '../packing/PackingPanel'
 import { CURRENCIES } from '../budget/money'
 import { today } from '../itinerary/dates'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
 
-type Tab = 'places' | 'itinerary' | 'budget'
+type Tab = 'places' | 'itinerary' | 'budget' | 'packing'
 
 interface MemberRow {
   user_id: string
@@ -99,6 +100,9 @@ export function TripView() {
           <button className={`tab${tab === 'budget' ? ' active' : ''}`} onClick={() => setTab('budget')}>
             Budget
           </button>
+          <button className={`tab${tab === 'packing' ? ' active' : ''}`} onClick={() => setTab('packing')}>
+            Packing
+          </button>
         </div>
 
         {tab === 'places' && <PlacesWorkspace tripId={trip.id} />}
@@ -106,6 +110,9 @@ export function TripView() {
           <ItineraryBoard tripId={trip.id} startDate={trip.start_date} endDate={trip.end_date} />
         )}
         {tab === 'budget' && <BudgetPanel tripId={trip.id} currency={trip.currency} />}
+        {tab === 'packing' && <PackingPanel tripId={trip.id} />}
+
+        <TripNotes trip={trip} isOwner={isOwner} onChange={load} />
 
         <details className="card members-details">
           <summary>Members &amp; sharing</summary>
@@ -138,6 +145,64 @@ export function TripView() {
         </details>
       </div>
     </div>
+  )
+}
+
+function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; onChange: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState(trip.notes ?? '')
+  const [saving, setSaving] = useState(false)
+
+  // Stay in sync if notes change via realtime while not actively editing.
+  useEffect(() => {
+    if (!editing) setText(trip.notes ?? '')
+  }, [trip.notes, editing])
+
+  async function save() {
+    setSaving(true)
+    await supabase.from('trips').update({ notes: text.trim() || null }).eq('id', trip.id)
+    setSaving(false)
+    setEditing(false)
+    onChange()
+  }
+
+  // Non-owner with no notes: nothing to show.
+  if (!trip.notes && !isOwner) return null
+
+  return (
+    <details className="card members-details" open={!!trip.notes}>
+      <summary>Trip notes</summary>
+      {editing ? (
+        <div className="form-grid">
+          <textarea
+            className="day-note-input"
+            rows={4}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Overall plan, links, confirmation numbers…"
+          />
+          <div className="button-row">
+            <button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+            <button className="secondary" onClick={() => { setEditing(false); setText(trip.notes ?? '') }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {trip.notes ? (
+            <p className="trip-notes-text">{trip.notes}</p>
+          ) : (
+            <p className="muted small">No notes yet.</p>
+          )}
+          {isOwner && (
+            <button className="secondary" onClick={() => setEditing(true)}>
+              {trip.notes ? 'Edit notes' : 'Add notes'}
+            </button>
+          )}
+        </>
+      )}
+    </details>
   )
 }
 

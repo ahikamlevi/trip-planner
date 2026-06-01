@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 // Tables whose changes should refresh a trip's views. Subscriptions are
 // unfiltered; RLS ensures a client only receives events for rows it can see,
 // and the consumer's reload() re-fetches through RLS-protected queries.
-const TABLES = ['trips', 'trip_members', 'places', 'areas', 'days', 'stops', 'budget_entries']
+const TABLES = ['trips', 'trip_members', 'places', 'areas', 'days', 'stops', 'budget_entries', 'packing_items']
 
 // Each hook instance gets a unique channel topic so two subscribers (e.g. the
 // trip page + the active tab) never collide on the same topic name.

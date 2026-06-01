@@ -131,4 +131,10 @@ postgres_changes for the trip's tables and debounce-reloads; wired into TripView
 PlacesWorkspace, ItineraryBoard, BudgetPanel. Migration `0007_realtime.sql` adds the
 tables to the supabase_realtime publication (idempotent). RLS still governs reads;
 realtime only triggers re-fetch. Edits now appear for both users without refresh.
-PARKED: mobile polish pass, other Stage 7 items (onboarding, landing, rate limiting).
+Stage 7 progress: mobile polish pass (responsive layout + touch press-hold drag via
+MouseSensor/TouchSensor); itinerary map now draws real road-shaped routes (OSRM
+geometry via RouteProvider.getRoutePath, session-cached); trip-level notes (owner-
+editable, trips.notes) + shared packing checklist (`packing_items` table, member-rw,
+live-synced). Migration `0008_notes_packing.sql`. Click-to-focus on Places tab already
+worked (selectPlace sets map focus).
+PARKED: onboarding, landing page, rate limiting, budget alerts.
