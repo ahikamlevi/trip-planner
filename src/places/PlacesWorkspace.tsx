@@ -9,6 +9,19 @@ import { searchPlaces, type SearchResult } from './search'
 const DEFAULT_CENTER: LatLng = { lat: 20, lng: 0 }
 const DEFAULT_ZOOM = 2
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
+}
+
+function placePopupHtml(p: Place): string {
+  const meta = categoryMeta(p.category)
+  const rows = [`<strong>${escapeHtml(p.name)}</strong>`, `<div>${meta.emoji} ${meta.label}</div>`]
+  if (p.est_cost != null) rows.push(`<div>~${p.est_cost}</div>`)
+  if (p.opening_hours) rows.push(`<div>🕑 ${escapeHtml(p.opening_hours)}</div>`)
+  if (p.notes) rows.push(`<div>📝 ${escapeHtml(p.notes)}</div>`)
+  return `<div class="map-popup">${rows.join('')}</div>`
+}
+
 export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -90,6 +103,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         category: p.category,
         label: p.name,
         selected: p.id === selectedId,
+        popup: placePopupHtml(p),
       })),
     [located, selectedId],
   )

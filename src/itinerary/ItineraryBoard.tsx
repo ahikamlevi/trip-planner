@@ -23,6 +23,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
 import type { Area, Day, Place, Stop } from '../lib/database.types'
 import { categoryMeta } from '../places/categories'
+import { MapView } from '../map/MapView'
+import type { MapMarker } from '../map'
 import { getRouteCached, legKey, type LatLng, type RouteLeg } from '../routing'
 import {
   addDays,
@@ -283,6 +285,12 @@ export function ItineraryBoard({
     await supabase.from('days').update({ area_id: areaId }).eq('id', dayId)
     load()
   }
+  async function setDayNote(iso: string, note: string) {
+    const dayId = await ensureDay(iso)
+    if (!dayId) return
+    await supabase.from('days').update({ note: note.trim() || null }).eq('id', dayId)
+    load()
+  }
   async function clearDay(bd: BoardDay) {
     if (!confirm(`Clear ${formatDayLabel(bd.day.date)}? Its visits are removed (places stay in the palette).`)) return
     await supabase.from('days').delete().eq('id', bd.day.id) // cascades its stops
@@ -366,6 +374,7 @@ export function ItineraryBoard({
                     variant="week"
                     isToday={iso === todayIso}
                     onAreaChange={(areaId) => setDayArea(iso, areaId)}
+                    onNoteChange={(note) => setDayNote(iso, note)}
                     onClear={byDate.get(iso) ? () => clearDay(byDate.get(iso)!) : undefined}
                     onOpenDay={() => {
                       setCursor(iso)
@@ -388,10 +397,12 @@ export function ItineraryBoard({
                   variant="day"
                   isToday={cursor === todayIso}
                   onAreaChange={(areaId) => setDayArea(cursor, areaId)}
+                  onNoteChange={(note) => setDayNote(cursor, note)}
                   onClear={byDate.get(cursor) ? () => clearDay(byDate.get(cursor)!) : undefined}
                   routeLegs={routeLegs}
                   onStopChange={load}
                 />
+                <ItineraryDayMap iso={cursor} stops={byDate.get(cursor)?.stops ?? []} />
               </div>
             )}
           </div>
@@ -486,6 +497,7 @@ function DayPanel({
   isToday,
   routeLegs,
   onAreaChange,
+  onNoteChange,
   onClear,
   onOpenDay,
   onStopChange,
@@ -498,6 +510,7 @@ function DayPanel({
   isToday?: boolean
   routeLegs: Map<string, RouteLeg | null>
   onAreaChange: (areaId: string | null) => void
+  onNoteChange: (note: string) => void
   onClear?: () => void
   onOpenDay?: () => void
   onStopChange: () => void
@@ -557,6 +570,11 @@ function DayPanel({
           ))}
         </select>
       )}
+      {variant === 'day' ? (
+        <DayNoteEditor key={iso} initial={boardDay?.day.note ?? ''} onCommit={onNoteChange} />
+      ) : (
+        boardDay?.day.note && <p className="day-note-ro muted small">📝 {boardDay.day.note}</p>
+      )}
       <div ref={setNodeRef} className="stop-dropzone">
         <SortableContext items={stops.map((s) => `stop:${s.id}`)} strategy={verticalListSortingStrategy}>
           {stops.map((s, i) => (
@@ -565,6 +583,46 @@ function DayPanel({
         </SortableContext>
         {stops.length === 0 && <p className="muted small empty-day">Drop places here</p>}
       </div>
+    </div>
+  )
+}
+
+function DayNoteEditor({ initial, onCommit }: { initial: string; onCommit: (note: string) => void }) {
+  const [note, setNote] = useState(initial)
+  return (
+    <textarea
+      className="day-note-input"
+      rows={2}
+      placeholder="Day notes — check-in time, reminders…"
+      value={note}
+      onChange={(e) => setNote(e.target.value)}
+      onBlur={() => {
+        if (note !== initial) onCommit(note)
+      }}
+    />
+  )
+}
+
+function ItineraryDayMap({ iso, stops }: { iso: string; stops: BoardStop[] }) {
+  const located = stops.filter((s) => s.place.lat != null && s.place.lng != null)
+  if (located.length === 0) return null
+
+  const markers: MapMarker[] = located.map((s, i) => ({
+    id: s.id,
+    position: { lat: s.place.lat!, lng: s.place.lng! },
+    category: s.place.category,
+    badge: i + 1,
+    label: `${i + 1}. ${s.place.name}`,
+  }))
+  const path: LatLng[] = located.map((s) => ({ lat: s.place.lat!, lng: s.place.lng! }))
+
+  return (
+    <div className="itinerary-map">
+      {/* key by day so the map re-fits when switching days */}
+      <MapView key={iso} center={path[0]} zoom={13} markers={markers} path={path} />
+      <p className="muted small">
+        Numbered in visiting order. Lines are straight — see the connectors above for driving distance/time.
+      </p>
     </div>
   )
 }

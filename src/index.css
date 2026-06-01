@@ -1142,6 +1142,41 @@ button.secondary.danger {
   max-width: 100%;
 }
 
+.day-note-input {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.day-note-ro {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.itinerary-map {
+  margin-top: 1rem;
+}
+
+.itinerary-map .map {
+  height: 340px;
+}
+
+.itinerary-map p {
+  margin: 0.4rem 0 0;
+}
+
+/* Leaflet popup on dark theme */
+.map-popup {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 /* Today highlight */
 .month-cell.today {
   outline: 2px solid var(--accent);

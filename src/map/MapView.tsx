@@ -5,13 +5,15 @@ interface MapViewProps {
   center: LatLng
   zoom?: number
   markers: MapMarker[]
+  /** Optional polyline drawn through these points (e.g. a day's stop order). */
+  path?: LatLng[]
   /** When this changes to a non-null value, the map recenters on it. */
   focus?: LatLng | null
   onMapClick?: (pos: LatLng) => void
   onMarkerClick?: (id: string) => void
 }
 
-export function MapView({ center, zoom = 12, markers, focus, onMapClick, onMarkerClick }: MapViewProps) {
+export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, onMarkerClick }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<MapRenderer | null>(null)
   const didFit = useRef(false)
@@ -51,6 +53,11 @@ export function MapView({ center, zoom = 12, markers, focus, onMapClick, onMarke
       didFit.current = true
     }
   }, [markers])
+
+  // Update the route path.
+  useEffect(() => {
+    rendererRef.current?.setPath(path ?? [])
+  }, [path])
 
   // Recenter when a focus target is set.
   useEffect(() => {

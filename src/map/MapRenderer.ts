@@ -14,6 +14,10 @@ export interface MapMarker {
   category: PlaceCategory
   label?: string
   selected?: boolean
+  /** Text drawn inside the pin (e.g. a stop order number). */
+  badge?: string | number
+  /** HTML shown in a popup when the marker is clicked. */
+  popup?: string
 }
 
 export interface MapRendererOptions {
@@ -26,6 +30,8 @@ export interface MapRendererOptions {
 
 export interface MapRenderer {
   setMarkers(markers: MapMarker[]): void
+  /** Draws a polyline through the given points (empty array clears it). */
+  setPath(points: LatLng[]): void
   setView(center: LatLng, zoom?: number): void
   fitToMarkers(markers: MapMarker[]): void
   destroy(): void

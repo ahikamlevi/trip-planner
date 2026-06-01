@@ -137,9 +137,9 @@ export interface Database {
         Relationships: []
       }
       days: {
-        Row: { id: string; trip_id: string; date: string; area_id: string | null; created_at: string }
-        Insert: { id?: string; trip_id: string; date: string; area_id?: string | null; created_at?: string }
-        Update: { id?: string; trip_id?: string; date?: string; area_id?: string | null; created_at?: string }
+        Row: { id: string; trip_id: string; date: string; area_id: string | null; note: string | null; created_at: string }
+        Insert: { id?: string; trip_id: string; date: string; area_id?: string | null; note?: string | null; created_at?: string }
+        Update: { id?: string; trip_id?: string; date?: string; area_id?: string | null; note?: string | null; created_at?: string }
         Relationships: []
       }
       stops: {

@@ -120,4 +120,10 @@ second user logs in without email delivery. Repo git-initialized + committed (`.
 ignored). Exact deploy steps in `DEPLOY.md` (push to GitHub → Vercel + env vars →
 Supabase redirect URLs → create her account w/ password → share). Awaiting developer
 to run those signups/pushes.
-PARKED: Stage 7 public polish (incl. in-app password reset).
+Polish done: in-app set/change password (recovery screen + header modal), forgot-
+password link on login, favicon + page metadata.
+Features added: Itinerary map view (Day view shows numbered stop markers + dashed
+order path, via extended MapRenderer adapter: badge/popup/setPath); Day notes
+(migration `0006_day_notes.sql` adds days.note; editable in Day view, shown in Week);
+Map pin popups on Places tab (name/category/cost/hours/notes).
+PARKED: live realtime sync, mobile polish pass, other Stage 7 items.
