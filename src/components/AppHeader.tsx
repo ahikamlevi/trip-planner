@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { SetPasswordForm } from '../auth/SetPassword'
 import { supabase } from '../lib/supabase'
 
 export function AppHeader() {
@@ -8,6 +9,7 @@ export function AppHeader() {
   const uid = session!.user.id
   const [name, setName] = useState('')
   const [editing, setEditing] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -49,8 +51,24 @@ export function AppHeader() {
             {name || session!.user.email}
           </button>
         )}
+        <button onClick={() => setShowPassword(true)} title="Set or change your password">
+          Password
+        </button>
         <button onClick={signOut}>Sign out</button>
       </div>
+
+      {showPassword && (
+        <div className="modal-overlay" onClick={() => setShowPassword(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <strong>Set your password</strong>
+              <button className="linklike" onClick={() => setShowPassword(false)}>close</button>
+            </div>
+            <p className="muted small">Lets you sign in with email + password.</p>
+            <SetPasswordForm onDone={() => setShowPassword(false)} />
+          </div>
+        </div>
+      )}
     </header>
   )
 }

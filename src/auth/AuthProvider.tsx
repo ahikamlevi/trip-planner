@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase'
 interface AuthState {
   session: Session | null
   loading: boolean
+  /** True after a password-recovery link is opened — show the set-password screen. */
+  passwordRecovery: boolean
+  endPasswordRecovery: () => void
   signOut: () => Promise<void>
 }
 
@@ -13,6 +16,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -20,8 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next)
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
     })
 
     return () => sub.subscription.unsubscribe()
@@ -32,7 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        loading,
+        passwordRecovery,
+        endPasswordRecovery: () => setPasswordRecovery(false),
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
