@@ -21,4 +21,6 @@ export interface RouteRequest {
 
 export interface RouteProvider {
   getRoute(req: RouteRequest): Promise<RouteLeg | null>
+  /** Optional: the full road-shaped path through an ordered list of waypoints. */
+  getRoutePath?(points: LatLng[]): Promise<LatLng[] | null>
 }

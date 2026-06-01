@@ -27,7 +27,7 @@ import type { Area, Day, Place, Stop } from '../lib/database.types'
 import { categoryMeta } from '../places/categories'
 import { MapView } from '../map/MapView'
 import type { MapMarker } from '../map'
-import { getRouteCached, legKey, type LatLng, type RouteLeg } from '../routing'
+import { getRouteCached, getRoutePathCached, legKey, type LatLng, type RouteLeg } from '../routing'
 import {
   addDays,
   addMonths,
@@ -650,6 +650,24 @@ function ItineraryDayMap({
   selectedId?: string | null
 }) {
   const located = stops.filter((s) => s.place.lat != null && s.place.lng != null)
+  const straightPath: LatLng[] = located.map((s) => ({ lat: s.place.lat!, lng: s.place.lng! }))
+  const coordsKey = straightPath.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join('|')
+
+  const [roadPath, setRoadPath] = useState<LatLng[] | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    setRoadPath(null)
+    if (straightPath.length >= 2) {
+      getRoutePathCached(straightPath).then((p) => {
+        if (!cancelled) setRoadPath(p)
+      })
+    }
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coordsKey])
+
   if (located.length === 0) return null
 
   const markers: MapMarker[] = located.map((s, i) => ({
@@ -660,15 +678,21 @@ function ItineraryDayMap({
     label: `${i + 1}. ${s.place.name}`,
     selected: s.id === selectedId,
   }))
-  const path: LatLng[] = located.map((s) => ({ lat: s.place.lat!, lng: s.place.lng! }))
 
   return (
     <div className="itinerary-map">
       {/* key by day so the map re-fits when switching days */}
-      <MapView key={iso} center={path[0]} zoom={13} markers={markers} path={path} focus={focus ?? null} />
+      <MapView
+        key={iso}
+        center={straightPath[0]}
+        zoom={13}
+        markers={markers}
+        path={roadPath ?? straightPath}
+        focus={focus ?? null}
+      />
       <p className="muted small">
-        Click a stop above to center it. Numbered in visiting order; lines are straight — see the
-        connectors for driving distance/time.
+        Click a stop above to center it. Numbered in visiting order; the line
+        {roadPath ? ' follows the driving route.' : ' connects stops (loading the road route…).'}
       </p>
     </div>
   )

@@ -45,4 +45,19 @@ export async function getRouteCached(origin: LatLng, dest: LatLng): Promise<Rout
   return leg
 }
 
+// In-memory cache of full-day road paths (keyed by the ordered coordinates).
+// Multi-waypoint paths don't fit the per-pair route_cache table, so this is
+// session-scoped only — cheap to refetch on a new load.
+const pathMemo = new Map<string, LatLng[] | null>()
+
+export async function getRoutePathCached(points: LatLng[]): Promise<LatLng[] | null> {
+  if (points.length < 2 || !provider.getRoutePath) return null
+  const key = points.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join('|')
+  const cached = pathMemo.get(key)
+  if (cached !== undefined) return cached
+  const path = await provider.getRoutePath(points)
+  pathMemo.set(key, path)
+  return path
+}
+
 export type { LatLng, RouteLeg } from './RouteProvider'
