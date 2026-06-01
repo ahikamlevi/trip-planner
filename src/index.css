@@ -105,6 +105,13 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

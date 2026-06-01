@@ -9,6 +9,21 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<'idle' | 'working' | 'sent' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  async function forgotPassword() {
+    if (!email.trim()) {
+      setError('Enter your email first, then click “Forgot password”.')
+      return
+    }
+    setError(null)
+    setNotice(null)
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    })
+    if (error) setError(error.message)
+    else setNotice('Password reset email sent — open the link to choose a new password.')
+  }
 
   async function signInPassword(e: FormEvent) {
     e.preventDefault()
@@ -76,16 +91,23 @@ export function Login() {
             {status === 'working' ? 'Signing in…' : 'Sign in'}
           </button>
           {error && <p className="auth-error">{error}</p>}
-          <button
-            type="button"
-            className="auth-switch linklike"
-            onClick={() => {
-              setMode('magic')
-              setError(null)
-            }}
-          >
-            Email me a magic link instead
-          </button>
+          {notice && <p className="invite-ok">{notice}</p>}
+          <div className="auth-links">
+            <button type="button" className="linklike" onClick={forgotPassword}>
+              Forgot password?
+            </button>
+            <button
+              type="button"
+              className="linklike"
+              onClick={() => {
+                setMode('magic')
+                setError(null)
+                setNotice(null)
+              }}
+            >
+              Use a magic link
+            </button>
+          </div>
         </form>
       ) : (
         <form onSubmit={sendMagicLink} className="auth-form">
