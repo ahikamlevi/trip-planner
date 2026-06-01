@@ -236,6 +236,11 @@ button:disabled {
   padding: 1.5rem 1.25rem 4rem;
 }
 
+/* Trip pages get more room for the map-heavy itinerary. */
+.page-body.wide {
+  max-width: 1040px;
+}
+
 .app-header {
   display: flex;
   align-items: center;
@@ -1191,6 +1196,33 @@ button.secondary.danger {
 
 .itinerary-map p {
   margin: 0.4rem 0 0;
+}
+
+/* Day view: stops + map side by side, map stays in view while the list scrolls. */
+.cal-day {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.cal-day .day-panel.day {
+  max-width: none;
+}
+
+.cal-day .itinerary-map {
+  margin-top: 0;
+  position: sticky;
+  top: 0.75rem;
+}
+
+@media (max-width: 820px) {
+  .cal-day {
+    grid-template-columns: 1fr;
+  }
+  .cal-day .itinerary-map {
+    position: static;
+  }
 }
 
 /* Leaflet popup on dark theme */

@@ -85,7 +85,7 @@ export function TripView() {
   return (
     <div className="page">
       <AppHeader />
-      <div className="page-body">
+      <div className="page-body wide">
         <Link to="/" className="back-link">← All trips</Link>
 
         <TripHeader trip={trip} isOwner={isOwner} onChange={load} onDeleted={() => navigate('/')} />
