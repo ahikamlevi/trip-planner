@@ -1349,3 +1349,103 @@ button.secondary.danger {
   margin-right: 0.5rem;
   white-space: nowrap;
 }
+
+/* ============================================================
+   Mobile / responsive polish
+   ============================================================ */
+@media (max-width: 560px) {
+  .page-body {
+    padding: 1rem 0.85rem 3rem;
+  }
+
+  /* Header: let the controls wrap instead of overflowing */
+  .app-header {
+    padding: 0.7rem 0.85rem;
+    flex-wrap: wrap;
+  }
+  .app-header-user {
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .app-header-user button {
+    padding: 0.4rem 0.55rem;
+  }
+
+  /* Tabs: scroll sideways if they don't fit */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab {
+    white-space: nowrap;
+    padding: 0.55rem 0.75rem;
+  }
+
+  /* Stack two-up form rows (dates/currency, cost/hours) */
+  .form-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Trip header stacks above its action buttons */
+  .trip-head {
+    flex-direction: column;
+  }
+
+  /* Shorter maps on phones */
+  .map {
+    height: 340px;
+  }
+  .itinerary-map .map {
+    height: 280px;
+  }
+
+  /* Itinerary: keep the places palette compact above the calendar */
+  .wishlist-col {
+    max-height: 170px;
+    overflow-y: auto;
+  }
+
+  /* Calendar toolbar + month grid get tighter */
+  .cal-title {
+    font-size: 0.9rem;
+    width: 100%;
+    margin: 0.2rem 0 0;
+  }
+  .month-cell {
+    min-height: 64px;
+    padding: 0.2rem;
+  }
+  .month-cell-date {
+    font-size: 0.7rem;
+  }
+  .month-chip {
+    font-size: 0.65rem;
+    padding: 0.05rem 0.2rem;
+  }
+  .cal-weekdays div {
+    font-size: 0.65rem;
+  }
+
+  /* Day panel max-width no longer constrains on a phone */
+  .day-panel.day {
+    max-width: none;
+  }
+
+  /* Budget entry form fields go full width */
+  .entry-form select,
+  .entry-form input,
+  .entry-amount-input {
+    flex: 1 1 100%;
+  }
+
+  /* Comfortable tap targets for primary buttons */
+  .auth-form button[type='submit'],
+  .tab,
+  .nav-btn,
+  .seg {
+    min-height: 38px;
+  }
+}
