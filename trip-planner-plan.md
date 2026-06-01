@@ -115,4 +115,9 @@ entry categories) and By-day rollups, add/delete "other costs", single trip curr
 (migration `0005_trip_currency.sql` adds trips.currency; picker in trip edit; money
 via Intl). Notes surfaced on stop cards + palette (📝). Today-aware: trip auto-opens
 to Itinerary→Day on today when traveling; today highlighted in month/week/day.
-PARKED: second-user login (needs deploy + auth), Stage 7 public polish.
+Deploy + her login: added email+password sign-in (magic link kept as fallback) so the
+second user logs in without email delivery. Repo git-initialized + committed (`.env`
+ignored). Exact deploy steps in `DEPLOY.md` (push to GitHub → Vercel + env vars →
+Supabase redirect URLs → create her account w/ password → share). Awaiting developer
+to run those signups/pushes.
+PARKED: Stage 7 public polish (incl. in-app password reset).
