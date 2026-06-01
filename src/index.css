@@ -1097,6 +1097,15 @@ button.secondary.danger {
   white-space: nowrap;
 }
 
+.stop-name.clickable {
+  cursor: pointer;
+}
+
+.stop-name.clickable:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .stop-times {
   display: flex;
   gap: 0.3rem;

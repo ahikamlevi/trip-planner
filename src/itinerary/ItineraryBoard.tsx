@@ -131,6 +131,20 @@ export function ItineraryBoard({
     return m
   }, [stops])
 
+  // Clicking a stop in Day view centers the day map on it.
+  const [focusPoint, setFocusPoint] = useState<LatLng | null>(null)
+  const [focusStopId, setFocusStopId] = useState<string | null>(null)
+  useEffect(() => {
+    // Reset focus when the day changes so the map fits the new day's stops.
+    setFocusPoint(null)
+    setFocusStopId(null)
+  }, [cursor])
+  function focusStop(s: BoardStop) {
+    if (s.place.lat == null || s.place.lng == null) return
+    setFocusPoint({ lat: s.place.lat, lng: s.place.lng })
+    setFocusStopId(s.id)
+  }
+
   // Travel legs between consecutive located stops, fetched (cached) lazily.
   const [routeLegs, setRouteLegs] = useState<Map<string, RouteLeg | null>>(new Map())
   const fetchedRef = useRef<Set<string>>(new Set())
@@ -402,10 +416,16 @@ export function ItineraryBoard({
                   onAreaChange={(areaId) => setDayArea(cursor, areaId)}
                   onNoteChange={(note) => setDayNote(cursor, note)}
                   onClear={byDate.get(cursor) ? () => clearDay(byDate.get(cursor)!) : undefined}
+                  onFocusStop={focusStop}
                   routeLegs={routeLegs}
                   onStopChange={load}
                 />
-                <ItineraryDayMap iso={cursor} stops={byDate.get(cursor)?.stops ?? []} />
+                <ItineraryDayMap
+                  iso={cursor}
+                  stops={byDate.get(cursor)?.stops ?? []}
+                  focus={focusPoint}
+                  selectedId={focusStopId}
+                />
               </div>
             )}
           </div>
@@ -503,6 +523,7 @@ function DayPanel({
   onNoteChange,
   onClear,
   onOpenDay,
+  onFocusStop,
   onStopChange,
 }: {
   iso: string
@@ -516,6 +537,7 @@ function DayPanel({
   onNoteChange: (note: string) => void
   onClear?: () => void
   onOpenDay?: () => void
+  onFocusStop?: (s: BoardStop) => void
   onStopChange: () => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `date:${iso}` })
@@ -581,7 +603,13 @@ function DayPanel({
       <div ref={setNodeRef} className="stop-dropzone">
         <SortableContext items={stops.map((s) => `stop:${s.id}`)} strategy={verticalListSortingStrategy}>
           {stops.map((s, i) => (
-            <StopItem key={s.id} stop={s} connector={connectors[i]} onChange={onStopChange} />
+            <StopItem
+              key={s.id}
+              stop={s}
+              connector={connectors[i]}
+              onFocus={onFocusStop ? () => onFocusStop(s) : undefined}
+              onChange={onStopChange}
+            />
           ))}
         </SortableContext>
         {stops.length === 0 && <p className="muted small empty-day">Drop places here</p>}
@@ -606,7 +634,17 @@ function DayNoteEditor({ initial, onCommit }: { initial: string; onCommit: (note
   )
 }
 
-function ItineraryDayMap({ iso, stops }: { iso: string; stops: BoardStop[] }) {
+function ItineraryDayMap({
+  iso,
+  stops,
+  focus,
+  selectedId,
+}: {
+  iso: string
+  stops: BoardStop[]
+  focus?: LatLng | null
+  selectedId?: string | null
+}) {
   const located = stops.filter((s) => s.place.lat != null && s.place.lng != null)
   if (located.length === 0) return null
 
@@ -616,15 +654,17 @@ function ItineraryDayMap({ iso, stops }: { iso: string; stops: BoardStop[] }) {
     category: s.place.category,
     badge: i + 1,
     label: `${i + 1}. ${s.place.name}`,
+    selected: s.id === selectedId,
   }))
   const path: LatLng[] = located.map((s) => ({ lat: s.place.lat!, lng: s.place.lng! }))
 
   return (
     <div className="itinerary-map">
       {/* key by day so the map re-fits when switching days */}
-      <MapView key={iso} center={path[0]} zoom={13} markers={markers} path={path} />
+      <MapView key={iso} center={path[0]} zoom={13} markers={markers} path={path} focus={focus ?? null} />
       <p className="muted small">
-        Numbered in visiting order. Lines are straight — see the connectors above for driving distance/time.
+        Click a stop above to center it. Numbered in visiting order; lines are straight — see the
+        connectors for driving distance/time.
       </p>
     </div>
   )
@@ -681,10 +721,12 @@ function PaletteItem({ place, count }: { place: Place; count: number }) {
 function StopItem({
   stop,
   connector,
+  onFocus,
   onChange,
 }: {
   stop: BoardStop
   connector: string | null
+  onFocus?: () => void
   onChange: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -720,7 +762,13 @@ function StopItem({
       <span className="stop-grip" {...listeners} {...attributes} title="Drag to reorder">⋮⋮</span>
       <span className="place-emoji">{meta.emoji}</span>
       <div className="stop-main">
-        <span className="stop-name">{stop.place.name}</span>
+        <span
+          className={`stop-name${onFocus ? ' clickable' : ''}`}
+          onClick={onFocus}
+          title={onFocus ? 'Show on map' : undefined}
+        >
+          {stop.place.name}
+        </span>
         {stop.place.notes && <span className="stop-note" title={stop.place.notes}>📝 {stop.place.notes}</span>}
         <div className="stop-times">
           <input
