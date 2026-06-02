@@ -294,6 +294,36 @@ export function ItineraryBoard({
     }
   }
 
+  // Human-friendly names for screen-reader announcements.
+  function nameForId(id: string): string {
+    if (id.startsWith('place:')) return placeMap.get(id.slice(6))?.name ?? 'place'
+    if (id.startsWith('stop:')) {
+      const s = stops.find((x) => x.id === id.slice(5))
+      return s ? placeMap.get(s.place_id)?.name ?? 'stop' : 'stop'
+    }
+    return 'item'
+  }
+  function zoneForId(id: string): string {
+    if (id === 'wishlist' || id.startsWith('place:')) return 'the places list'
+    if (id.startsWith('date:')) return formatDayLabel(id.slice(5))
+    if (id.startsWith('stop:')) {
+      for (const bd of byDate.values()) if (bd.stops.some((s) => s.id === id.slice(5))) return formatDayLabel(bd.day.date)
+    }
+    return 'a day'
+  }
+  const announcements = {
+    onDragStart: ({ active }: { active: { id: string | number } }) =>
+      `Picked up ${nameForId(String(active.id))}.`,
+    onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
+      over ? `${nameForId(String(active.id))} is over ${zoneForId(String(over.id))}.` : undefined,
+    onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
+      over
+        ? `Placed ${nameForId(String(active.id))} on ${zoneForId(String(over.id))}.`
+        : `Dropped ${nameForId(String(active.id))}.`,
+    onDragCancel: ({ active }: { active: { id: string | number } }) =>
+      `Cancelled dragging ${nameForId(String(active.id))}.`,
+  }
+
   // --- area helpers --------------------------------------------------------
   async function addArea(name: string) {
     const { error } = await supabase.from('areas').insert({ trip_id: tripId, name, sort_order: areas.length })
@@ -345,6 +375,13 @@ export function ItineraryBoard({
         collisionDetection={closestCorners}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        accessibility={{
+          announcements,
+          screenReaderInstructions: {
+            draggable:
+              'To pick up a place or stop, press space or enter. While dragging, use the arrow keys to move it between days. Press space or enter again to drop, or escape to cancel.',
+          },
+        }}
       >
         <div className="itinerary-grid">
           <PlacesPalette places={places} counts={scheduleCounts} />
@@ -498,7 +535,16 @@ function MonthCell({
     <div
       ref={setNodeRef}
       className={`month-cell${dim ? ' dim' : ''}${isOver ? ' over' : ''}${isToday ? ' today' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`${formatDayLabel(iso)}, ${stops.length} ${stops.length === 1 ? 'stop' : 'stops'}. Open day.`}
       onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
     >
       <div className="month-cell-date">{dayOfMonth(iso)}{isToday && <span className="today-dot" />}</div>
       <div className="month-cell-stops">
@@ -587,7 +633,7 @@ function DayPanel({
           {busy && <span className="busy-flag" title="Lots of travel/time packed in — consider splitting it.">⚠ busy</span>}
           {travelMin > 0 && <span className="muted small">{formatTravelTotal(travelMin)} travel</span>}
           {onClear && (
-            <button className="linklike danger" onClick={onClear} title="Clear day">×</button>
+            <button className="linklike danger" onClick={onClear} title="Clear day" aria-label="Clear day">×</button>
           )}
         </span>
       </div>
@@ -787,13 +833,34 @@ function StopItem({
         </div>
       )}
       <div className={`stop-card${isDragging ? ' dragging' : ''}`}>
-      <span className="stop-grip" {...listeners} {...attributes} title="Drag to reorder">⋮⋮</span>
+      <span
+        className="stop-grip"
+        {...listeners}
+        {...attributes}
+        title="Drag to reorder"
+        aria-label={`Reorder ${stop.place.name}`}
+      >
+        ⋮⋮
+      </span>
       <span className="place-emoji">{meta.emoji}</span>
       <div className="stop-main">
         <span
           className={`stop-name${onFocus ? ' clickable' : ''}`}
           onClick={onFocus}
           title={onFocus ? 'Show on map' : undefined}
+          role={onFocus ? 'button' : undefined}
+          tabIndex={onFocus ? 0 : undefined}
+          aria-label={onFocus ? `${stop.place.name} — show on map` : undefined}
+          onKeyDown={
+            onFocus
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onFocus()
+                  }
+                }
+              : undefined
+          }
         >
           {stop.place.name}
         </span>
@@ -829,7 +896,7 @@ function StopItem({
           />
         </div>
       </div>
-      <button className="linklike danger" onClick={remove} title="Remove from day">×</button>
+      <button className="linklike danger" onClick={remove} title="Remove from day" aria-label="Remove from day">×</button>
       </div>
     </div>
   )

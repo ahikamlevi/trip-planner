@@ -72,7 +72,7 @@ export function PackingPanel({ tripId }: { tripId: string }) {
               <input type="checkbox" checked={item.packed} onChange={() => toggle(item)} />
               <span>{item.label}</span>
             </label>
-            <button className="linklike danger" onClick={() => remove(item.id)} title="Remove">×</button>
+            <button className="linklike danger" onClick={() => remove(item.id)} title="Remove" aria-label={`Remove ${item.label}`}>×</button>
           </li>
         ))}
       </ul>

@@ -137,4 +137,12 @@ geometry via RouteProvider.getRoutePath, session-cached); trip-level notes (owne
 editable, trips.notes) + shared packing checklist (`packing_items` table, member-rw,
 live-synced). Migration `0008_notes_packing.sql`. Click-to-focus on Places tab already
 worked (selectPlace sets map focus).
-PARKED: onboarding, landing page, rate limiting, budget alerts.
+Accessibility foundation pass: keyboard focus-visible rings, prefers-reduced-motion,
+skip link, <main>/<nav> landmarks + aria-current tabs, aria-labels on icon buttons,
+keyboard-operable month cells + stop names, dnd-kit screen-reader announcements +
+instructions, map role/label, lightened --muted for AA contrast. (Formal WCAG 2.1 AA
+audit/certification deferred until UI mature / before public launch.)
+RTL: document set to dir="rtl"; CSS converted to logical properties (margin/padding/
+border/text-align inline); back-link arrows flipped. Hebrew TEXT translation NOT done
+(English strings remain) — natural next step; switch lang="he" when translated.
+PARKED: Hebrew translation, onboarding, landing page, rate limiting, budget alerts.

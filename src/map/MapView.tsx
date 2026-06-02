@@ -66,5 +66,5 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
     }
   }, [focus])
 
-  return <div ref={containerRef} className="map" />
+  return <div ref={containerRef} className="map" role="application" aria-label="Map of places" />
 }

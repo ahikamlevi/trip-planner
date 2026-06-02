@@ -165,7 +165,7 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
                 </span>
               )}
               <span className="entry-amount">{formatMoney(Number(e.amount), currency)}</span>
-              <button className="linklike danger" onClick={() => deleteEntry(e.id)}>×</button>
+              <button className="linklike danger" onClick={() => deleteEntry(e.id)} aria-label={`Delete ${e.category} entry`}>×</button>
             </li>
           ))}
         </ul>

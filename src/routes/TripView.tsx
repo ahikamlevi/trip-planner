@@ -76,7 +76,7 @@ export function TripView() {
         <AppHeader />
         <div className="page-body">
           <p className="auth-error">{error ?? 'Trip not found, or you no longer have access.'}</p>
-          <Link to="/" className="back-link">← Back to trips</Link>
+          <Link to="/" className="back-link">→ Back to trips</Link>
         </div>
       </div>
     )
@@ -85,25 +85,41 @@ export function TripView() {
   return (
     <div className="page">
       <AppHeader />
-      <div className="page-body wide">
-        <Link to="/" className="back-link">← All trips</Link>
+      <main className="page-body wide" id="main" tabIndex={-1}>
+        <Link to="/" className="back-link">→ All trips</Link>
 
         <TripHeader trip={trip} isOwner={isOwner} onChange={load} onDeleted={() => navigate('/')} />
 
-        <div className="tabs">
-          <button className={`tab${tab === 'places' ? ' active' : ''}`} onClick={() => setTab('places')}>
+        <nav className="tabs" aria-label="Trip sections">
+          <button
+            className={`tab${tab === 'places' ? ' active' : ''}`}
+            aria-current={tab === 'places' ? 'page' : undefined}
+            onClick={() => setTab('places')}
+          >
             Map &amp; places
           </button>
-          <button className={`tab${tab === 'itinerary' ? ' active' : ''}`} onClick={() => setTab('itinerary')}>
+          <button
+            className={`tab${tab === 'itinerary' ? ' active' : ''}`}
+            aria-current={tab === 'itinerary' ? 'page' : undefined}
+            onClick={() => setTab('itinerary')}
+          >
             Itinerary
           </button>
-          <button className={`tab${tab === 'budget' ? ' active' : ''}`} onClick={() => setTab('budget')}>
+          <button
+            className={`tab${tab === 'budget' ? ' active' : ''}`}
+            aria-current={tab === 'budget' ? 'page' : undefined}
+            onClick={() => setTab('budget')}
+          >
             Budget
           </button>
-          <button className={`tab${tab === 'packing' ? ' active' : ''}`} onClick={() => setTab('packing')}>
+          <button
+            className={`tab${tab === 'packing' ? ' active' : ''}`}
+            aria-current={tab === 'packing' ? 'page' : undefined}
+            onClick={() => setTab('packing')}
+          >
             Packing
           </button>
-        </div>
+        </nav>
 
         {tab === 'places' && <PlacesWorkspace tripId={trip.id} />}
         {tab === 'itinerary' && (
@@ -144,7 +160,7 @@ export function TripView() {
 
           {isOwner && <InviteForm tripId={trip.id} onInvited={load} />}
         </details>
-      </div>
+      </main>
     </div>
   )
 }

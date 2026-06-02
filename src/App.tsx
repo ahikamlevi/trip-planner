@@ -22,10 +22,15 @@ export function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/trips/:tripId" element={<TripView />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <a className="skip-link" href="#main">
+        Skip to main content
+      </a>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/trips/:tripId" element={<TripView />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }

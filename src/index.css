@@ -3,7 +3,7 @@
   --surface: #1a2129;
   --border: #2a333d;
   --text: #e6edf3;
-  --muted: #8b97a3;
+  --muted: #9aa6b2; /* lightened for AA contrast on the dark background */
   --accent: #3b82f6;
   --accent-hover: #2f6fd6;
   --error: #f87171;
@@ -15,6 +15,58 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Accessibility: a clear, consistent keyboard focus indicator everywhere. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Don't show the ring for mouse clicks, only keyboard focus. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip-to-content link, visible only when focused. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: 0.5rem;
+  top: -3rem;
+  z-index: 2000;
+  padding: 0.5rem 0.8rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* Screen-reader-only utility. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 body {
@@ -342,7 +394,7 @@ button:disabled {
 }
 
 .trip-dates {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 0.85rem;
 }
 
@@ -566,7 +618,7 @@ button.secondary.danger {
   background: var(--bg);
   border: none;
   border-radius: 0;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -609,7 +661,7 @@ button.secondary.danger {
   border: 1px solid transparent;
   border-radius: 8px;
   color: var(--text);
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -872,7 +924,7 @@ button.secondary.danger {
 
 .cal-title {
   font-weight: 600;
-  margin-left: 0.35rem;
+  margin-inline-start: 0.35rem;
 }
 
 .cal-views {
@@ -894,7 +946,7 @@ button.secondary.danger {
 }
 
 .seg + .seg {
-  border-left: 1px solid var(--border);
+  border-inline-start: 1px solid var(--border);
 }
 
 .seg.active {
@@ -1081,7 +1133,7 @@ button.secondary.danger {
   width: 2px;
   height: 14px;
   background: var(--border);
-  margin-left: 0.35rem;
+  margin-inline-start: 0.35rem;
 }
 
 .day-head-right {
@@ -1161,7 +1213,7 @@ button.secondary.danger {
 }
 
 .sched-badge {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 0.72rem;
   padding: 0.05rem 0.4rem;
   background: var(--accent);
@@ -1259,7 +1311,7 @@ button.secondary.danger {
   display: inline-block;
   width: 6px;
   height: 6px;
-  margin-left: 4px;
+  margin-inline-start: 4px;
   border-radius: 50%;
   background: var(--accent);
   vertical-align: middle;
@@ -1270,7 +1322,7 @@ button.secondary.danger {
 }
 
 .today-pill {
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1396,7 +1448,7 @@ button.secondary.danger {
 }
 
 .legend-item {
-  margin-right: 0.5rem;
+  margin-inline-end: 0.5rem;
   white-space: nowrap;
 }
 

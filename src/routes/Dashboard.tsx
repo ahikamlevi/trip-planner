@@ -44,7 +44,7 @@ export function Dashboard() {
     <div className="page">
       <AppHeader />
 
-      <div className="page-body">
+      <main className="page-body" id="main" tabIndex={-1}>
         <div className="section-head">
           <h2>Your trips</h2>
           <button onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : 'New trip'}</button>
@@ -70,7 +70,7 @@ export function Dashboard() {
             <TripGroup trips={shared} />
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }
