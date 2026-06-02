@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppHeader } from '../components/AppHeader'
+import { EmojiPicker, DEFAULT_COVER } from '../components/EmojiPicker'
 import { PlacesWorkspace } from '../places/PlacesWorkspace'
 import { ItineraryBoard } from '../itinerary/ItineraryBoard'
 import { BudgetPanel } from '../budget/BudgetPanel'
@@ -252,6 +253,7 @@ function TripHeader({
   const [start, setStart] = useState(trip.start_date ?? '')
   const [end, setEnd] = useState(trip.end_date ?? '')
   const [currency, setCurrency] = useState(trip.currency)
+  const [emoji, setEmoji] = useState<string | null>(trip.cover_emoji)
   const [saving, setSaving] = useState(false)
   const { t } = useT()
 
@@ -266,6 +268,7 @@ function TripHeader({
         start_date: start || null,
         end_date: end || null,
         currency,
+        cover_emoji: emoji,
       })
       .eq('id', trip.id)
     setSaving(false)
@@ -286,6 +289,7 @@ function TripHeader({
           {t('trip.name')}
           <input value={name} required onChange={(e) => setName(e.target.value)} />
         </label>
+        <EmojiPicker value={emoji} onChange={setEmoji} label={t('trip.coverEmoji')} />
         <label>
           {t('trip.country')}
           <input value={country} onChange={(e) => setCountry(e.target.value)} />
@@ -318,12 +322,15 @@ function TripHeader({
 
   return (
     <div className="trip-head">
-      <div>
-        <h1>{trip.name}</h1>
-        <p className="muted">
-          {trip.country ?? t('tripview.noCountry')}
-          {(trip.start_date || trip.end_date) && ` · ${trip.start_date ?? '?'} → ${trip.end_date ?? '?'}`}
-        </p>
+      <div className="trip-head-title">
+        <span className="trip-head-emoji" aria-hidden="true">{trip.cover_emoji || DEFAULT_COVER}</span>
+        <div className="trip-head-meta">
+          <h1>{trip.name}</h1>
+          <p className="muted">
+            {trip.country ?? t('tripview.noCountry')}
+            {(trip.start_date || trip.end_date) && ` · ${trip.start_date ?? '?'} → ${trip.end_date ?? '?'}`}
+          </p>
+        </div>
       </div>
       {isOwner && (
         <div className="button-row">

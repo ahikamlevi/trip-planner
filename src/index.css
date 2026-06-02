@@ -1791,6 +1791,220 @@ button.secondary.danger {
 
 /* Green ring on the wishlist emoji isn't needed; suggestion pins are green on the map. */
 
+/* ---- Phase 0 polish: empty states, skeletons, landing ---- */
+
+/* Empty states */
+.empty-emoji {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.empty-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+.empty-state button {
+  margin-top: 1rem;
+}
+
+/* Loading skeletons */
+.skeleton {
+  display: inline-block;
+  height: 0.9em;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.skeleton-row {
+  pointer-events: none;
+}
+.skeleton-text {
+  height: 1rem;
+}
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--surface-2);
+  }
+}
+
+/* Landing (logged-out) */
+.landing {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+.landing-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.landing-top .app-title {
+  font-size: 1.15rem;
+}
+.landing-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.landing-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2.5rem;
+  align-items: center;
+  margin: 1.5rem 0 3rem;
+}
+.landing-hero-text h1 {
+  font-size: 2.4rem;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+.landing-sub {
+  font-size: 1.1rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+.landing-points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.landing-points li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.landing-points span {
+  color: var(--accent);
+  font-weight: 700;
+}
+.landing-auth {
+  display: flex;
+  justify-content: center;
+}
+.landing-auth .auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+.landing-features {
+  margin-top: 1rem;
+}
+.landing-features h2 {
+  text-align: center;
+  font-size: 1.4rem;
+  margin-bottom: 1.25rem;
+}
+.landing-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+.landing-feature {
+  margin: 0;
+  text-align: center;
+}
+.landing-feature-emoji {
+  font-size: 1.8rem;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+.landing-feature p {
+  margin: 0.35rem 0 0;
+}
+
+@media (max-width: 760px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .landing-hero-text h1 {
+    font-size: 1.9rem;
+  }
+  .landing-feature-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Trip cover emoji */
+.trip-cover {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex: 0 0 auto;
+  width: 2rem;
+  text-align: center;
+}
+.trip-link-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.trip-head-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.trip-head-emoji {
+  font-size: 2.1rem;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.trip-head-meta h1 {
+  margin: 0 0 0.2rem;
+}
+
+/* Emoji picker (trip cover) */
+.emoji-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.emoji-picker-label {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.emoji-choice {
+  margin: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+}
+.emoji-choice:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.emoji-choice.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* When printing, show only the allergy card. */
 @media print {
   body * {

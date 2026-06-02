@@ -27,13 +27,18 @@ The visible layer. What a new user judges in the first 30 seconds.
   colors into `:root` + `:root[data-theme="dark"]`; `ThemeProvider` sets
   `data-theme` on `<html>`. Accent nudged to teal-700 in light for AA contrast on
   white-text buttons. (Next polish items below remain.)
-- ☐ **Landing page** for logged-out visitors (value prop, screenshots, CTA).
-- ☐ **Empty states** with guidance (no trips, no places, no days yet).
-- ☐ **"Deleted · Undo" toasts** (upgrade from confirm() dialogs).
-- ☐ **Trip cover image / emoji** + **photos on places** (Supabase Storage).
-- ☐ **Per-day weather** (forecast within range, historical-average beyond).
-- ☐ **Export / print** a clean itinerary (PDF + offline).
-- ☐ **Loading skeletons** instead of "Loading…" text.
+- ☑ **Landing page** for logged-out visitors (hero, value-prop bullets, feature grid,
+  embedded sign-in; theme + language available logged-out). `src/routes/Landing.tsx`.
+- ☑ **Empty states** with guidance (dashboard: emoji + title + CTA button).
+- ☑ **Loading skeletons** (shimmer rows on the dashboard; reduced-motion aware).
+- ◐ **Trip cover emoji** done (preset picker on create + edit; shown on dashboard
+  cards and trip header; migration `0010`). **Photos on places / image uploads**
+  still pending (needs Supabase Storage).
+- ☐ **"Deleted · Undo" toasts** (upgrade from confirm() dialogs). Note: the
+  instant-save + realtime model makes true undo non-trivial — likely a deferred-
+  delete toast pattern.
+- ☐ **Per-day weather** (Open-Meteo, keyless; forecast within range).
+- ☐ **Export / print** a clean itinerary (print stylesheet → PDF).
 
 ## Phase 1 — Platform hardening (launch gate)
 Required before any real traffic.

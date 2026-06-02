@@ -75,10 +75,11 @@ They are mostly idempotent.
 | `0007_realtime.sql` | adds tables to `supabase_realtime` publication (live sync) |
 | `0008_notes_packing.sql` | `trips.notes` + `packing_items` table + RLS + realtime |
 | `0009_dietary.sql` | `profiles.dietary_restrictions` (text[]) + `profiles.dietary_note` + `places.dietary_notes` |
+| `0010_trip_cover.sql` | `trips.cover_emoji` (optional cover emoji shown on dashboard + trip header) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
-- `trips` (name, country, start_date, end_date, owner_id, currency, notes)
+- `trips` (name, country, start_date, end_date, owner_id, currency, notes, cover_emoji)
 - `trip_members` (trip_id, user_id, role: owner|editor)
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)

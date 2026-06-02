@@ -44,6 +44,7 @@ export interface Database {
           owner_id: string
           currency: string
           notes: string | null
+          cover_emoji: string | null
           created_at: string
         }
         Insert: {
@@ -55,6 +56,7 @@ export interface Database {
           owner_id: string
           currency?: string
           notes?: string | null
+          cover_emoji?: string | null
           created_at?: string
         }
         Update: {
@@ -66,6 +68,7 @@ export interface Database {
           owner_id?: string
           currency?: string
           notes?: string | null
+          cover_emoji?: string | null
           created_at?: string
         }
         Relationships: []

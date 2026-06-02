@@ -630,7 +630,7 @@ function DayPanel({
         )}
         <span className="day-head-right">
           {busy && <span className="busy-flag" title={t('itin.busyTitle')}>{t('itin.busy')}</span>}
-          {travelMin > 0 && <span className="muted small">{formatTravelTotal(travelMin)} {t('itin.travel')}</span>}
+          {travelMin > 0 && <span className="muted small"><bdi dir="ltr">{formatTravelTotal(travelMin)}</bdi> {t('itin.travel')}</span>}
           {onClear && (
             <button className="linklike danger" onClick={onClear} title={t('itin.clearDay')} aria-label={t('itin.clearDay')}>×</button>
           )}
@@ -832,7 +832,8 @@ function StopItem({
       {connector && (
         <div className="stop-connector">
           <span className="connector-line" />
-          🚗 {connector}
+          {/* Numbers + units are LTR data; isolate so it doesn't reorder under RTL. */}
+          <bdi className="connector-text" dir="ltr">🚗 {connector}</bdi>
         </div>
       )}
       <div className={`stop-card${isDragging ? ' dragging' : ''}`}>

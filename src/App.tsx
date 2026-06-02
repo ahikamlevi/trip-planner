@@ -1,8 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
-import { Login } from './auth/Login'
 import { PasswordRecoveryScreen } from './auth/SetPassword'
 import { useT } from './i18n/I18nProvider'
+import { Landing } from './routes/Landing'
 import { Dashboard } from './routes/Dashboard'
 import { TripView } from './routes/TripView'
 
@@ -20,7 +20,7 @@ export function App() {
   }
 
   if (!session) {
-    return <Login />
+    return <Landing />
   }
 
   return (
