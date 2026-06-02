@@ -1,13 +1,23 @@
 // POI discovery via OpenStreetMap's Overpass API — no API key.
 // Same data behind your map tiles, so suggestions line up with what's drawn.
-// Usage policy: keep volume low (we only query on an explicit button press). For a
-// public launch this would move behind an Edge Function with caching, like search.ts.
-import type { DiscoveryProvider, DiscoveryResult } from './DiscoveryProvider'
+//
+// Reliability: the public Overpass servers rate-limit and occasionally time out, so
+// we fail over across several mirrors and give each a client-side timeout. Coverage
+// still depends on what OSM contributors tagged — for a polished public product this
+// would move to a paid POI provider (Foursquare) behind an Edge Function with caching.
+import type { DiscoveryProvider, DiscoveryQuery, DiscoveryResult } from './DiscoveryProvider'
 
 // Food-ish amenities we treat as "places to eat".
 const FOOD_AMENITIES = 'restaurant|cafe|fast_food|bar|pub|ice_cream|biergarten'
 
-const ENDPOINT = 'https://overpass-api.de/api/interpreter'
+// Tried in order; on rate-limit / timeout / network error we move to the next.
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+]
+
+const REQUEST_TIMEOUT_MS = 15_000
 
 interface OverpassElement {
   type: 'node' | 'way' | 'relation'
@@ -18,39 +28,65 @@ interface OverpassElement {
   tags?: Record<string, string>
 }
 
-export const discoverViaOverpass: DiscoveryProvider = async (q, signal) => {
+function buildQuery(q: DiscoveryQuery): string {
   const { south, west, north, east } = q.bounds
   const bbox = `${south},${west},${north},${east}`
+  const base = `["amenity"~"^(${FOOD_AMENITIES})$"]["name"]`
+  const limit = q.limit ?? 50
 
-  // Each selected diet adds an AND filter on the same element ("fits everyone").
-  // diet:<x>=yes|only are the values that mean "we serve this".
-  const dietFilters = q.diets.map((d) => `["diet:${d}"~"yes|only"]`).join('')
+  let body: string
+  if (q.diets.length === 0) {
+    body = `nwr${base}(${bbox});`
+  } else if (q.diets.length === 1) {
+    // Single diet: match the diet:* tag OR a matching cuisine value. Many kosher/
+    // halal/vegan spots are tagged cuisine=<diet> rather than diet:<x>=yes.
+    const d = q.diets[0]
+    body =
+      `nwr${base}["diet:${d}"~"yes|only"](${bbox});` +
+      `nwr${base}["cuisine"~"${d}"](${bbox});`
+  } else {
+    // Multiple diets: must satisfy ALL of them ("fits everyone").
+    const dietFilters = q.diets.map((d) => `["diet:${d}"~"yes|only"]`).join('')
+    body = `nwr${base}${dietFilters}(${bbox});`
+  }
 
-  // nwr = nodes + ways + relations; `out center` gives ways/relations a point.
-  const ql =
-    `[out:json][timeout:25];` +
-    `nwr["amenity"~"^(${FOOD_AMENITIES})$"]["name"]${dietFilters}(${bbox});` +
-    `out center ${q.limit ?? 50};`
+  return `[out:json][timeout:25];(${body});out center ${limit};`
+}
 
-  const res = await fetch(ENDPOINT, {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(ql),
-    signal,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  })
-  if (!res.ok) throw new Error(`Discovery failed (${res.status})`)
+async function postWithTimeout(
+  url: string,
+  body: string,
+  signal: AbortSignal | undefined,
+  ms: number,
+): Promise<Response> {
+  const ctrl = new AbortController()
+  const onAbort = () => ctrl.abort()
+  signal?.addEventListener('abort', onAbort)
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      body,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: ctrl.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', onAbort)
+  }
+}
 
-  const json: { elements?: OverpassElement[] } = await res.json()
+function parseElements(elements: OverpassElement[]): DiscoveryResult[] {
   const seen = new Set<string>()
   const out: DiscoveryResult[] = []
-
-  for (const el of json.elements ?? []) {
+  for (const el of elements) {
     const lat = el.lat ?? el.center?.lat
     const lng = el.lon ?? el.center?.lon
     const name = el.tags?.name
     if (lat == null || lng == null || !name) continue
 
-    // De-dupe a place that exists as both a node and a way/relation.
+    // De-dupe a place that exists as both a node and a way/relation, and across the
+    // two union branches (diet tag + cuisine) for the single-diet case.
     const key = `${name}@${lat.toFixed(4)},${lng.toFixed(4)}`
     if (seen.has(key)) continue
     seen.add(key)
@@ -64,6 +100,31 @@ export const discoverViaOverpass: DiscoveryProvider = async (q, signal) => {
       cuisine: el.tags?.cuisine?.replace(/[_;]/g, ' '),
     })
   }
-
   return out
+}
+
+export const discoverViaOverpass: DiscoveryProvider = async (q, signal) => {
+  const body = 'data=' + encodeURIComponent(buildQuery(q))
+  let lastError: unknown = null
+
+  for (const endpoint of ENDPOINTS) {
+    if (signal?.aborted) break
+    try {
+      const res = await postWithTimeout(endpoint, body, signal, REQUEST_TIMEOUT_MS)
+      if (!res.ok) {
+        // 429 (rate limit) / 504 (timeout) / 503 (overloaded) → try the next mirror.
+        lastError = new Error(`status ${res.status}`)
+        continue
+      }
+      const json: { elements?: OverpassElement[] } = await res.json()
+      return parseElements(json.elements ?? [])
+    } catch (err) {
+      // A real user-initiated abort should propagate; mirror failures fall through.
+      if (signal?.aborted) throw err
+      lastError = err
+      continue
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Discovery unavailable')
 }
