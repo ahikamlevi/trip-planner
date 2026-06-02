@@ -129,6 +129,7 @@ export function TripView() {
                     <button
                       className="linklike danger"
                       onClick={async () => {
+                        if (!confirm('Remove this person from the trip? They will lose access.')) return
                         await supabase.from('trip_members').delete().eq('trip_id', trip.id).eq('user_id', m.user_id)
                         void load()
                       }}

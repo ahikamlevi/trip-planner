@@ -355,7 +355,14 @@ function PlaceEditor({
         >
           Save
         </button>
-        <button className="secondary danger" onClick={onDelete}>Delete</button>
+        <button
+          className="secondary danger"
+          onClick={() => {
+            if (confirm(`Delete “${place.name}”? This also removes it from any days it's on.`)) onDelete()
+          }}
+        >
+          Delete
+        </button>
       </div>
     </div>
   )

@@ -95,6 +95,7 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
   }
 
   async function deleteEntry(id: string) {
+    if (!confirm('Delete this cost entry?')) return
     await supabase.from('budget_entries').delete().eq('id', id)
     load()
   }
