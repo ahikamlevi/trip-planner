@@ -25,7 +25,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useT } from '../i18n/I18nProvider'
 import type { Area, Day, Place, Stop } from '../lib/database.types'
-import { categoryMeta } from '../places/categories'
+import { categoryMeta, placeColor } from '../places/categories'
 import { MapView } from '../map/MapView'
 import type { MapMarker } from '../map'
 import { getRouteCached, getRoutePathCached, legKey, type LatLng, type RouteLeg } from '../routing'
@@ -721,6 +721,7 @@ function ItineraryDayMap({
     id: s.id,
     position: { lat: s.place.lat!, lng: s.place.lng! },
     category: s.place.category,
+    color: s.place.color ?? undefined,
     badge: i + 1,
     label: `${i + 1}. ${s.place.name}`,
     selected: s.id === selectedId,
@@ -782,7 +783,11 @@ function PaletteItem({ place, count }: { place: Place; count: number }) {
     <div
       ref={setNodeRef}
       className={`drag-card${isDragging ? ' dragging' : ''}`}
-      style={transform ? { transform: CSS.Translate.toString(transform) } : undefined}
+      style={{
+        ...(transform ? { transform: CSS.Translate.toString(transform) } : {}),
+        borderInlineStartColor: placeColor(place.category, place.color),
+        borderInlineStartWidth: 3,
+      }}
       {...listeners}
       {...attributes}
     >
@@ -836,7 +841,10 @@ function StopItem({
           <bdi className="connector-text" dir="ltr">🚗 {connector}</bdi>
         </div>
       )}
-      <div className={`stop-card${isDragging ? ' dragging' : ''}`}>
+      <div
+        className={`stop-card${isDragging ? ' dragging' : ''}`}
+        style={{ borderInlineStartColor: placeColor(stop.place.category, stop.place.color), borderInlineStartWidth: 3 }}
+      >
       <span
         className="stop-grip"
         {...listeners}

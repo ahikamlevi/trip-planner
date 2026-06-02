@@ -6,8 +6,8 @@ import { useT } from '../i18n/I18nProvider'
 import type { Place, PlaceCategory } from '../lib/database.types'
 import { MapView, type MapApi } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
-import { CATEGORIES, categoryMeta } from './categories'
-import { searchPlaces, type SearchResult } from './search'
+import { CATEGORIES, categoryMeta, placeColor, PLACE_COLORS } from './categories'
+import { searchPlaces, reverseCity, type SearchResult } from './search'
 import { discoverPlaces, DIET_FILTERS, type DietFilter, type DiscoveryResult } from '../discovery'
 
 // Profile restriction tags that map to a queryable OSM diet filter.
@@ -46,6 +46,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focus, setFocus] = useState<LatLng | null>(null)
   const [dropMode, setDropMode] = useState(false)
+  const [catFilter, setCatFilter] = useState<PlaceCategory | 'all'>('all')
+  const [cityFilter, setCityFilter] = useState<string>('all')
 
   // --- Discovery (find places nearby via Overpass) ---
   const mapApiRef = useRef<MapApi | null>(null)
@@ -90,7 +92,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   useTripRealtime(tripId, load)
 
   const addPlace = useCallback(
-    async (input: { name: string; lat: number; lng: number; category?: PlaceCategory }) => {
+    async (input: { name: string; lat: number; lng: number; category?: PlaceCategory; city?: string }) => {
       const { data, error } = await supabase
         .from('places')
         .insert({
@@ -99,6 +101,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           lat: input.lat,
           lng: input.lng,
           category: input.category ?? 'sight',
+          city: input.city ?? null,
           scheduled: false,
         })
         .select('*')
@@ -177,6 +180,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         id: p.id,
         position: { lat: p.lat as number, lng: p.lng as number },
         category: p.category,
+        color: p.color ?? undefined,
         label: p.name,
         selected: p.id === selectedId,
         popup: placePopupHtml(p, t(`cat.${p.category}`)),
@@ -203,6 +207,24 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
   const center = located[0] ? { lat: located[0].lat as number, lng: located[0].lng as number } : DEFAULT_CENTER
   const selected = places?.find((p) => p.id === selectedId) ?? null
+
+  const cityOptions = useMemo(
+    () =>
+      [...new Set((places ?? []).map((p) => p.city).filter(Boolean) as string[])].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [places],
+  )
+  const filtered = catFilter !== 'all' || cityFilter !== 'all'
+  const filteredPlaces = useMemo(
+    () =>
+      (places ?? []).filter(
+        (p) =>
+          (catFilter === 'all' || p.category === catFilter) &&
+          (cityFilter === 'all' || p.city === cityFilter),
+      ),
+    [places, catFilter, cityFilter],
+  )
 
   function selectPlace(id: string) {
     setSelectedId(id)
@@ -283,7 +305,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           onMapClick={
             dropMode
               ? (pos) => {
-                  void addPlace({ name: t('places.newPlace'), lat: pos.lat, lng: pos.lng })
+                  void (async () => {
+                    const city = await reverseCity(pos.lat, pos.lng)
+                    await addPlace({ name: t('places.newPlace'), lat: pos.lat, lng: pos.lng, city })
+                  })()
                   setDropMode(false)
                 }
               : undefined
@@ -324,23 +349,53 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           <div className="wishlist">
             <div className="wishlist-head">
               <span>{t('places.wishlist')}</span>
-              <span className="muted">{places?.length ?? 0}</span>
+              <span className="muted">{filteredPlaces.length}{filtered ? ` / ${places?.length ?? 0}` : ''}</span>
             </div>
+
+            {(places?.length ?? 0) > 0 && (
+              <div className="place-filters">
+                <select value={catFilter} onChange={(e) => setCatFilter(e.target.value as PlaceCategory | 'all')} aria-label={t('places.filterCategory')}>
+                  <option value="all">{t('places.allCategories')}</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c.key} value={c.key}>{c.emoji} {t(`cat.${c.key}`)}</option>
+                  ))}
+                </select>
+                {cityOptions.length > 0 && (
+                  <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} aria-label={t('places.filterCity')}>
+                    <option value="all">{t('places.allCities')}</option>
+                    {cityOptions.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                )}
+                {filtered && (
+                  <button className="linklike" onClick={() => { setCatFilter('all'); setCityFilter('all') }}>
+                    {t('places.clearFilters')}
+                  </button>
+                )}
+              </div>
+            )}
+
             {places === null && <p className="muted">{t('common.loading')}</p>}
             {places !== null && places.length === 0 && (
               <p className="muted small">{t('places.emptyHint')}</p>
             )}
+            {places !== null && places.length > 0 && filteredPlaces.length === 0 && (
+              <p className="muted small">{t('places.noneMatch')}</p>
+            )}
             <ul className="place-list">
-              {(places ?? []).map((p) => {
+              {filteredPlaces.map((p) => {
                 const meta = categoryMeta(p.category)
                 return (
                   <li key={p.id}>
                     <button
                       className={`place-row${p.id === selectedId ? ' active' : ''}`}
                       onClick={() => selectPlace(p.id)}
+                      style={{ borderInlineStartColor: placeColor(p.category, p.color), borderInlineStartWidth: 3 }}
                     >
                       <span className="place-emoji" title={t(`cat.${p.category}`)}>{meta.emoji}</span>
                       <span className="place-row-name">{p.name}</span>
+                      {p.city && <span className="muted small place-city">{p.city}</span>}
                       {p.est_cost != null && <span className="muted small">{p.est_cost}</span>}
                       {(p.lat == null || p.lng == null) && (
                         <span className="muted small">{t('places.noPin')}</span>
@@ -369,7 +424,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 function PlaceSearch({
   onAdd,
 }: {
-  onAdd: (input: { name: string; lat: number; lng: number }) => void
+  onAdd: (input: { name: string; lat: number; lng: number; city?: string }) => void
 }) {
   const { t } = useT()
   const [query, setQuery] = useState('')
@@ -415,7 +470,7 @@ function PlaceSearch({
             <li key={i}>
               <button
                 onClick={() => {
-                  onAdd({ name: r.name, lat: r.lat, lng: r.lng })
+                  onAdd({ name: r.name, lat: r.lat, lng: r.lng, city: r.city })
                   setQuery('')
                   setResults([])
                 }}
@@ -449,6 +504,8 @@ function PlaceEditor({
   const [hours, setHours] = useState(place.opening_hours ?? '')
   const [dietary, setDietary] = useState(place.dietary_notes ?? '')
   const [cost, setCost] = useState(place.est_cost?.toString() ?? '')
+  const [city, setCity] = useState(place.city ?? '')
+  const [color, setColor] = useState<string | null>(place.color)
 
   return (
     <div className="place-editor">
@@ -477,6 +534,37 @@ function PlaceEditor({
             </button>
           ))}
         </div>
+      </label>
+
+      <label>
+        {t('places.color')}
+        <div className="color-swatches">
+          <button
+            type="button"
+            className={`color-swatch none${color === null ? ' active' : ''}`}
+            title={t('places.colorDefault')}
+            aria-label={t('places.colorDefault')}
+            onClick={() => setColor(null)}
+          >
+            ✕
+          </button>
+          {PLACE_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`color-swatch${color === c ? ' active' : ''}`}
+              style={{ background: c }}
+              aria-label={c}
+              aria-pressed={color === c}
+              onClick={() => setColor(c)}
+            />
+          ))}
+        </div>
+      </label>
+
+      <label>
+        {t('places.city')}
+        <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={t('places.cityHint')} />
       </label>
 
       <div className="form-row">
@@ -521,6 +609,8 @@ function PlaceEditor({
               notes: notes.trim() || null,
               opening_hours: hours.trim() || null,
               dietary_notes: dietary.trim() || null,
+              color,
+              city: city.trim() || null,
               est_cost: cost.trim() === '' ? null : Number(cost),
             })
           }

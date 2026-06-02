@@ -76,6 +76,7 @@ They are mostly idempotent.
 | `0008_notes_packing.sql` | `trips.notes` + `packing_items` table + RLS + realtime |
 | `0009_dietary.sql` | `profiles.dietary_restrictions` (text[]) + `profiles.dietary_note` + `places.dietary_notes` |
 | `0010_trip_cover.sql` | `trips.cover_emoji` (optional cover emoji shown on dashboard + trip header) |
+| `0011_place_color_city.sql` | `places.color` (per-place color label) + `places.city` (auto-captured, editable; used for filtering) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
@@ -83,7 +84,7 @@ They are mostly idempotent.
 - `trip_members` (trip_id, user_id, role: owner|editor)
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)
-- `places` (trip_id, name, lat, lng, category[food|sight|beach|hotel|transport], google_place_id, notes, opening_hours, dietary_notes, est_cost, scheduled[UNUSED now])
+- `places` (trip_id, name, lat, lng, category[food|sight|beach|hotel|transport], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, scheduled[UNUSED now])
 - `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost)
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
@@ -163,6 +164,14 @@ authenticated user (cache only). Types hand-authored in
     `src/i18n/strings.ts`, `I18nProvider`/`useT()`, header language switcher,
     persists choice, flips `dir`/`lang` (he=rtl, en=ltr), default Hebrew. Dates and
     currency are locale-aware via `Intl`.
+  - **Per-place color labels** (Google-Calendar style): preset palette in the place
+    editor, overriding the category color; applied to map pins, wishlist rows,
+    palette cards, and itinerary stop cards (falls back to category color).
+  - **Place city + filtering**: city auto-captured on add (Nominatim search address /
+    reverse-geocode for dropped pins) and user-editable; wishlist filters by category
+    and city.
+  - **Mobile drag fix**: palette/stop cards used `touch-action: none`, which blocked
+    scrolling and cancelled hold-to-drag on touch → changed to `pan-y`.
   - **Theming** ("Daylight Teal"): light (default) + refined dark, system-aware, with
     a header toggle persisted in localStorage. All colors are CSS tokens in `:root` /
     `:root[data-theme="dark"]`; `ThemeProvider` (`src/theme/`) sets `data-theme` on

@@ -91,6 +91,8 @@ export interface Database {
           notes: string | null
           opening_hours: string | null
           dietary_notes: string | null
+          color: string | null
+          city: string | null
           est_cost: number | null
           scheduled: boolean
           created_at: string
@@ -106,6 +108,8 @@ export interface Database {
           notes?: string | null
           opening_hours?: string | null
           dietary_notes?: string | null
+          color?: string | null
+          city?: string | null
           est_cost?: number | null
           scheduled?: boolean
           created_at?: string
@@ -121,6 +125,8 @@ export interface Database {
           notes?: string | null
           opening_hours?: string | null
           dietary_notes?: string | null
+          color?: string | null
+          city?: string | null
           est_cost?: number | null
           scheduled?: boolean
           created_at?: string

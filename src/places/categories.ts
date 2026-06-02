@@ -20,3 +20,23 @@ export const CATEGORIES: CategoryMeta[] = [
 export function categoryMeta(key: PlaceCategory): CategoryMeta {
   return CATEGORIES.find((c) => c.key === key) ?? CATEGORIES[1]
 }
+
+// Optional per-place color labels (Google-Calendar style). When a place has no
+// color, we fall back to its category color so pins/cards still read at a glance.
+export const PLACE_COLORS = [
+  '#ef4444', // red
+  '#f97316', // orange
+  '#f59e0b', // amber
+  '#84cc16', // lime
+  '#10b981', // emerald
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#6366f1', // indigo
+  '#a855f7', // purple
+  '#ec4899', // pink
+  '#64748b', // slate
+] as const
+
+export function placeColor(category: PlaceCategory, color?: string | null): string {
+  return color || categoryMeta(category).color
+}
