@@ -4,4 +4,4 @@ import { createLeafletRenderer } from './leaflet/LeafletRenderer'
 import type { MapRendererFactory } from './MapRenderer'
 
 export const createMapRenderer: MapRendererFactory = createLeafletRenderer
-export type { LatLng, MapMarker, MapRenderer } from './MapRenderer'
+export type { LatLng, MapBounds, MapMarker, MapRenderer } from './MapRenderer'

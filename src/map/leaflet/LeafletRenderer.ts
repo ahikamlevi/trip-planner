@@ -1,10 +1,10 @@
 import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { MapMarker, MapRenderer, MapRendererOptions } from '../MapRenderer'
+import type { MapBounds, MapMarker, MapRenderer, MapRendererOptions } from '../MapRenderer'
 import { categoryMeta } from '../../places/categories'
 
 function pinIcon(marker: MapMarker): L.DivIcon {
-  const { color } = categoryMeta(marker.category)
+  const color = marker.color ?? categoryMeta(marker.category).color
   const hasBadge = marker.badge != null
   const size = marker.selected ? 28 : hasBadge ? 24 : 18
   const ring = marker.selected ? 'box-shadow:0 0 0 4px rgba(59,130,246,.45);' : ''
@@ -69,6 +69,10 @@ export function createLeafletRenderer(opts: MapRendererOptions): MapRenderer {
       if (markers.length === 0) return
       const bounds = L.latLngBounds(markers.map((m) => [m.position.lat, m.position.lng]))
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
+    },
+    getBounds(): MapBounds {
+      const b = map.getBounds()
+      return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }
     },
     destroy() {
       map.remove()

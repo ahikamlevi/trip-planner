@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { createMapRenderer, type LatLng, type MapMarker, type MapRenderer } from './index'
+import { createMapRenderer, type LatLng, type MapBounds, type MapMarker, type MapRenderer } from './index'
 import { useT } from '../i18n/I18nProvider'
+
+/** Small imperative handle the parent can hold to read map state on demand. */
+export interface MapApi {
+  getBounds: () => MapBounds | null
+}
 
 interface MapViewProps {
   center: LatLng
@@ -12,9 +17,11 @@ interface MapViewProps {
   focus?: LatLng | null
   onMapClick?: (pos: LatLng) => void
   onMarkerClick?: (id: string) => void
+  /** Called once the map is created, handing back an imperative API. */
+  onReady?: (api: MapApi) => void
 }
 
-export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, onMarkerClick }: MapViewProps) {
+export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, onMarkerClick, onReady }: MapViewProps) {
   const { t } = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<MapRenderer | null>(null)
@@ -23,8 +30,10 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
   // Keep callbacks fresh without recreating the map.
   const onMapClickRef = useRef(onMapClick)
   const onMarkerClickRef = useRef(onMarkerClick)
+  const onReadyRef = useRef(onReady)
   onMapClickRef.current = onMapClick
   onMarkerClickRef.current = onMarkerClick
+  onReadyRef.current = onReady
 
   // Create the map once.
   useEffect(() => {
@@ -37,6 +46,7 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
       onMarkerClick: (id) => onMarkerClickRef.current?.(id),
     })
     rendererRef.current = renderer
+    onReadyRef.current?.({ getBounds: () => renderer.getBounds() })
     return () => {
       renderer.destroy()
       rendererRef.current = null

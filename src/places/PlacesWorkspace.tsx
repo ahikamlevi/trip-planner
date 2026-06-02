@@ -1,12 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../auth/AuthProvider'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useT } from '../i18n/I18nProvider'
 import type { Place, PlaceCategory } from '../lib/database.types'
-import { MapView } from '../map/MapView'
+import { MapView, type MapApi } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
 import { CATEGORIES, categoryMeta } from './categories'
 import { searchPlaces, type SearchResult } from './search'
+import { discoverPlaces, DIET_FILTERS, type DietFilter, type DiscoveryResult } from '../discovery'
+
+// Profile restriction tags that map to a queryable OSM diet filter.
+const RESTRICTION_TO_DIET: Record<string, DietFilter> = {
+  vegan: 'vegan',
+  vegetarian: 'vegetarian',
+  kosher: 'kosher',
+  halal: 'halal',
+  gluten: 'gluten_free',
+}
+
+const SUGGESTION_COLOR = '#22c55e'
 
 const DEFAULT_CENTER: LatLng = { lat: 20, lng: 0 }
 const DEFAULT_ZOOM = 2
@@ -26,11 +39,39 @@ function placePopupHtml(p: Place, catLabel: string): string {
 
 export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const { t } = useT()
+  const { session } = useAuth()
+  const uid = session!.user.id
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focus, setFocus] = useState<LatLng | null>(null)
   const [dropMode, setDropMode] = useState(false)
+
+  // --- Discovery (find places nearby via Overpass) ---
+  const mapApiRef = useRef<MapApi | null>(null)
+  const [diets, setDiets] = useState<DietFilter[]>([])
+  const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>([])
+  const [discoBusy, setDiscoBusy] = useState(false)
+  const [discoMsg, setDiscoMsg] = useState<string | null>(null)
+  const [myRestrictions, setMyRestrictions] = useState<string[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('dietary_restrictions')
+      .eq('id', uid)
+      .maybeSingle()
+      .then(({ data }) => setMyRestrictions(data?.dietary_restrictions ?? []))
+  }, [uid])
+
+  const myDietFilters = useMemo(
+    () => [...new Set(myRestrictions.map((r) => RESTRICTION_TO_DIET[r]).filter(Boolean) as DietFilter[])],
+    [myRestrictions],
+  )
+
+  function toggleDiet(d: DietFilter) {
+    setDiets((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+  }
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -75,6 +116,35 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     [tripId, load],
   )
 
+  const runDiscovery = useCallback(
+    async (useDiets: DietFilter[]) => {
+      const bounds = mapApiRef.current?.getBounds()
+      if (!bounds) return
+      setDiscoBusy(true)
+      setDiscoMsg(null)
+      try {
+        const results = await discoverPlaces({ bounds, diets: useDiets, limit: 50 })
+        setDiscoveries(results)
+        setDiscoMsg(results.length === 0 ? t('disco.none') : null)
+      } catch {
+        setDiscoMsg(t('disco.failed'))
+      } finally {
+        setDiscoBusy(false)
+      }
+    },
+    [t],
+  )
+
+  function matchMyRestrictions() {
+    setDiets(myDietFilters)
+    void runDiscovery(myDietFilters)
+  }
+
+  async function addDiscovery(d: DiscoveryResult) {
+    setDiscoveries((prev) => prev.filter((x) => x.id !== d.id))
+    await addPlace({ name: d.name, lat: d.lat, lng: d.lng, category: 'food' })
+  }
+
   const updatePlace = useCallback(
     async (id: string, patch: Partial<Place>) => {
       const { error } = await supabase.from('places').update(patch).eq('id', id)
@@ -114,6 +184,23 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     [located, selectedId, t],
   )
 
+  const discoMarkers: MapMarker[] = useMemo(
+    () =>
+      discoveries.map((d) => ({
+        id: 'disco:' + d.id,
+        position: { lat: d.lat, lng: d.lng },
+        category: 'food',
+        color: SUGGESTION_COLOR,
+        label: d.name,
+        popup: `<div class="map-popup"><strong>${escapeHtml(d.name)}</strong><div>🌱 ${escapeHtml(
+          d.kind,
+        )}${d.cuisine ? ' · ' + escapeHtml(d.cuisine) : ''}</div></div>`,
+      })),
+    [discoveries],
+  )
+
+  const allMarkers = useMemo(() => [...markers, ...discoMarkers], [markers, discoMarkers])
+
   const center = located[0] ? { lat: located[0].lat as number, lng: located[0].lng as number } : DEFAULT_CENTER
   const selected = places?.find((p) => p.id === selectedId) ?? null
 
@@ -121,6 +208,15 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     setSelectedId(id)
     const p = places?.find((x) => x.id === id)
     if (p?.lat != null && p?.lng != null) setFocus({ lat: p.lat, lng: p.lng })
+  }
+
+  function handleMarkerClick(id: string) {
+    if (id.startsWith('disco:')) {
+      const d = discoveries.find((x) => 'disco:' + x.id === id)
+      if (d) void addDiscovery(d)
+      return
+    }
+    selectPlace(id)
   }
 
   return (
@@ -131,6 +227,39 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       <div className="places-top">
         <PlaceSearch onAdd={addPlace} />
       </div>
+
+      <div className="discovery-bar">
+        <span className="discovery-label small">{t('disco.find')}</span>
+        <div className="cat-chips diet-chips">
+          {DIET_FILTERS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={`cat-chip${diets.includes(d) ? ' active' : ''}`}
+              aria-pressed={diets.includes(d)}
+              onClick={() => toggleDiet(d)}
+            >
+              {t(`disco.diet.${d}`)}
+            </button>
+          ))}
+        </div>
+        <div className="discovery-actions">
+          <button onClick={() => void runDiscovery(diets)} disabled={discoBusy}>
+            {discoBusy ? t('disco.searching') : t('disco.searchArea')}
+          </button>
+          {myDietFilters.length > 0 && (
+            <button className="secondary" onClick={matchMyRestrictions} disabled={discoBusy}>
+              {t('disco.matchMine')}
+            </button>
+          )}
+          {discoveries.length > 0 && (
+            <button className="linklike" onClick={() => setDiscoveries([])}>
+              {t('disco.clear')}
+            </button>
+          )}
+        </div>
+      </div>
+      {discoMsg && <p className="muted small">{discoMsg}</p>}
 
       <div className={`places-map-wrap${dropMode ? ' dropping' : ''}`}>
         <div className="map-toolbar">
@@ -147,9 +276,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         <MapView
           center={center}
           zoom={located.length ? 12 : DEFAULT_ZOOM}
-          markers={markers}
+          markers={allMarkers}
           focus={focus}
-          onMarkerClick={selectPlace}
+          onReady={(api) => (mapApiRef.current = api)}
+          onMarkerClick={handleMarkerClick}
           onMapClick={
             dropMode
               ? (pos) => {
@@ -160,6 +290,35 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           }
         />
       </div>
+
+      {discoveries.length > 0 && (
+        <div className="discovery-results">
+          <div className="wishlist-head">
+            <span>{t('disco.results')}</span>
+            <span className="muted">{discoveries.length}</span>
+          </div>
+          <ul className="place-list">
+            {discoveries.map((d) => (
+              <li key={d.id}>
+                <div className="discovery-row">
+                  <button
+                    className="place-row"
+                    onClick={() => setFocus({ lat: d.lat, lng: d.lng })}
+                    title={t('disco.showOnMap')}
+                  >
+                    <span className="place-emoji">🌱</span>
+                    <span className="place-row-name">{d.name}</span>
+                    <span className="muted small">{d.cuisine || d.kind}</span>
+                  </button>
+                  <button className="secondary" onClick={() => void addDiscovery(d)}>
+                    {t('disco.add')}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="places-detail">
           <div className="wishlist">

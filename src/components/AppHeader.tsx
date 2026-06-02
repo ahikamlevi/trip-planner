@@ -4,10 +4,12 @@ import { useAuth } from '../auth/AuthProvider'
 import { SetPasswordForm } from '../auth/SetPassword'
 import { useT } from '../i18n/I18nProvider'
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
+import { useTheme } from '../theme/ThemeProvider'
 import { supabase } from '../lib/supabase'
 
 export function AppHeader() {
   const { t } = useT()
+  const { theme, toggle } = useTheme()
   const { session, signOut } = useAuth()
   const uid = session!.user.id
   const [name, setName] = useState('')
@@ -37,6 +39,14 @@ export function AppHeader() {
         {t('appName')}
       </Link>
       <div className="app-header-user">
+        <button
+          className="theme-toggle"
+          onClick={toggle}
+          title={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
+          aria-label={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <LanguageSwitcher />
         {editing ? (
           <span className="name-edit">

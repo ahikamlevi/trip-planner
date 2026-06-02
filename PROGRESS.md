@@ -31,6 +31,9 @@ live.
   (`src/map/`). Place search via OSM Nominatim (`src/places/search.ts`).
 - **Routing/travel time:** OSRM public server (keyless), behind a swappable
   `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
+- **Place discovery:** Overpass API (keyless OSM POI search) behind a swappable
+  `DiscoveryProvider` adapter (`src/discovery/`). Finds food POIs in the current map
+  view, filterable by OSM `diet:*` tags (vegan/vegetarian/gluten_free/kosher/halal).
 - **Drag & drop:** `@dnd-kit` (core, sortable, utilities).
 - **i18n:** custom lightweight solution in `src/i18n/` (English + Hebrew, RTL).
 - **No backend code of our own** beyond SQL — everything is client + Supabase. No
@@ -137,6 +140,12 @@ authenticated user (cache only). Types hand-authored in
   - **Live realtime sync** (`useTripRealtime`): Supabase Realtime → debounced reload
     on any trip-table change. Edits appear for both users without refresh.
   - **Shared packing checklist** (Packing tab, live-synced).
+  - **Place discovery** (Map & places tab): "Find food nearby" bar with diet-tag
+    chips + "Search this area" (queries Overpass for the current viewport).
+    Suggestions appear as **green pins** + a results list; tap "+ Add" (or the green
+    pin) to drop one into the wishlist. A "Match my restrictions" button maps the
+    user's dietary profile onto the diet filters. Map adapter gained `getBounds()`
+    and a per-marker `color` override; `MapView` exposes a `MapApi` via `onReady`.
   - **Dietary & allergies** (Dietary tab): each member sets their own restrictions
     (tag chips + free note) on their `profiles` row; other members' restrictions
     show read-only (live-synced). Generates a **printable allergy card** whose
@@ -153,6 +162,10 @@ authenticated user (cache only). Types hand-authored in
     `src/i18n/strings.ts`, `I18nProvider`/`useT()`, header language switcher,
     persists choice, flips `dir`/`lang` (he=rtl, en=ltr), default Hebrew. Dates and
     currency are locale-aware via `Intl`.
+  - **Theming** ("Daylight Teal"): light (default) + refined dark, system-aware, with
+    a header toggle persisted in localStorage. All colors are CSS tokens in `:root` /
+    `:root[data-theme="dark"]`; `ThemeProvider` (`src/theme/`) sets `data-theme` on
+    `<html>`. The print allergy card stays white/dark on purpose.
   - **Error boundary** (shows the error instead of a blank page).
   - **Destructive-delete confirmations** (place, member, budget entry, trip,
     clear-day). Stop-remove and packing-uncheck stay instant (easily reversible).
@@ -189,10 +202,12 @@ vite-env.d.ts
 auth/        AuthProvider.tsx (session + passwordRecovery), Login.tsx, SetPassword.tsx
 components/  AppHeader.tsx (name/password/lang/signout), ErrorBoundary.tsx
 i18n/        strings.ts (EN+HE dict), I18nProvider.tsx (useT), LanguageSwitcher.tsx
+theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts
 map/         MapRenderer.ts (interface), MapView.tsx (React wrapper), index.ts (active
              provider), leaflet/LeafletRenderer.ts
-places/      PlacesWorkspace.tsx (map tab), categories.ts, search.ts (Nominatim)
+places/      PlacesWorkspace.tsx (map tab), categories.ts, search.ts (Nominatim), dietary.ts (tags)
+discovery/   DiscoveryProvider.ts (interface), overpass.ts, index.ts (active provider)
 itinerary/   ItineraryBoard.tsx (calendar + dnd, BIG file), dates.ts (Intl-based)
 routing/     RouteProvider.ts (interface), osrm.ts, index.ts (getRouteCached, getRoutePathCached)
 budget/      BudgetPanel.tsx, money.ts (Intl currency)

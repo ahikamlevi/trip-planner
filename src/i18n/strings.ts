@@ -231,10 +231,29 @@ const en: Dict = {
   'diet.tag.kosher': 'Kosher',
   'diet.tag.halal': 'Halal',
 
+  // Discovery (find places nearby)
+  'disco.find': 'Find food nearby:',
+  'disco.searchArea': '🔍 Search this area',
+  'disco.searching': 'Searching…',
+  'disco.matchMine': 'Match my restrictions',
+  'disco.clear': 'Clear suggestions',
+  'disco.results': 'Suggestions (tap + to add)',
+  'disco.add': '+ Add',
+  'disco.showOnMap': 'Show on map',
+  'disco.none': 'No matching places found in this view. Try zooming out or fewer filters.',
+  'disco.failed': 'Search failed — the discovery service may be busy. Try again.',
+  'disco.diet.vegan': '🌱 Vegan',
+  'disco.diet.vegetarian': '🥗 Vegetarian',
+  'disco.diet.gluten_free': '🌾 Gluten-free',
+  'disco.diet.kosher': '✡ Kosher',
+  'disco.diet.halal': '☪ Halal',
+
   // a11y
   'a11y.skip': 'Skip to main content',
   'a11y.map': 'Map of places',
   'a11y.language': 'Language',
+  'theme.toLight': 'Switch to light mode',
+  'theme.toDark': 'Switch to dark mode',
 }
 
 const he: Dict = {
@@ -445,9 +464,28 @@ const he: Dict = {
   'diet.tag.kosher': 'כשר',
   'diet.tag.halal': 'חלאל',
 
+  // גילוי מקומות בקרבת מקום
+  'disco.find': 'מצא אוכל בקרבת מקום:',
+  'disco.searchArea': '🔍 חיפוש באזור הזה',
+  'disco.searching': 'מחפש…',
+  'disco.matchMine': 'התאם להגבלות שלי',
+  'disco.clear': 'ניקוי הצעות',
+  'disco.results': 'הצעות (הקש + להוספה)',
+  'disco.add': '+ הוספה',
+  'disco.showOnMap': 'הצג על המפה',
+  'disco.none': 'לא נמצאו מקומות מתאימים בתצוגה הזו. נסה להתרחק או לבחור פחות מסננים.',
+  'disco.failed': 'החיפוש נכשל — ייתכן ששירות הגילוי עמוס. נסה שוב.',
+  'disco.diet.vegan': '🌱 טבעוני',
+  'disco.diet.vegetarian': '🥗 צמחוני',
+  'disco.diet.gluten_free': '🌾 ללא גלוטן',
+  'disco.diet.kosher': '✡ כשר',
+  'disco.diet.halal': '☪ חלאל',
+
   'a11y.skip': 'דלג לתוכן הראשי',
   'a11y.map': 'מפת מקומות',
   'a11y.language': 'שפה',
+  'theme.toLight': 'מעבר למצב בהיר',
+  'theme.toDark': 'מעבר למצב כהה',
 }
 
 export const DICTS: Record<Lang, Dict> = { en, he }

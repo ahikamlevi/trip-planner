@@ -1,16 +1,53 @@
+/* ---- Theme: "Daylight Teal" ----
+   Light is the default; dark is opted into via <html data-theme="dark">
+   (set by ThemeProvider). All component colors flow from these tokens. */
 :root {
-  --bg: #0f1419;
-  --surface: #1a2129;
-  --border: #2a333d;
-  --text: #e6edf3;
-  --muted: #9aa6b2; /* lightened for AA contrast on the dark background */
-  --accent: #3b82f6;
-  --accent-hover: #2f6fd6;
-  --error: #f87171;
+  --bg: #f7f5f2; /* warm off-white */
+  --surface: #ffffff; /* cards */
+  --surface-2: #efece7; /* hover / raised */
+  --border: #e6e1da;
+  --text: #1f2630;
+  --muted: #57636f; /* AA on --bg */
+  --accent: #0f766e; /* teal-700 — AA for white text on it */
+  --accent-hover: #115e57;
+  --accent-soft: #e0f1ef; /* tinted active state */
+  --on-accent: #ffffff; /* text/icon on an accent fill */
+  --highlight: #ea6a1f; /* coral */
+  --error: #dc2626;
+  --ok: #15803d;
+  --warn: #b45309;
+  --danger-border: #eccaca;
+  --shadow: rgba(31, 41, 51, 0.14);
+  --map-bg: #e9e5df;
+  --overlay: rgba(17, 24, 39, 0.45);
 
+  color-scheme: light;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
+}
+
+:root[data-theme='dark'] {
+  --bg: #0c1714; /* deep teal-black */
+  --surface: #12201d;
+  --surface-2: #1b2c28;
+  --border: #25342f;
+  --text: #e8efec;
+  --muted: #9fb3ad;
+  --accent: #2dd4bf; /* brighter teal for dark bg */
+  --accent-hover: #5eead4;
+  --accent-soft: #15302b;
+  --on-accent: #04231f; /* dark text on the bright teal */
+  --highlight: #fb923c;
+  --error: #f87171;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --danger-border: #5a2a2a;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --map-bg: #0b1310;
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
 }
 
 * {
@@ -48,7 +85,7 @@
   z-index: 2000;
   padding: 0.5rem 0.8rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-radius: 8px;
   transition: top 0.15s;
 }
@@ -130,7 +167,7 @@ button {
   margin-top: 0.5rem;
   padding: 0.6rem 0.9rem;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -181,7 +218,7 @@ button:disabled {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -394,7 +431,7 @@ button:disabled {
 }
 
 .trip-link:hover {
-  background: #20292f;
+  background: var(--surface-2);
   border-radius: 10px;
 }
 
@@ -417,13 +454,13 @@ button:disabled {
 }
 
 .role-owner {
-  color: #fbbf24;
-  border-color: #5a4a1e;
+  color: var(--warn);
+  border-color: var(--border);
 }
 
 .role-editor {
-  color: #60a5fa;
-  border-color: #284060;
+  color: var(--accent);
+  border-color: var(--border);
 }
 
 /* Cards & forms */
@@ -481,7 +518,7 @@ button.secondary {
 
 button.secondary.danger {
   color: var(--error);
-  border-color: #5a2a2a;
+  border-color: var(--danger-border);
 }
 
 .back-link {
@@ -553,7 +590,7 @@ button.secondary.danger {
 }
 
 .invite-ok {
-  color: #4ade80;
+  color: var(--ok);
   font-size: 0.9rem;
 }
 
@@ -632,7 +669,7 @@ button.secondary.danger {
 }
 
 .search-results button:hover {
-  background: #20292f;
+  background: var(--surface-2);
 }
 
 .result-name {
@@ -680,7 +717,7 @@ button.secondary.danger {
 
 .place-row.active {
   border-color: var(--accent);
-  background: #18222e;
+  background: var(--accent-soft);
 }
 
 .place-emoji {
@@ -752,7 +789,7 @@ button.secondary.danger {
 }
 
 .cat-chip.active {
-  background: #18222e;
+  background: var(--accent-soft);
 }
 
 /* Map */
@@ -770,7 +807,7 @@ button.secondary.danger {
   width: 100%;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #0b0e12;
+  background: var(--map-bg);
 }
 
 .map-hint {
@@ -787,7 +824,7 @@ button.secondary.danger {
 
 .map-toolbar button.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 
@@ -803,7 +840,7 @@ button.secondary.danger {
 
 /* Leaflet attribution/controls readability on dark UI */
 .leaflet-container {
-  background: #0b0e12;
+  background: var(--map-bg);
 }
 
 /* Tabs */
@@ -1002,11 +1039,11 @@ button.secondary.danger {
 }
 
 .month-cell:hover {
-  background: #20292f;
+  background: var(--surface-2);
 }
 
 .month-cell.dim {
-  background: #141a20;
+  background: var(--bg);
   color: var(--muted);
 }
 
@@ -1153,7 +1190,7 @@ button.secondary.danger {
 
 .busy-flag {
   font-size: 0.72rem;
-  color: #fbbf24;
+  color: var(--warn);
   white-space: nowrap;
 }
 
@@ -1236,7 +1273,7 @@ button.secondary.danger {
   color: white;
   border-radius: 8px;
   font-size: 0.9rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px var(--shadow);
 }
 
 .stop-note {
@@ -1631,7 +1668,7 @@ button.secondary.danger {
 .diet-chips .cat-chip.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: #18222e;
+  background: var(--accent-soft);
 }
 
 .diet-others {
@@ -1699,6 +1736,60 @@ button.secondary.danger {
   display: block;
   margin-top: 0.4rem;
 }
+
+/* Theme toggle (header icon button) */
+.theme-toggle {
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+}
+.theme-toggle:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* Discovery (find places nearby) */
+.discovery-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.discovery-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.discovery-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+.discovery-results {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.discovery-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.discovery-row .place-row {
+  flex: 1;
+}
+
+/* Green ring on the wishlist emoji isn't needed; suggestion pins are green on the map. */
 
 /* When printing, show only the allergy card. */
 @media print {

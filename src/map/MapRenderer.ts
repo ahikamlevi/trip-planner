@@ -8,6 +8,14 @@ export interface LatLng {
   lng: number
 }
 
+/** Geographic bounding box of the current viewport. */
+export interface MapBounds {
+  south: number
+  west: number
+  north: number
+  east: number
+}
+
 export interface MapMarker {
   id: string
   position: LatLng
@@ -18,6 +26,8 @@ export interface MapMarker {
   badge?: string | number
   /** HTML shown in a popup when the marker is clicked. */
   popup?: string
+  /** Overrides the category color (e.g. green for discovery suggestions). */
+  color?: string
 }
 
 export interface MapRendererOptions {
@@ -34,6 +44,8 @@ export interface MapRenderer {
   setPath(points: LatLng[]): void
   setView(center: LatLng, zoom?: number): void
   fitToMarkers(markers: MapMarker[]): void
+  /** Current viewport bounding box, or null before the map is ready. */
+  getBounds(): MapBounds | null
   destroy(): void
 }
 
