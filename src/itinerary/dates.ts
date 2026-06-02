@@ -20,23 +20,30 @@ export function dateRange(start: string, end: string): string[] {
   return out
 }
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-export function formatDayLabel(isoDate: string): string {
+function utcDate(isoDate: string): Date {
   const [y, m, d] = isoDate.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d))
-  return `${WEEKDAYS[dt.getUTCDay()]} ${MONTHS[m - 1]} ${d}`
+  return new Date(Date.UTC(y, m - 1, d))
 }
 
-export function formatMonthDay(isoDate: string): string {
-  const [, m, d] = isoDate.split('-').map(Number)
-  return `${MONTHS[m - 1]} ${d}`
+export function formatDayLabel(isoDate: string, locale = 'en'): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(utcDate(isoDate))
 }
 
-export function monthName(isoDate: string): string {
-  const [y, m] = isoDate.split('-').map(Number)
-  return `${MONTHS[m - 1]} ${y}`
+export function formatMonthDay(isoDate: string, locale = 'en'): string {
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(
+    utcDate(isoDate),
+  )
+}
+
+export function monthName(isoDate: string, locale = 'en'): string {
+  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+    utcDate(isoDate),
+  )
 }
 
 export function dayOfMonth(isoDate: string): number {
@@ -79,6 +86,11 @@ export function monthGrid(isoDate: string, weekStartsOn = 1): string[] {
   return Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
 }
 
-export function weekdayHeaders(weekStartsOn = 1): string[] {
-  return Array.from({ length: 7 }, (_, i) => WEEKDAYS[(weekStartsOn + i) % 7])
+export function weekdayHeaders(weekStartsOn = 1, locale = 'en'): string[] {
+  // 2023-01-01 (UTC) is a Sunday — use it as the index-0 reference.
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' })
+  return Array.from({ length: 7 }, (_, i) => {
+    const dow = (weekStartsOn + i) % 7
+    return fmt.format(new Date(Date.UTC(2023, 0, 1 + dow)))
+  })
 }

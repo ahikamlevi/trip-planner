@@ -1,4 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { DICTS, type Lang } from '../i18n/strings'
+
+function tr(key: string): string {
+  const lang = (document.documentElement.lang === 'en' ? 'en' : 'he') as Lang
+  return DICTS[lang][key] ?? DICTS.en[key] ?? key
+}
 
 interface Props {
   children: ReactNode
@@ -24,10 +30,10 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="centered">
           <div className="auth-card">
-            <h1>Something went wrong</h1>
-            <p className="auth-note">The app hit an error. Details:</p>
+            <h1>{tr('error.title')}</h1>
+            <p className="auth-note">{tr('error.intro')}</p>
             <pre className="error-detail">{this.state.error.message}</pre>
-            <button onClick={() => location.reload()}>Reload</button>
+            <button onClick={() => location.reload()}>{tr('error.reload')}</button>
           </div>
         </div>
       )

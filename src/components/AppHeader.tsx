@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { SetPasswordForm } from '../auth/SetPassword'
+import { useT } from '../i18n/I18nProvider'
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
 import { supabase } from '../lib/supabase'
 
 export function AppHeader() {
+  const { t } = useT()
   const { session, signOut } = useAuth()
   const uid = session!.user.id
   const [name, setName] = useState('')
@@ -31,40 +34,41 @@ export function AppHeader() {
   return (
     <header className="app-header">
       <Link to="/" className="app-title">
-        Trip Planner
+        {t('appName')}
       </Link>
       <div className="app-header-user">
+        <LanguageSwitcher />
         {editing ? (
           <span className="name-edit">
             <input
               value={name}
-              placeholder="Your name"
+              placeholder={t('common.yourName')}
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
             <button onClick={save} disabled={saving}>
-              {saving ? '…' : 'Save'}
+              {saving ? '…' : t('common.save')}
             </button>
           </span>
         ) : (
-          <button className="linklike" onClick={() => setEditing(true)} title="Edit your display name">
+          <button className="linklike" onClick={() => setEditing(true)} title={t('common.yourName')}>
             {name || session!.user.email}
           </button>
         )}
-        <button onClick={() => setShowPassword(true)} title="Set or change your password">
-          Password
+        <button onClick={() => setShowPassword(true)} title={t('auth.setYourPassword')}>
+          {t('auth.password')}
         </button>
-        <button onClick={signOut}>Sign out</button>
+        <button onClick={signOut}>{t('common.signOut')}</button>
       </div>
 
       {showPassword && (
         <div className="modal-overlay" onClick={() => setShowPassword(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <strong>Set your password</strong>
-              <button className="linklike" onClick={() => setShowPassword(false)}>close</button>
+              <strong>{t('auth.setYourPassword')}</strong>
+              <button className="linklike" onClick={() => setShowPassword(false)}>{t('common.close')}</button>
             </div>
-            <p className="muted small">Lets you sign in with email + password.</p>
+            <p className="muted small">{t('auth.passwordHelp')}</p>
             <SetPasswordForm onDone={() => setShowPassword(false)} />
           </div>
         </div>

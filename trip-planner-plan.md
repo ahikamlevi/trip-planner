@@ -142,7 +142,10 @@ skip link, <main>/<nav> landmarks + aria-current tabs, aria-labels on icon butto
 keyboard-operable month cells + stop names, dnd-kit screen-reader announcements +
 instructions, map role/label, lightened --muted for AA contrast. (Formal WCAG 2.1 AA
 audit/certification deferred until UI mature / before public launch.)
-RTL: document set to dir="rtl"; CSS converted to logical properties (margin/padding/
-border/text-align inline); back-link arrows flipped. Hebrew TEXT translation NOT done
-(English strings remain) — natural next step; switch lang="he" when translated.
-PARKED: Hebrew translation, onboarding, landing page, rate limiting, budget alerts.
+RTL: CSS converted to logical properties; back-link arrows flipped.
+i18n (bilingual EN+HE + switcher) DONE: central dictionary `src/i18n/strings.ts`,
+`I18nProvider` + `useT()` (persists to localStorage, sets html lang/dir, default he),
+`LanguageSwitcher` combo in header. dir/lang flips with language (he=rtl, en=ltr).
+Dates via Intl(locale) in dates.ts; currency via Intl(locale) in money.ts. All
+components translated. Adding a 3rd language = add a dict to strings.ts.
+PARKED: onboarding, landing page, rate limiting, budget alerts, formal WCAG audit.

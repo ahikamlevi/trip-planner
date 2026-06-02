@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createMapRenderer, type LatLng, type MapMarker, type MapRenderer } from './index'
+import { useT } from '../i18n/I18nProvider'
 
 interface MapViewProps {
   center: LatLng
@@ -14,6 +15,7 @@ interface MapViewProps {
 }
 
 export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, onMarkerClick }: MapViewProps) {
+  const { t } = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<MapRenderer | null>(null)
   const didFit = useRef(false)
@@ -66,5 +68,5 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
     }
   }, [focus])
 
-  return <div ref={containerRef} className="map" role="application" aria-label="Map of places" />
+  return <div ref={containerRef} className="map" role="application" aria-label={t('a11y.map')} />
 }

@@ -325,6 +325,15 @@ button:disabled {
   color: var(--text);
 }
 
+.lang-switcher {
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
 .app-header-user .linklike {
   border: none;
   padding: 0.3rem 0.4rem;

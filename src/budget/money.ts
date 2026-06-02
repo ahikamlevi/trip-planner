@@ -1,8 +1,8 @@
 export const CURRENCIES = ['USD', 'EUR', 'GBP', 'THB', 'JPY', 'AUD', 'CAD', 'CHF', 'INR', 'ILS']
 
-export function formatMoney(amount: number, currency: string): string {
+export function formatMoney(amount: number, currency: string, locale = 'en'): string {
   try {
-    return new Intl.NumberFormat('en', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,

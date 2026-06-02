@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n/I18nProvider'
 
 type Mode = 'password' | 'magic'
 
 export function Login() {
+  const { t } = useT()
   const [mode, setMode] = useState<Mode>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,7 +15,7 @@ export function Login() {
 
   async function forgotPassword() {
     if (!email.trim()) {
-      setError('Enter your email first, then click “Forgot password”.')
+      setError(t('auth.enterEmailFirst'))
       return
     }
     setError(null)
@@ -22,7 +24,7 @@ export function Login() {
       redirectTo: window.location.origin,
     })
     if (error) setError(error.message)
-    else setNotice('Password reset email sent — open the link to choose a new password.')
+    else setNotice(t('auth.resetSent'))
   }
 
   async function signInPassword(e: FormEvent) {
@@ -58,16 +60,13 @@ export function Login() {
 
   return (
     <div className="auth-card">
-      <h1>Trip Planner</h1>
+      <h1>{t('appName')}</h1>
 
       {status === 'sent' ? (
-        <p className="auth-note">
-          Check <strong>{email}</strong> for a sign-in link. You can close this tab —
-          opening the link will log you in.
-        </p>
+        <p className="auth-note">{t('auth.magicLinkSent', { email })}</p>
       ) : mode === 'password' ? (
         <form onSubmit={signInPassword} className="auth-form">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t('auth.email')}</label>
           <input
             id="email"
             type="email"
@@ -77,7 +76,7 @@ export function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">{t('auth.password')}</label>
           <input
             id="password"
             type="password"
@@ -88,13 +87,13 @@ export function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <button type="submit" disabled={status === 'working'}>
-            {status === 'working' ? 'Signing in…' : 'Sign in'}
+            {status === 'working' ? t('auth.signingIn') : t('auth.signIn')}
           </button>
           {error && <p className="auth-error">{error}</p>}
           {notice && <p className="invite-ok">{notice}</p>}
           <div className="auth-links">
             <button type="button" className="linklike" onClick={forgotPassword}>
-              Forgot password?
+              {t('auth.forgotPassword')}
             </button>
             <button
               type="button"
@@ -105,13 +104,13 @@ export function Login() {
                 setNotice(null)
               }}
             >
-              Use a magic link
+              {t('auth.useMagicLink')}
             </button>
           </div>
         </form>
       ) : (
         <form onSubmit={sendMagicLink} className="auth-form">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t('auth.email')}</label>
           <input
             id="email"
             type="email"
@@ -122,7 +121,7 @@ export function Login() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <button type="submit" disabled={status === 'working'}>
-            {status === 'working' ? 'Sending…' : 'Send magic link'}
+            {status === 'working' ? t('auth.sending') : t('auth.sendMagicLink')}
           </button>
           {error && <p className="auth-error">{error}</p>}
           <button
@@ -133,7 +132,7 @@ export function Login() {
               setError(null)
             }}
           >
-            Use a password instead
+            {t('auth.usePassword')}
           </button>
         </form>
       )}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useT } from '../i18n/I18nProvider'
 import type { Place, PlaceCategory } from '../lib/database.types'
 import { MapView } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
@@ -14,9 +15,9 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
 }
 
-function placePopupHtml(p: Place): string {
+function placePopupHtml(p: Place, catLabel: string): string {
   const meta = categoryMeta(p.category)
-  const rows = [`<strong>${escapeHtml(p.name)}</strong>`, `<div>${meta.emoji} ${meta.label}</div>`]
+  const rows = [`<strong>${escapeHtml(p.name)}</strong>`, `<div>${meta.emoji} ${escapeHtml(catLabel)}</div>`]
   if (p.est_cost != null) rows.push(`<div>~${p.est_cost}</div>`)
   if (p.opening_hours) rows.push(`<div>🕑 ${escapeHtml(p.opening_hours)}</div>`)
   if (p.notes) rows.push(`<div>📝 ${escapeHtml(p.notes)}</div>`)
@@ -24,6 +25,7 @@ function placePopupHtml(p: Place): string {
 }
 
 export function PlacesWorkspace({ tripId }: { tripId: string }) {
+  const { t } = useT()
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -107,9 +109,9 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         category: p.category,
         label: p.name,
         selected: p.id === selectedId,
-        popup: placePopupHtml(p),
+        popup: placePopupHtml(p, t(`cat.${p.category}`)),
       })),
-    [located, selectedId],
+    [located, selectedId, t],
   )
 
   const center = located[0] ? { lat: located[0].lat as number, lng: located[0].lng as number } : DEFAULT_CENTER
@@ -123,7 +125,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
   return (
     <section className="card places-card">
-      <h3>Places</h3>
+      <h3>{t('places.title')}</h3>
       {error && <p className="auth-error">{error}</p>}
 
       <div className="places-top">
@@ -136,12 +138,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
             className={`secondary${dropMode ? ' active' : ''}`}
             onClick={() => setDropMode((d) => !d)}
           >
-            {dropMode ? '📍 Click the map…' : '📍 Drop a pin'}
+            {dropMode ? t('places.dropPinActive') : t('places.dropPin')}
           </button>
           <span className="muted small">
-            {dropMode
-              ? 'Click anywhere on the map to place a pin.'
-              : 'Search above to add places, or click “Drop a pin”.'}
+            {dropMode ? t('places.clickToPlace') : t('places.dropHint')}
           </span>
         </div>
         <MapView
@@ -153,7 +153,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           onMapClick={
             dropMode
               ? (pos) => {
-                  void addPlace({ name: 'New place', lat: pos.lat, lng: pos.lng })
+                  void addPlace({ name: t('places.newPlace'), lat: pos.lat, lng: pos.lng })
                   setDropMode(false)
                 }
               : undefined
@@ -164,14 +164,12 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       <div className="places-detail">
           <div className="wishlist">
             <div className="wishlist-head">
-              <span>Wishlist</span>
+              <span>{t('places.wishlist')}</span>
               <span className="muted">{places?.length ?? 0}</span>
             </div>
-            {places === null && <p className="muted">Loading…</p>}
+            {places === null && <p className="muted">{t('common.loading')}</p>}
             {places !== null && places.length === 0 && (
-              <p className="muted small">
-                Search above, or click anywhere on the map to drop a place.
-              </p>
+              <p className="muted small">{t('places.emptyHint')}</p>
             )}
             <ul className="place-list">
               {(places ?? []).map((p) => {
@@ -182,11 +180,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                       className={`place-row${p.id === selectedId ? ' active' : ''}`}
                       onClick={() => selectPlace(p.id)}
                     >
-                      <span className="place-emoji" title={meta.label}>{meta.emoji}</span>
+                      <span className="place-emoji" title={t(`cat.${p.category}`)}>{meta.emoji}</span>
                       <span className="place-row-name">{p.name}</span>
                       {p.est_cost != null && <span className="muted small">{p.est_cost}</span>}
                       {(p.lat == null || p.lng == null) && (
-                        <span className="muted small" title="No location set">no pin</span>
+                        <span className="muted small">{t('places.noPin')}</span>
                       )}
                     </button>
                   </li>
@@ -214,6 +212,7 @@ function PlaceSearch({
 }: {
   onAdd: (input: { name: string; lat: number; lng: number }) => void
 }) {
+  const { t } = useT()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [busy, setBusy] = useState(false)
@@ -225,31 +224,31 @@ function PlaceSearch({
       return
     }
     const controller = new AbortController()
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       setBusy(true)
       setErr(null)
       try {
         setResults(await searchPlaces(query, controller.signal))
       } catch (e) {
-        if ((e as Error).name !== 'AbortError') setErr('Search failed, try again.')
+        if ((e as Error).name !== 'AbortError') setErr(t('places.searchFailed'))
       } finally {
         setBusy(false)
       }
     }, 400)
     return () => {
       controller.abort()
-      clearTimeout(t)
+      clearTimeout(timer)
     }
-  }, [query])
+  }, [query, t])
 
   return (
     <div className="place-search">
       <input
         value={query}
-        placeholder="Search a place…"
+        placeholder={t('places.search')}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {busy && <p className="muted small">Searching…</p>}
+      {busy && <p className="muted small">{t('places.searching')}</p>}
       {err && <p className="auth-error small">{err}</p>}
       {results.length > 0 && (
         <ul className="search-results">
@@ -284,6 +283,7 @@ function PlaceEditor({
   onDelete: () => void
   onClose: () => void
 }) {
+  const { t } = useT()
   const [name, setName] = useState(place.name)
   const [category, setCategory] = useState<PlaceCategory>(place.category)
   const [notes, setNotes] = useState(place.notes ?? '')
@@ -293,17 +293,17 @@ function PlaceEditor({
   return (
     <div className="place-editor">
       <div className="editor-head">
-        <strong>Edit place</strong>
-        <button className="linklike" onClick={onClose}>close</button>
+        <strong>{t('places.editPlace')}</strong>
+        <button className="linklike" onClick={onClose}>{t('common.close')}</button>
       </div>
 
       <label>
-        Name
+        {t('places.placeName')}
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
 
       <label>
-        Category
+        {t('places.category')}
         <div className="cat-chips">
           {CATEGORIES.map((c) => (
             <button
@@ -313,7 +313,7 @@ function PlaceEditor({
               style={category === c.key ? { borderColor: c.color, color: c.color } : undefined}
               onClick={() => setCategory(c.key)}
             >
-              {c.emoji} {c.label}
+              {c.emoji} {t(`cat.${c.key}`)}
             </button>
           ))}
         </div>
@@ -321,7 +321,7 @@ function PlaceEditor({
 
       <div className="form-row">
         <label>
-          Est. cost
+          {t('places.estCost')}
           <input
             type="number"
             inputMode="decimal"
@@ -331,13 +331,13 @@ function PlaceEditor({
           />
         </label>
         <label>
-          Opening hours
+          {t('places.openingHours')}
           <input value={hours} onChange={(e) => setHours(e.target.value)} placeholder="9–17" />
         </label>
       </div>
 
       <label>
-        Notes
+        {t('places.notes')}
         <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </label>
 
@@ -345,7 +345,7 @@ function PlaceEditor({
         <button
           onClick={() =>
             onSave({
-              name: name.trim() || 'Untitled',
+              name: name.trim() || t('places.newPlace'),
               category,
               notes: notes.trim() || null,
               opening_hours: hours.trim() || null,
@@ -353,15 +353,15 @@ function PlaceEditor({
             })
           }
         >
-          Save
+          {t('common.save')}
         </button>
         <button
           className="secondary danger"
           onClick={() => {
-            if (confirm(`Delete “${place.name}”? This also removes it from any days it's on.`)) onDelete()
+            if (confirm(t('places.confirmDelete', { name: place.name }))) onDelete()
           }}
         >
-          Delete
+          {t('common.delete')}
         </button>
       </div>
     </div>

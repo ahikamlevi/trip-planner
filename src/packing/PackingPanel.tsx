@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useT } from '../i18n/I18nProvider'
 import type { PackingItem } from '../lib/database.types'
 
 export function PackingPanel({ tripId }: { tripId: string }) {
+  const { t } = useT()
   const [items, setItems] = useState<PackingItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [label, setLabel] = useState('')
@@ -50,19 +52,19 @@ export function PackingPanel({ tripId }: { tripId: string }) {
   return (
     <div className="packing card">
       <div className="section-head">
-        <h3>Packing list</h3>
-        {total > 0 && <span className="muted small">{packed}/{total} packed</span>}
+        <h3>{t('packing.title')}</h3>
+        {total > 0 && <span className="muted small">{t('packing.packedCount', { packed, total })}</span>}
       </div>
       {error && <p className="auth-error">{error}</p>}
 
       <form className="packing-add" onSubmit={add}>
-        <input value={label} placeholder="Add an item…" onChange={(e) => setLabel(e.target.value)} />
-        <button type="submit" disabled={!label.trim()}>Add</button>
+        <input value={label} placeholder={t('packing.addItem')} onChange={(e) => setLabel(e.target.value)} />
+        <button type="submit" disabled={!label.trim()}>{t('common.add')}</button>
       </form>
 
-      {items === null && <p className="muted small">Loading…</p>}
+      {items === null && <p className="muted small">{t('common.loading')}</p>}
       {items !== null && items.length === 0 && (
-        <p className="muted small">Nothing yet — add what you need to pack. Shared with everyone on the trip.</p>
+        <p className="muted small">{t('packing.empty')}</p>
       )}
 
       <ul className="packing-list">

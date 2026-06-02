@@ -23,6 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useT } from '../i18n/I18nProvider'
 import type { Area, Day, Place, Stop } from '../lib/database.types'
 import { categoryMeta } from '../places/categories'
 import { MapView } from '../map/MapView'
@@ -62,6 +63,7 @@ export function ItineraryBoard({
   startDate: string | null
   endDate: string | null
 }) {
+  const { t, locale } = useT()
   const [days, setDays] = useState<Day[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [places, setPlaces] = useState<Place[]>([])
@@ -304,24 +306,21 @@ export function ItineraryBoard({
     return 'item'
   }
   function zoneForId(id: string): string {
-    if (id === 'wishlist' || id.startsWith('place:')) return 'the places list'
-    if (id.startsWith('date:')) return formatDayLabel(id.slice(5))
+    if (id === 'wishlist' || id.startsWith('place:')) return t('itin.palettePlaces')
+    if (id.startsWith('date:')) return formatDayLabel(id.slice(5), locale)
     if (id.startsWith('stop:')) {
-      for (const bd of byDate.values()) if (bd.stops.some((s) => s.id === id.slice(5))) return formatDayLabel(bd.day.date)
+      for (const bd of byDate.values()) if (bd.stops.some((s) => s.id === id.slice(5))) return formatDayLabel(bd.day.date, locale)
     }
-    return 'a day'
+    return t('itin.view.day')
   }
   const announcements = {
     onDragStart: ({ active }: { active: { id: string | number } }) =>
-      `Picked up ${nameForId(String(active.id))}.`,
+      `${nameForId(String(active.id))}`,
     onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
-      over ? `${nameForId(String(active.id))} is over ${zoneForId(String(over.id))}.` : undefined,
+      over ? `${nameForId(String(active.id))} → ${zoneForId(String(over.id))}` : undefined,
     onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
-      over
-        ? `Placed ${nameForId(String(active.id))} on ${zoneForId(String(over.id))}.`
-        : `Dropped ${nameForId(String(active.id))}.`,
-    onDragCancel: ({ active }: { active: { id: string | number } }) =>
-      `Cancelled dragging ${nameForId(String(active.id))}.`,
+      over ? `${nameForId(String(active.id))} → ${zoneForId(String(over.id))}` : `${nameForId(String(active.id))}`,
+    onDragCancel: ({ active }: { active: { id: string | number } }) => `${nameForId(String(active.id))}`,
   }
 
   // --- area helpers --------------------------------------------------------
@@ -343,7 +342,7 @@ export function ItineraryBoard({
     load()
   }
   async function clearDay(bd: BoardDay) {
-    if (!confirm(`Clear ${formatDayLabel(bd.day.date)}? Its visits are removed (places stay in the palette).`)) return
+    if (!confirm(t('itin.confirmClearDay', { day: formatDayLabel(bd.day.date, locale) }))) return
     await supabase.from('days').delete().eq('id', bd.day.id) // cascades its stops
     load()
   }
@@ -357,14 +356,14 @@ export function ItineraryBoard({
 
   const title =
     view === 'day'
-      ? formatDayLabel(cursor)
+      ? formatDayLabel(cursor, locale)
       : view === 'week'
-        ? `${formatMonthDay(startOfWeek(cursor))} – ${formatMonthDay(addDays(startOfWeek(cursor), 6))}`
-        : monthName(cursor)
+        ? `${formatMonthDay(startOfWeek(cursor), locale)} – ${formatMonthDay(addDays(startOfWeek(cursor), 6), locale)}`
+        : monthName(cursor, locale)
 
   const inTrip = (iso: string) => (!startDate || iso >= startDate) && (!endDate || iso <= endDate)
 
-  if (loading) return <p className="muted">Loading itinerary…</p>
+  if (loading) return <p className="muted">{t('itin.loading')}</p>
 
   return (
     <div className="itinerary">
@@ -377,10 +376,7 @@ export function ItineraryBoard({
         onDragEnd={onDragEnd}
         accessibility={{
           announcements,
-          screenReaderInstructions: {
-            draggable:
-              'To pick up a place or stop, press space or enter. While dragging, use the arrow keys to move it between days. Press space or enter again to drop, or escape to cancel.',
-          },
+          screenReaderInstructions: { draggable: t('itin.dragInstructions') },
         }}
       >
         <div className="itinerary-grid">
@@ -391,17 +387,17 @@ export function ItineraryBoard({
 
             <div className="cal-toolbar">
               <div className="cal-nav">
-                <button className="nav-btn" onClick={() => shift(-1)} aria-label="Previous">‹</button>
+                <button className="nav-btn" onClick={() => shift(-1)} aria-label={t('itin.prev')}>‹</button>
                 <button className="secondary" onClick={() => setCursor(startDate ?? today())}>
-                  {startDate ? 'Trip start' : 'Today'}
+                  {startDate ? t('itin.tripStart') : t('itin.today')}
                 </button>
-                <button className="nav-btn" onClick={() => shift(1)} aria-label="Next">›</button>
+                <button className="nav-btn" onClick={() => shift(1)} aria-label={t('itin.next')}>›</button>
                 <span className="cal-title">{title}</span>
               </div>
               <div className="cal-views">
                 {(['day', 'week', 'month'] as const).map((v) => (
                   <button key={v} className={`seg${view === v ? ' active' : ''}`} onClick={() => setView(v)}>
-                    {v}
+                    {t(`itin.view.${v}`)}
                   </button>
                 ))}
               </div>
@@ -492,11 +488,12 @@ function MonthView({
   todayIso: string
   onOpenDay: (iso: string) => void
 }) {
+  const { locale } = useT()
   const grid = monthGrid(cursor)
   return (
     <div className="cal-month">
       <div className="cal-weekdays">
-        {weekdayHeaders().map((w) => (
+        {weekdayHeaders(1, locale).map((w) => (
           <div key={w}>{w}</div>
         ))}
       </div>
@@ -529,6 +526,7 @@ function MonthCell({
   isToday: boolean
   onOpen: () => void
 }) {
+  const { t, locale } = useT()
   const { setNodeRef, isOver } = useDroppable({ id: `date:${iso}` })
   const stops = boardDay?.stops ?? []
   return (
@@ -537,7 +535,7 @@ function MonthCell({
       className={`month-cell${dim ? ' dim' : ''}${isOver ? ' over' : ''}${isToday ? ' today' : ''}`}
       role="button"
       tabIndex={0}
-      aria-label={`${formatDayLabel(iso)}, ${stops.length} ${stops.length === 1 ? 'stop' : 'stops'}. Open day.`}
+      aria-label={`${formatDayLabel(iso, locale)} · ${stops.length} · ${t('itin.openDay')}`}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -554,7 +552,7 @@ function MonthCell({
             <span className="month-chip-name">{s.place.name}</span>
           </div>
         ))}
-        {stops.length > 3 && <div className="month-more">+{stops.length - 3} more</div>}
+        {stops.length > 3 && <div className="month-more">+{stops.length - 3}</div>}
       </div>
     </div>
   )
@@ -590,6 +588,7 @@ function DayPanel({
   onFocusStop?: (s: BoardStop) => void
   onStopChange: () => void
 }) {
+  const { t, locale } = useT()
   const { setNodeRef, isOver } = useDroppable({ id: `date:${iso}` })
   const stops = boardDay?.stops ?? []
 
@@ -600,13 +599,13 @@ function DayPanel({
     if (i === 0) return null
     const prev = stops[i - 1]
     if (prev.place.lat == null || prev.place.lng == null || s.place.lat == null || s.place.lng == null) {
-      return 'location missing'
+      return t('itin.locationMissing')
     }
     const leg = routeLegs.get(
       legKey({ lat: prev.place.lat, lng: prev.place.lng }, { lat: s.place.lat, lng: s.place.lng }),
     )
     if (leg === undefined) return '…'
-    if (leg === null) return 'no route'
+    if (leg === null) return t('itin.noRoute')
     const mins = Math.round(leg.durationSeconds / 60)
     travelMin += mins
     return `${formatKm(leg.distanceMeters)} · ${mins} min`
@@ -619,27 +618,27 @@ function DayPanel({
     <div className={`day-panel ${variant}${isOver ? ' over' : ''}${inTrip ? '' : ' out-of-trip'}${isToday ? ' today' : ''}`}>
       <div className="day-head">
         {onOpenDay ? (
-          <button className="day-open" onClick={onOpenDay} title="Open this day">
-            {formatDayLabel(iso)}
-            {isToday && <span className="today-pill">Today</span>}
+          <button className="day-open" onClick={onOpenDay} title={t('itin.openDay')}>
+            {formatDayLabel(iso, locale)}
+            {isToday && <span className="today-pill">{t('itin.today')}</span>}
           </button>
         ) : (
           <strong>
-            {formatDayLabel(iso)}
-            {isToday && <span className="today-pill">Today</span>}
+            {formatDayLabel(iso, locale)}
+            {isToday && <span className="today-pill">{t('itin.today')}</span>}
           </strong>
         )}
         <span className="day-head-right">
-          {busy && <span className="busy-flag" title="Lots of travel/time packed in — consider splitting it.">⚠ busy</span>}
-          {travelMin > 0 && <span className="muted small">{formatTravelTotal(travelMin)} travel</span>}
+          {busy && <span className="busy-flag" title={t('itin.busyTitle')}>{t('itin.busy')}</span>}
+          {travelMin > 0 && <span className="muted small">{formatTravelTotal(travelMin)} {t('itin.travel')}</span>}
           {onClear && (
-            <button className="linklike danger" onClick={onClear} title="Clear day" aria-label="Clear day">×</button>
+            <button className="linklike danger" onClick={onClear} title={t('itin.clearDay')} aria-label={t('itin.clearDay')}>×</button>
           )}
         </span>
       </div>
       {boardDay && (
         <select className="area-select" value={boardDay.day.area_id ?? ''} onChange={(e) => onAreaChange(e.target.value || null)}>
-          <option value="">— no area —</option>
+          <option value="">{t('itin.noArea')}</option>
           {areas.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
@@ -662,19 +661,20 @@ function DayPanel({
             />
           ))}
         </SortableContext>
-        {stops.length === 0 && <p className="muted small empty-day">Drop places here</p>}
+        {stops.length === 0 && <p className="muted small empty-day">{t('itin.dropHere')}</p>}
       </div>
     </div>
   )
 }
 
 function DayNoteEditor({ initial, onCommit }: { initial: string; onCommit: (note: string) => void }) {
+  const { t } = useT()
   const [note, setNote] = useState(initial)
   return (
     <textarea
       className="day-note-input"
       rows={2}
-      placeholder="Day notes — check-in time, reminders…"
+      placeholder={t('itin.dayNotePlaceholder')}
       value={note}
       onChange={(e) => setNote(e.target.value)}
       onBlur={() => {
@@ -695,6 +695,7 @@ function ItineraryDayMap({
   focus?: LatLng | null
   selectedId?: string | null
 }) {
+  const { t } = useT()
   const located = stops.filter((s) => s.place.lat != null && s.place.lng != null)
   const straightPath: LatLng[] = located.map((s) => ({ lat: s.place.lat!, lng: s.place.lng! }))
   const coordsKey = straightPath.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join('|')
@@ -737,8 +738,7 @@ function ItineraryDayMap({
         focus={focus ?? null}
       />
       <p className="muted small">
-        Click a stop above to center it. Numbered in visiting order; the line
-        {roadPath ? ' follows the driving route.' : ' connects stops (loading the road route…).'}
+        {t('itin.mapHint', { state: roadPath ? t('itin.mapHintRoad') : t('itin.mapHintLoading') })}
       </p>
     </div>
   )
@@ -757,23 +757,25 @@ function formatTravelTotal(mins: number): string {
 
 // --- Places palette (reusable; drag a place onto a day as many times as you like)
 function PlacesPalette({ places, counts }: { places: Place[]; counts: Map<string, number> }) {
+  const { t } = useT()
   const { setNodeRef, isOver } = useDroppable({ id: 'wishlist' })
   return (
     <div ref={setNodeRef} className={`wishlist-col${isOver ? ' over' : ''}`}>
       <div className="wishlist-head">
-        <span>Places</span>
+        <span>{t('itin.palettePlaces')}</span>
         <span className="muted">{places.length}</span>
       </div>
-      {places.length === 0 && <p className="muted small">Add places on the Map &amp; places tab.</p>}
+      {places.length === 0 && <p className="muted small">{t('itin.paletteEmpty')}</p>}
       {places.map((p) => (
         <PaletteItem key={p.id} place={p} count={counts.get(p.id) ?? 0} />
       ))}
-      <p className="muted small drag-hint">Drag onto a day (reusable). Drop a visit here to remove it.</p>
+      <p className="muted small drag-hint">{t('itin.paletteHint')}</p>
     </div>
   )
 }
 
 function PaletteItem({ place, count }: { place: Place; count: number }) {
+  const { t } = useT()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `place:${place.id}` })
   const meta = categoryMeta(place.category)
   return (
@@ -787,7 +789,7 @@ function PaletteItem({ place, count }: { place: Place; count: number }) {
       <span className="place-emoji">{meta.emoji}</span>
       <span className="place-row-name">{place.name}</span>
       {place.notes && <span title={place.notes}>📝</span>}
-      {count > 0 && <span className="sched-badge" title={`Scheduled ${count}×`}>×{count}</span>}
+      {count > 0 && <span className="sched-badge" title={t('itin.scheduledTimes', { n: count })}>×{count}</span>}
     </div>
   )
 }
@@ -803,6 +805,7 @@ function StopItem({
   onFocus?: () => void
   onChange: () => void
 }) {
+  const { t } = useT()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `stop:${stop.id}`,
   })
@@ -837,8 +840,7 @@ function StopItem({
         className="stop-grip"
         {...listeners}
         {...attributes}
-        title="Drag to reorder"
-        aria-label={`Reorder ${stop.place.name}`}
+        aria-label={t('itin.reorder', { name: stop.place.name })}
       >
         ⋮⋮
       </span>
@@ -847,10 +849,10 @@ function StopItem({
         <span
           className={`stop-name${onFocus ? ' clickable' : ''}`}
           onClick={onFocus}
-          title={onFocus ? 'Show on map' : undefined}
+          title={onFocus ? t('itin.showOnMap') : undefined}
           role={onFocus ? 'button' : undefined}
           tabIndex={onFocus ? 0 : undefined}
-          aria-label={onFocus ? `${stop.place.name} — show on map` : undefined}
+          aria-label={onFocus ? `${stop.place.name} — ${t('itin.showOnMap')}` : undefined}
           onKeyDown={
             onFocus
               ? (e) => {
@@ -881,32 +883,33 @@ function StopItem({
             value={dur}
             onChange={(e) => setDur(e.target.value)}
             onBlur={() => commit({ duration_min: dur === '' ? null : Number(dur) })}
-            title="Duration in minutes (optional)"
+            title={t('places.openingHours')}
           />
           <input
             type="number"
             min="0"
             inputMode="decimal"
-            placeholder="cost"
+            placeholder={t('places.estCost')}
             className="cost-input"
             value={cost}
             onChange={(e) => setCost(e.target.value)}
             onBlur={() => commit({ cost: cost === '' ? null : Number(cost) })}
-            title="Cost for this visit (optional)"
+            title={t('places.estCost')}
           />
         </div>
       </div>
-      <button className="linklike danger" onClick={remove} title="Remove from day" aria-label="Remove from day">×</button>
+      <button className="linklike danger" onClick={remove} title={t('itin.removeFromDay')} aria-label={t('itin.removeFromDay')}>×</button>
       </div>
     </div>
   )
 }
 
 function AreasBar({ areas, onAdd }: { areas: Area[]; onAdd: (name: string) => void }) {
+  const { t } = useT()
   const [name, setName] = useState('')
   return (
     <div className="areas-bar">
-      <span className="muted small">Areas:</span>
+      <span className="muted small">{t('itin.areas')}</span>
       {areas.map((a) => (
         <span key={a.id} className="area-chip">{a.name}</span>
       ))}
@@ -920,7 +923,7 @@ function AreasBar({ areas, onAdd }: { areas: Area[]; onAdd: (name: string) => vo
           }
         }}
       >
-        <input value={name} placeholder="+ area" onChange={(e) => setName(e.target.value)} />
+        <input value={name} placeholder={t('itin.addArea')} onChange={(e) => setName(e.target.value)} />
       </form>
     </div>
   )

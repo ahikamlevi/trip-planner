@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n/I18nProvider'
 
 /** The inner form: sets the signed-in user's password via updateUser. */
 export function SetPasswordForm({ onDone }: { onDone: () => void }) {
+  const { t } = useT()
   const [pw, setPw] = useState('')
   const [confirm, setConfirm] = useState('')
   const [status, setStatus] = useState<'idle' | 'working' | 'done'>('idle')
@@ -10,8 +12,8 @@ export function SetPasswordForm({ onDone }: { onDone: () => void }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (pw.length < 6) return setError('Use at least 6 characters.')
-    if (pw !== confirm) return setError('Passwords don’t match.')
+    if (pw.length < 6) return setError(t('auth.passwordTooShort'))
+    if (pw !== confirm) return setError(t('auth.passwordsDontMatch'))
     setStatus('working')
     setError(null)
     const { error } = await supabase.auth.updateUser({ password: pw })
@@ -25,12 +27,12 @@ export function SetPasswordForm({ onDone }: { onDone: () => void }) {
   }
 
   if (status === 'done') {
-    return <p className="invite-ok">Password set! You can now sign in with email + password.</p>
+    return <p className="invite-ok">{t('auth.passwordSet')}</p>
   }
 
   return (
     <form onSubmit={submit} className="auth-form">
-      <label htmlFor="new-pw">New password</label>
+      <label htmlFor="new-pw">{t('auth.newPassword')}</label>
       <input
         id="new-pw"
         type="password"
@@ -40,7 +42,7 @@ export function SetPasswordForm({ onDone }: { onDone: () => void }) {
         value={pw}
         onChange={(e) => setPw(e.target.value)}
       />
-      <label htmlFor="confirm-pw">Confirm password</label>
+      <label htmlFor="confirm-pw">{t('auth.confirmPassword')}</label>
       <input
         id="confirm-pw"
         type="password"
@@ -51,7 +53,7 @@ export function SetPasswordForm({ onDone }: { onDone: () => void }) {
         onChange={(e) => setConfirm(e.target.value)}
       />
       <button type="submit" disabled={status === 'working'}>
-        {status === 'working' ? 'Saving…' : 'Set password'}
+        {status === 'working' ? t('auth.saving') : t('auth.setPassword')}
       </button>
       {error && <p className="auth-error">{error}</p>}
     </form>
@@ -60,10 +62,11 @@ export function SetPasswordForm({ onDone }: { onDone: () => void }) {
 
 /** Full-screen version shown after opening a password-recovery link. */
 export function PasswordRecoveryScreen({ onDone }: { onDone: () => void }) {
+  const { t } = useT()
   return (
     <div className="auth-card">
-      <h1>Set a password</h1>
-      <p className="auth-note">Choose a password to finish — you’ll use it to sign in from now on.</p>
+      <h1>{t('auth.setPasswordTitle')}</h1>
+      <p className="auth-note">{t('auth.setPasswordIntro')}</p>
       <SetPasswordForm onDone={onDone} />
     </div>
   )

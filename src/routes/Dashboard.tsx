@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppHeader } from '../components/AppHeader'
+import { useT } from '../i18n/I18nProvider'
 import { supabase } from '../lib/supabase'
 import type { Trip, TripRole } from '../lib/database.types'
 
@@ -11,6 +12,7 @@ interface MembershipRow {
 }
 
 export function Dashboard() {
+  const { t } = useT()
   const { session } = useAuth()
   const uid = session!.user.id
   const [rows, setRows] = useState<MembershipRow[] | null>(null)
@@ -46,19 +48,19 @@ export function Dashboard() {
 
       <main className="page-body" id="main" tabIndex={-1}>
         <div className="section-head">
-          <h2>Your trips</h2>
-          <button onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : 'New trip'}</button>
+          <h2>{t('dash.yourTrips')}</h2>
+          <button onClick={() => setCreating((c) => !c)}>{creating ? t('common.cancel') : t('dash.newTrip')}</button>
         </div>
 
         {creating && <NewTripForm ownerId={uid} onCreated={() => { setCreating(false); void load() }} />}
 
         {error && <p className="auth-error">{error}</p>}
-        {rows === null && !error && <p className="muted">Loading…</p>}
+        {rows === null && !error && <p className="muted">{t('common.loading')}</p>}
 
         {rows !== null && owned.length === 0 && shared.length === 0 && (
           <div className="empty-state">
-            <p>No trips yet.</p>
-            <p className="muted">Click “New trip” to create your first one.</p>
+            <p>{t('dash.noTrips')}</p>
+            <p className="muted">{t('dash.createFirst')}</p>
           </div>
         )}
 
@@ -66,7 +68,7 @@ export function Dashboard() {
 
         {shared.length > 0 && (
           <>
-            <h3 className="group-label">Shared with you</h3>
+            <h3 className="group-label">{t('dash.sharedWithYou')}</h3>
             <TripGroup trips={shared} />
           </>
         )}
@@ -76,6 +78,7 @@ export function Dashboard() {
 }
 
 function TripGroup({ trips }: { trips: MembershipRow[] }) {
+  const { t } = useT()
   return (
     <ul className="trip-list">
       {trips.map(({ trip, role }) => (
@@ -84,7 +87,7 @@ function TripGroup({ trips }: { trips: MembershipRow[] }) {
             <span className="trip-name">{trip.name}</span>
             {trip.country && <span className="muted"> · {trip.country}</span>}
             <span className="trip-dates muted">{formatRange(trip.start_date, trip.end_date)}</span>
-            <span className={`role-badge role-${role}`}>{role}</span>
+            <span className={`role-badge role-${role}`}>{t(`role.${role}`)}</span>
           </Link>
         </li>
       ))}
@@ -93,6 +96,7 @@ function TripGroup({ trips }: { trips: MembershipRow[] }) {
 }
 
 function NewTripForm({ ownerId, onCreated }: { ownerId: string; onCreated: () => void }) {
+  const { t } = useT()
   const [name, setName] = useState('')
   const [country, setCountry] = useState('')
   const [start, setStart] = useState('')
@@ -119,26 +123,26 @@ function NewTripForm({ ownerId, onCreated }: { ownerId: string; onCreated: () =>
   return (
     <form className="card form-grid" onSubmit={submit}>
       <label>
-        Trip name
-        <input value={name} required onChange={(e) => setName(e.target.value)} placeholder="Japan 2026" />
+        {t('trip.name')}
+        <input value={name} required onChange={(e) => setName(e.target.value)} placeholder={t('trip.namePlaceholder')} />
       </label>
       <label>
-        Country <span className="muted">(optional)</span>
-        <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Japan" />
+        {t('trip.country')} <span className="muted">{t('trip.optional')}</span>
+        <input value={country} onChange={(e) => setCountry(e.target.value)} />
       </label>
       <div className="form-row">
         <label>
-          Start <span className="muted">(optional)</span>
+          {t('trip.start')} <span className="muted">{t('trip.optional')}</span>
           <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
         </label>
         <label>
-          End <span className="muted">(optional)</span>
+          {t('trip.end')} <span className="muted">{t('trip.optional')}</span>
           <input type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} />
         </label>
       </div>
       {error && <p className="auth-error">{error}</p>}
       <button type="submit" disabled={saving || !name.trim()}>
-        {saving ? 'Creating…' : 'Create trip'}
+        {saving ? t('trip.creating') : t('trip.create')}
       </button>
     </form>
   )

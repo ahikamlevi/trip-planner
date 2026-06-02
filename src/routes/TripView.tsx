@@ -8,6 +8,7 @@ import { BudgetPanel } from '../budget/BudgetPanel'
 import { PackingPanel } from '../packing/PackingPanel'
 import { CURRENCIES } from '../budget/money'
 import { today } from '../itinerary/dates'
+import { useT } from '../i18n/I18nProvider'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
@@ -21,6 +22,7 @@ interface MemberRow {
 }
 
 export function TripView() {
+  const { t } = useT()
   const { tripId } = useParams<{ tripId: string }>()
   const { session } = useAuth()
   const uid = session!.user.id
@@ -68,15 +70,15 @@ export function TripView() {
     }
   }, [trip])
 
-  if (loading) return <div className="page"><AppHeader /><div className="page-body"><p className="muted">Loading…</p></div></div>
+  if (loading) return <div className="page"><AppHeader /><div className="page-body"><p className="muted">{t('common.loading')}</p></div></div>
 
   if (!trip) {
     return (
       <div className="page">
         <AppHeader />
         <div className="page-body">
-          <p className="auth-error">{error ?? 'Trip not found, or you no longer have access.'}</p>
-          <Link to="/" className="back-link">→ Back to trips</Link>
+          <p className="auth-error">{error ?? t('tripview.notFound')}</p>
+          <Link to="/" className="back-link">→ {t('tripview.backToTrips')}</Link>
         </div>
       </div>
     )
@@ -86,38 +88,38 @@ export function TripView() {
     <div className="page">
       <AppHeader />
       <main className="page-body wide" id="main" tabIndex={-1}>
-        <Link to="/" className="back-link">→ All trips</Link>
+        <Link to="/" className="back-link">→ {t('tripview.allTrips')}</Link>
 
         <TripHeader trip={trip} isOwner={isOwner} onChange={load} onDeleted={() => navigate('/')} />
 
-        <nav className="tabs" aria-label="Trip sections">
+        <nav className="tabs" aria-label={t('tab.sections')}>
           <button
             className={`tab${tab === 'places' ? ' active' : ''}`}
             aria-current={tab === 'places' ? 'page' : undefined}
             onClick={() => setTab('places')}
           >
-            Map &amp; places
+            {t('tab.places')}
           </button>
           <button
             className={`tab${tab === 'itinerary' ? ' active' : ''}`}
             aria-current={tab === 'itinerary' ? 'page' : undefined}
             onClick={() => setTab('itinerary')}
           >
-            Itinerary
+            {t('tab.itinerary')}
           </button>
           <button
             className={`tab${tab === 'budget' ? ' active' : ''}`}
             aria-current={tab === 'budget' ? 'page' : undefined}
             onClick={() => setTab('budget')}
           >
-            Budget
+            {t('tab.budget')}
           </button>
           <button
             className={`tab${tab === 'packing' ? ' active' : ''}`}
             aria-current={tab === 'packing' ? 'page' : undefined}
             onClick={() => setTab('packing')}
           >
-            Packing
+            {t('tab.packing')}
           </button>
         </nav>
 
@@ -131,26 +133,26 @@ export function TripView() {
         <TripNotes trip={trip} isOwner={isOwner} onChange={load} />
 
         <details className="card members-details">
-          <summary>Members &amp; sharing</summary>
+          <summary>{t('tripview.membersSharing')}</summary>
           <ul className="member-list">
             {members.map((m) => (
               <li key={m.user_id}>
                 <span>
-                  {m.profile?.display_name || (m.user_id === uid ? 'You' : 'Unnamed traveler')}
-                  {m.user_id === uid && m.profile?.display_name && <span className="muted"> (you)</span>}
+                  {m.profile?.display_name || (m.user_id === uid ? t('tripview.you') : t('tripview.unnamed'))}
+                  {m.user_id === uid && m.profile?.display_name && <span className="muted"> {t('tripview.youSuffix')}</span>}
                 </span>
                 <span className="member-actions">
-                  <span className={`role-badge role-${m.role}`}>{m.role}</span>
+                  <span className={`role-badge role-${m.role}`}>{t(`role.${m.role}`)}</span>
                   {isOwner && m.user_id !== uid && (
                     <button
                       className="linklike danger"
                       onClick={async () => {
-                        if (!confirm('Remove this person from the trip? They will lose access.')) return
+                        if (!confirm(t('tripview.confirmRemoveMember'))) return
                         await supabase.from('trip_members').delete().eq('trip_id', trip.id).eq('user_id', m.user_id)
                         void load()
                       }}
                     >
-                      remove
+                      {t('common.remove')}
                     </button>
                   )}
                 </span>
@@ -166,6 +168,7 @@ export function TripView() {
 }
 
 function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; onChange: () => void }) {
+  const { t } = useT()
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(trip.notes ?? '')
   const [saving, setSaving] = useState(false)
@@ -188,7 +191,7 @@ function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; 
 
   return (
     <details className="card members-details" open={!!trip.notes}>
-      <summary>Trip notes</summary>
+      <summary>{t('notes.title')}</summary>
       {editing ? (
         <div className="form-grid">
           <textarea
@@ -196,12 +199,12 @@ function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; 
             rows={4}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Overall plan, links, confirmation numbers…"
+            placeholder={t('notes.placeholder')}
           />
           <div className="button-row">
-            <button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+            <button onClick={save} disabled={saving}>{saving ? t('auth.saving') : t('common.save')}</button>
             <button className="secondary" onClick={() => { setEditing(false); setText(trip.notes ?? '') }}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -210,11 +213,11 @@ function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; 
           {trip.notes ? (
             <p className="trip-notes-text">{trip.notes}</p>
           ) : (
-            <p className="muted small">No notes yet.</p>
+            <p className="muted small">{t('notes.none')}</p>
           )}
           {isOwner && (
             <button className="secondary" onClick={() => setEditing(true)}>
-              {trip.notes ? 'Edit notes' : 'Add notes'}
+              {trip.notes ? t('notes.editNotes') : t('notes.addNotes')}
             </button>
           )}
         </>
@@ -241,6 +244,7 @@ function TripHeader({
   const [end, setEnd] = useState(trip.end_date ?? '')
   const [currency, setCurrency] = useState(trip.currency)
   const [saving, setSaving] = useState(false)
+  const { t } = useT()
 
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -261,7 +265,7 @@ function TripHeader({
   }
 
   async function remove() {
-    if (!confirm(`Delete “${trip.name}”? This removes the trip for everyone.`)) return
+    if (!confirm(t('tripview.confirmDelete', { name: trip.name }))) return
     await supabase.from('trips').delete().eq('id', trip.id)
     onDeleted()
   }
@@ -270,24 +274,24 @@ function TripHeader({
     return (
       <form className="card form-grid" onSubmit={save}>
         <label>
-          Trip name
+          {t('trip.name')}
           <input value={name} required onChange={(e) => setName(e.target.value)} />
         </label>
         <label>
-          Country
+          {t('trip.country')}
           <input value={country} onChange={(e) => setCountry(e.target.value)} />
         </label>
         <div className="form-row">
           <label>
-            Start
+            {t('trip.start')}
             <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           </label>
           <label>
-            End
+            {t('trip.end')}
             <input type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} />
           </label>
           <label>
-            Currency
+            {t('trip.currency')}
             <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -296,8 +300,8 @@ function TripHeader({
           </label>
         </div>
         <div className="button-row">
-          <button type="submit" disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Save'}</button>
-          <button type="button" className="secondary" onClick={() => setEditing(false)}>Cancel</button>
+          <button type="submit" disabled={saving || !name.trim()}>{saving ? t('auth.saving') : t('common.save')}</button>
+          <button type="button" className="secondary" onClick={() => setEditing(false)}>{t('common.cancel')}</button>
         </div>
       </form>
     )
@@ -308,28 +312,22 @@ function TripHeader({
       <div>
         <h1>{trip.name}</h1>
         <p className="muted">
-          {trip.country ?? 'No country set'}
+          {trip.country ?? t('tripview.noCountry')}
           {(trip.start_date || trip.end_date) && ` · ${trip.start_date ?? '?'} → ${trip.end_date ?? '?'}`}
         </p>
       </div>
       {isOwner && (
         <div className="button-row">
-          <button className="secondary" onClick={() => setEditing(true)}>Edit</button>
-          <button className="secondary danger" onClick={remove}>Delete</button>
+          <button className="secondary" onClick={() => setEditing(true)}>{t('tripview.edit')}</button>
+          <button className="secondary danger" onClick={remove}>{t('common.delete')}</button>
         </div>
       )}
     </div>
   )
 }
 
-const INVITE_MESSAGES: Record<InviteResult, string> = {
-  added: 'Added! They can see this trip now.',
-  already_member: 'That person is already a member.',
-  no_account: 'No account exists for that email yet. Add them in Supabase → Authentication → Users first.',
-  not_owner: 'Only the trip owner can invite people.',
-}
-
 function InviteForm({ tripId, onInvited }: { tripId: string; onInvited: () => void }) {
+  const { t } = useT()
   const [email, setEmail] = useState('')
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -348,7 +346,7 @@ function InviteForm({ tripId, onInvited }: { tripId: string; onInvited: () => vo
       return
     }
     const result = (data as InviteResult) ?? 'no_account'
-    setMsg({ kind: result === 'added' ? 'ok' : 'err', text: INVITE_MESSAGES[result] })
+    setMsg({ kind: result === 'added' ? 'ok' : 'err', text: t(`invite.${result}`) })
     if (result === 'added') {
       setEmail('')
       onInvited()
@@ -357,7 +355,7 @@ function InviteForm({ tripId, onInvited }: { tripId: string; onInvited: () => vo
 
   return (
     <form className="invite-form" onSubmit={submit}>
-      <label>Invite by email</label>
+      <label>{t('tripview.inviteByEmail')}</label>
       <div className="form-row">
         <input
           type="email"
@@ -366,7 +364,7 @@ function InviteForm({ tripId, onInvited }: { tripId: string; onInvited: () => vo
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <button type="submit" disabled={busy || !email.trim()}>{busy ? 'Inviting…' : 'Invite'}</button>
+        <button type="submit" disabled={busy || !email.trim()}>{busy ? t('tripview.inviting') : t('tripview.invite')}</button>
       </div>
       {msg && <p className={msg.kind === 'ok' ? 'invite-ok' : 'auth-error'}>{msg.text}</p>}
     </form>
