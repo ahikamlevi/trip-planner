@@ -716,6 +716,24 @@ button.secondary.danger {
   margin: 0;
 }
 
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.map-toolbar button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.places-map-wrap.dropping .map {
+  cursor: crosshair;
+}
+
 /* Leaflet pin marker reset */
 .map-pin {
   background: transparent;

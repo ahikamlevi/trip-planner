@@ -28,6 +28,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focus, setFocus] = useState<LatLng | null>(null)
+  const [dropMode, setDropMode] = useState(false)
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -129,16 +130,35 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         <PlaceSearch onAdd={addPlace} />
       </div>
 
-      <div className="places-map-wrap">
+      <div className={`places-map-wrap${dropMode ? ' dropping' : ''}`}>
+        <div className="map-toolbar">
+          <button
+            className={`secondary${dropMode ? ' active' : ''}`}
+            onClick={() => setDropMode((d) => !d)}
+          >
+            {dropMode ? '📍 Click the map…' : '📍 Drop a pin'}
+          </button>
+          <span className="muted small">
+            {dropMode
+              ? 'Click anywhere on the map to place a pin.'
+              : 'Search above to add places, or click “Drop a pin”.'}
+          </span>
+        </div>
         <MapView
           center={center}
           zoom={located.length ? 12 : DEFAULT_ZOOM}
           markers={markers}
           focus={focus}
           onMarkerClick={selectPlace}
-          onMapClick={(pos) => void addPlace({ name: 'New place', lat: pos.lat, lng: pos.lng })}
+          onMapClick={
+            dropMode
+              ? (pos) => {
+                  void addPlace({ name: 'New place', lat: pos.lat, lng: pos.lng })
+                  setDropMode(false)
+                }
+              : undefined
+          }
         />
-        <p className="map-hint muted small">Click the map to drop a place, or a pin to edit it.</p>
       </div>
 
       <div className="places-detail">
