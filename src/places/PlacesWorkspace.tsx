@@ -288,6 +288,7 @@ function PlaceEditor({
   const [category, setCategory] = useState<PlaceCategory>(place.category)
   const [notes, setNotes] = useState(place.notes ?? '')
   const [hours, setHours] = useState(place.opening_hours ?? '')
+  const [dietary, setDietary] = useState(place.dietary_notes ?? '')
   const [cost, setCost] = useState(place.est_cost?.toString() ?? '')
 
   return (
@@ -341,6 +342,17 @@ function PlaceEditor({
         <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </label>
 
+      {category === 'food' && (
+        <label>
+          {t('places.dietaryNotes')}
+          <input
+            value={dietary}
+            onChange={(e) => setDietary(e.target.value)}
+            placeholder={t('places.dietaryNotesHint')}
+          />
+        </label>
+      )}
+
       <div className="button-row">
         <button
           onClick={() =>
@@ -349,6 +361,7 @@ function PlaceEditor({
               category,
               notes: notes.trim() || null,
               opening_hours: hours.trim() || null,
+              dietary_notes: dietary.trim() || null,
               est_cost: cost.trim() === '' ? null : Number(cost),
             })
           }

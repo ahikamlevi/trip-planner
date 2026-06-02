@@ -71,14 +71,15 @@ They are mostly idempotent.
 | `0006_day_notes.sql` | `days.note` |
 | `0007_realtime.sql` | adds tables to `supabase_realtime` publication (live sync) |
 | `0008_notes_packing.sql` | `trips.notes` + `packing_items` table + RLS + realtime |
+| `0009_dietary.sql` | `profiles.dietary_restrictions` (text[]) + `profiles.dietary_note` + `places.dietary_notes` |
 
 **Data model (tables):**
-- `profiles` (id→auth.users, display_name)
+- `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
 - `trips` (name, country, start_date, end_date, owner_id, currency, notes)
 - `trip_members` (trip_id, user_id, role: owner|editor)
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)
-- `places` (trip_id, name, lat, lng, category[food|sight|beach|hotel|transport], google_place_id, notes, opening_hours, est_cost, scheduled[UNUSED now])
+- `places` (trip_id, name, lat, lng, category[food|sight|beach|hotel|transport], google_place_id, notes, opening_hours, dietary_notes, est_cost, scheduled[UNUSED now])
 - `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost)
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
@@ -136,6 +137,11 @@ authenticated user (cache only). Types hand-authored in
   - **Live realtime sync** (`useTripRealtime`): Supabase Realtime → debounced reload
     on any trip-table change. Edits appear for both users without refresh.
   - **Shared packing checklist** (Packing tab, live-synced).
+  - **Dietary & allergies** (Dietary tab): each member sets their own restrictions
+    (tag chips + free note) on their `profiles` row; other members' restrictions
+    show read-only (live-synced). Generates a **printable allergy card** whose
+    language is independent of the UI (defaults to the *other* app language so you
+    can hand locals a card they read). Food places gain a `dietary_notes` field.
   - **Mobile pass:** responsive layout; touch drag uses press-and-hold
     (MouseSensor + TouchSensor) so swipes still scroll.
   - **Day view layout:** stops + map **side by side** with a **sticky** map; trip
@@ -191,7 +197,8 @@ itinerary/   ItineraryBoard.tsx (calendar + dnd, BIG file), dates.ts (Intl-based
 routing/     RouteProvider.ts (interface), osrm.ts, index.ts (getRouteCached, getRoutePathCached)
 budget/      BudgetPanel.tsx, money.ts (Intl currency)
 packing/     PackingPanel.tsx
-routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing + members + notes)
+dietary/     DietaryPanel.tsx (self-editor + members overview + printable allergy card)
+routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes)
 ```
 
 ---

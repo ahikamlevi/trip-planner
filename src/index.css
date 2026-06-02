@@ -1619,3 +1619,99 @@ button.secondary.danger {
     min-height: 38px;
   }
 }
+
+/* Dietary & allergies */
+.diet-self {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.diet-chips .cat-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #18222e;
+}
+
+.diet-others {
+  margin: 0.5rem 0 1rem;
+}
+
+.diet-member {
+  margin: 0.25rem 0;
+  color: var(--text);
+}
+
+.diet-card-block {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
+.diet-card-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.diet-card {
+  background: #fff;
+  color: #111;
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  margin-top: 0.75rem;
+  line-height: 1.5;
+}
+
+.diet-card-intro,
+.diet-card-outro {
+  font-weight: 600;
+}
+
+.diet-card-person {
+  margin: 0.75rem 0;
+  padding-inline-start: 0.5rem;
+  border-inline-start: 3px solid #ddd;
+}
+
+.diet-card-name {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.diet-card-line {
+  margin: 0.25rem 0;
+  font-size: 1.05rem;
+}
+
+.diet-card-avoid {
+  color: #b00020;
+  font-weight: 600;
+}
+
+.diet-card-note {
+  font-style: italic;
+  color: #444;
+}
+
+.diet-group-label {
+  display: block;
+  margin-top: 0.4rem;
+}
+
+/* When printing, show only the allergy card. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .diet-card,
+  .diet-card * {
+    visibility: visible;
+  }
+  .diet-card {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+  }
+}

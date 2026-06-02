@@ -11,9 +11,27 @@ export interface Database {
     CompositeTypes: Record<string, never>
     Tables: {
       profiles: {
-        Row: { id: string; display_name: string | null; created_at: string }
-        Insert: { id: string; display_name?: string | null; created_at?: string }
-        Update: { id?: string; display_name?: string | null; created_at?: string }
+        Row: {
+          id: string
+          display_name: string | null
+          dietary_restrictions: string[]
+          dietary_note: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          display_name?: string | null
+          dietary_restrictions?: string[]
+          dietary_note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          display_name?: string | null
+          dietary_restrictions?: string[]
+          dietary_note?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       trips: {
@@ -69,6 +87,7 @@ export interface Database {
           google_place_id: string | null
           notes: string | null
           opening_hours: string | null
+          dietary_notes: string | null
           est_cost: number | null
           scheduled: boolean
           created_at: string
@@ -83,6 +102,7 @@ export interface Database {
           google_place_id?: string | null
           notes?: string | null
           opening_hours?: string | null
+          dietary_notes?: string | null
           est_cost?: number | null
           scheduled?: boolean
           created_at?: string
@@ -97,6 +117,7 @@ export interface Database {
           google_place_id?: string | null
           notes?: string | null
           opening_hours?: string | null
+          dietary_notes?: string | null
           est_cost?: number | null
           scheduled?: boolean
           created_at?: string

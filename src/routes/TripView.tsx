@@ -6,6 +6,7 @@ import { PlacesWorkspace } from '../places/PlacesWorkspace'
 import { ItineraryBoard } from '../itinerary/ItineraryBoard'
 import { BudgetPanel } from '../budget/BudgetPanel'
 import { PackingPanel } from '../packing/PackingPanel'
+import { DietaryPanel } from '../dietary/DietaryPanel'
 import { CURRENCIES } from '../budget/money'
 import { today } from '../itinerary/dates'
 import { useT } from '../i18n/I18nProvider'
@@ -13,7 +14,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
 
-type Tab = 'places' | 'itinerary' | 'budget' | 'packing'
+type Tab = 'places' | 'itinerary' | 'budget' | 'packing' | 'dietary'
 
 interface MemberRow {
   user_id: string
@@ -121,6 +122,13 @@ export function TripView() {
           >
             {t('tab.packing')}
           </button>
+          <button
+            className={`tab${tab === 'dietary' ? ' active' : ''}`}
+            aria-current={tab === 'dietary' ? 'page' : undefined}
+            onClick={() => setTab('dietary')}
+          >
+            {t('tab.dietary')}
+          </button>
         </nav>
 
         {tab === 'places' && <PlacesWorkspace tripId={trip.id} />}
@@ -129,6 +137,7 @@ export function TripView() {
         )}
         {tab === 'budget' && <BudgetPanel tripId={trip.id} currency={trip.currency} />}
         {tab === 'packing' && <PackingPanel tripId={trip.id} />}
+        {tab === 'dietary' && <DietaryPanel tripId={trip.id} />}
 
         <TripNotes trip={trip} isOwner={isOwner} onChange={load} />
 
