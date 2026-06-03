@@ -185,6 +185,10 @@ export interface Database {
           duration_min: number | null
           cost: number | null
           reminder_min: number | null
+          travel_mode: string | null
+          travel_min: number | null
+          travel_dist_m: number | null
+          travel_note: string | null
           created_at: string
         }
         Insert: {
@@ -196,6 +200,10 @@ export interface Database {
           duration_min?: number | null
           cost?: number | null
           reminder_min?: number | null
+          travel_mode?: string | null
+          travel_min?: number | null
+          travel_dist_m?: number | null
+          travel_note?: string | null
           created_at?: string
         }
         Update: {
@@ -207,6 +215,10 @@ export interface Database {
           duration_min?: number | null
           cost?: number | null
           reminder_min?: number | null
+          travel_mode?: string | null
+          travel_min?: number | null
+          travel_dist_m?: number | null
+          travel_note?: string | null
           created_at?: string
         }
         Relationships: []

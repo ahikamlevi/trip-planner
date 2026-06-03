@@ -1182,6 +1182,66 @@ button.secondary.danger {
   margin-inline-start: 0.35rem;
 }
 
+/* Editable travel leg */
+.connector-btn {
+  margin: 0;
+  padding: 0.1rem 0.4rem;
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.connector-btn:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+.connector-btn.overridden {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+}
+.leg-editor {
+  margin: 0.1rem 0 0.3rem 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.leg-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.mode-chip {
+  margin: 0;
+  padding: 0.25rem 0.45rem;
+  font-size: 1rem;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.mode-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.leg-fields {
+  display: flex;
+  gap: 0.4rem;
+}
+.leg-fields label {
+  flex: 1;
+  font-size: 0.78rem;
+}
+.leg-fields input,
+.leg-note-input {
+  width: 100%;
+}
+
 .day-head-right {
   display: flex;
   align-items: center;
@@ -2070,6 +2130,33 @@ button.secondary.danger {
   font-weight: 600;
   color: var(--warn);
   cursor: help;
+}
+
+/* Tap-to-add a place to a day (mobile-friendly alternative to dragging) */
+.add-stop-btn {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+}
+.add-stop-picker {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: var(--surface);
+}
+.add-stop-search {
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+.add-stop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-height: 260px;
+  overflow-y: auto;
 }
 .cal-export {
   margin-inline-start: auto;

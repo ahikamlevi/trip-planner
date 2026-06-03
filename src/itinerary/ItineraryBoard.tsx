@@ -240,6 +240,19 @@ export function ItineraryBoard({
     return data.id
   }
 
+  // Tap-to-add (mobile-friendly alternative to drag): append a place to a day's route.
+  async function addStopToDay(iso: string, placeId: string) {
+    const dayId = await ensureDay(iso)
+    if (!dayId) return
+    const prefillCost = placeMap.get(placeId)?.est_cost ?? null
+    const nextOrder = byDate.get(iso)?.stops.length ?? 0
+    const { error } = await supabase
+      .from('stops')
+      .insert({ day_id: dayId, place_id: placeId, sort_order: nextOrder, cost: prefillCost })
+    if (error) return setError(error.message)
+    return load()
+  }
+
   type Dest = { type: 'wishlist' } | { type: 'date'; iso: string; index: number }
 
   function resolveDrop(overId: string): Dest {
@@ -471,6 +484,8 @@ export function ItineraryBoard({
                       setView('day')
                     }}
                     routeLegs={routeLegs}
+                    places={places}
+                    onAddStop={(placeId) => addStopToDay(iso, placeId)}
                     onStopChange={load}
                   />
                 ))}
@@ -491,6 +506,8 @@ export function ItineraryBoard({
                   onClear={byDate.get(cursor) ? () => clearDay(byDate.get(cursor)!) : undefined}
                   onFocusStop={focusStop}
                   routeLegs={routeLegs}
+                  places={places}
+                  onAddStop={(placeId) => addStopToDay(cursor, placeId)}
                   onStopChange={load}
                 />
                 <ItineraryDayMap
@@ -603,6 +620,8 @@ function DayPanel({
   variant,
   isToday,
   routeLegs,
+  places,
+  onAddStop,
   onAreaChange,
   onNoteChange,
   onClear,
@@ -617,6 +636,8 @@ function DayPanel({
   variant: 'week' | 'day'
   isToday?: boolean
   routeLegs: Map<string, RouteLeg | null>
+  places: Place[]
+  onAddStop: (placeId: string) => void
   onAreaChange: (areaId: string | null) => void
   onNoteChange: (note: string) => void
   onClear?: () => void
@@ -626,25 +647,47 @@ function DayPanel({
 }) {
   const { t, locale } = useT()
   const { setNodeRef, isOver } = useDroppable({ id: `date:${iso}` })
+  const [adding, setAdding] = useState(false)
   const stops = boardDay?.stops ?? []
 
-  // Connector text shown above each stop (travel from the previous one), plus a
-  // running total of travel minutes for the busy-day flag.
+  // The travel leg arriving into each stop (auto OSRM values + any per-stop
+  // overrides), plus a running total of travel minutes for the busy-day flag.
   let travelMin = 0
-  const connectors = stops.map((s, i): string | null => {
+  const legs = stops.map((s, i): Leg | null => {
     if (i === 0) return null
     const prev = stops[i - 1]
-    if (prev.place.lat == null || prev.place.lng == null || s.place.lat == null || s.place.lng == null) {
-      return t('itin.locationMissing')
+    const locMissing =
+      prev.place.lat == null || prev.place.lng == null || s.place.lat == null || s.place.lng == null
+    let autoMins: number | null = null
+    let autoMeters: number | null = null
+    let loading = false
+    let noRoute = false
+    if (!locMissing) {
+      const leg = routeLegs.get(
+        legKey({ lat: prev.place.lat!, lng: prev.place.lng! }, { lat: s.place.lat!, lng: s.place.lng! }),
+      )
+      if (leg === undefined) loading = true
+      else if (leg === null) noRoute = true
+      else {
+        autoMins = Math.round(leg.durationSeconds / 60)
+        autoMeters = leg.distanceMeters
+      }
     }
-    const leg = routeLegs.get(
-      legKey({ lat: prev.place.lat, lng: prev.place.lng }, { lat: s.place.lat, lng: s.place.lng }),
-    )
-    if (leg === undefined) return '…'
-    if (leg === null) return t('itin.noRoute')
-    const mins = Math.round(leg.durationSeconds / 60)
-    travelMin += mins
-    return `${formatKm(leg.distanceMeters)} · ${mins} min`
+    const mins = s.travel_min ?? autoMins
+    const meters = s.travel_dist_m ?? autoMeters
+    if (mins != null) travelMin += mins
+    return {
+      mode: s.travel_mode,
+      note: s.travel_note,
+      autoMins,
+      autoMeters,
+      mins,
+      meters,
+      overridden: s.travel_min != null || s.travel_dist_m != null || s.travel_mode != null,
+      loading,
+      noRoute,
+      locMissing,
+    }
   })
 
   // Per-stop time-consistency warning: a time earlier than the previous stop
@@ -657,13 +700,7 @@ function DayPanel({
     const prevMin = timeToMin(prev.arrival_time)
     if (curMin == null || prevMin == null) return null
     if (curMin < prevMin) return { kind: 'order' }
-    let legMins = 0
-    if (prev.place.lat != null && prev.place.lng != null && s.place.lat != null && s.place.lng != null) {
-      const leg = routeLegs.get(
-        legKey({ lat: prev.place.lat, lng: prev.place.lng }, { lat: s.place.lat, lng: s.place.lng }),
-      )
-      if (leg) legMins = Math.round(leg.durationSeconds / 60)
-    }
+    const legMins = legs[i]?.mins ?? 0
     const earliest = prevMin + (prev.duration_min ?? 0) + legMins
     if (earliest > curMin) return { kind: 'tight', shortBy: earliest - curMin }
     return null
@@ -713,7 +750,7 @@ function DayPanel({
             <StopItem
               key={s.id}
               stop={s}
-              connector={connectors[i]}
+              leg={legs[i]}
               timeWarning={timeWarnings[i]}
               onFocus={onFocusStop ? () => onFocusStop(s) : undefined}
               onChange={onStopChange}
@@ -722,6 +759,59 @@ function DayPanel({
         </SortableContext>
         {stops.length === 0 && <p className="muted small empty-day">{t('itin.dropHere')}</p>}
       </div>
+      <button className="secondary add-stop-btn" onClick={() => setAdding((a) => !a)}>
+        {adding ? t('common.cancel') : t('itin.addStop')}
+      </button>
+      {adding && (
+        <AddStopPicker
+          places={places}
+          onPick={(placeId) => {
+            onAddStop(placeId)
+            setAdding(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Tap-to-add place picker (mobile-friendly alternative to dragging from the palette).
+function AddStopPicker({ places, onPick }: { places: Place[]; onPick: (placeId: string) => void }) {
+  const { t } = useT()
+  const [q, setQ] = useState('')
+  const query = q.trim().toLowerCase()
+  const filtered = query
+    ? places.filter((p) => p.name.toLowerCase().includes(query))
+    : places
+  return (
+    <div className="add-stop-picker">
+      <input
+        className="add-stop-search"
+        autoFocus
+        placeholder={t('itin.addSearch')}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      {places.length === 0 ? (
+        <p className="muted small">{t('itin.paletteEmpty')}</p>
+      ) : (
+        <ul className="add-stop-list">
+          {filtered.map((p) => (
+            <li key={p.id}>
+              <button
+                className="place-row"
+                onClick={() => onPick(p.id)}
+                style={{ borderInlineStartColor: placeColor(p.category, p.color), borderInlineStartWidth: 3 }}
+              >
+                <span className="place-emoji">{categoryMeta(p.category).emoji}</span>
+                <span className="place-row-name">{p.name}</span>
+                {p.city && <span className="muted small">{p.city}</span>}
+              </button>
+            </li>
+          ))}
+          {filtered.length === 0 && <li className="muted small">{t('places.noneMatch')}</li>}
+        </ul>
+      )}
     </div>
   )
 }
@@ -818,6 +908,44 @@ function timeToMin(value?: string | null): number | null {
 
 type TimeWarning = { kind: 'order' | 'tight'; shortBy?: number }
 
+const TRAVEL_MODES = [
+  { key: 'walk', icon: '🚶' },
+  { key: 'car', icon: '🚗' },
+  { key: 'train', icon: '🚆' },
+  { key: 'bus', icon: '🚌' },
+  { key: 'bike', icon: '🚲' },
+  { key: 'other', icon: '➡️' },
+] as const
+
+function modeIcon(mode?: string | null): string {
+  return TRAVEL_MODES.find((m) => m.key === mode)?.icon ?? '🚗'
+}
+
+function legText(leg: Leg, t: (k: string, v?: Record<string, string | number>) => string): string {
+  if (leg.locMissing) return t('itin.locationMissing')
+  if (leg.mins == null) {
+    if (leg.loading) return '…'
+    if (leg.noRoute) return t('itin.noRoute')
+    return '—'
+  }
+  const dist = leg.meters != null ? `${formatKm(leg.meters)} · ` : ''
+  return `${dist}${leg.mins} min`
+}
+
+// A travel leg arriving into a stop: auto OSRM values + any per-stop overrides.
+interface Leg {
+  mode: string | null
+  note: string | null
+  autoMins: number | null
+  autoMeters: number | null
+  mins: number | null // override ?? auto
+  meters: number | null // override ?? auto
+  overridden: boolean
+  loading: boolean
+  noRoute: boolean
+  locMissing: boolean
+}
+
 function formatTravelTotal(mins: number): string {
   if (mins < 60) return `${mins} min`
   const h = Math.floor(mins / 60)
@@ -870,13 +998,13 @@ function PaletteItem({ place, count }: { place: Place; count: number }) {
 
 function StopItem({
   stop,
-  connector,
+  leg,
   timeWarning,
   onFocus,
   onChange,
 }: {
   stop: BoardStop
-  connector: string | null
+  leg: Leg | null
   timeWarning?: TimeWarning | null
   onFocus?: () => void
   onChange: () => void
@@ -890,12 +1018,17 @@ function StopItem({
   const [dur, setDur] = useState(stop.duration_min?.toString() ?? '')
   const [cost, setCost] = useState(stop.cost?.toString() ?? '')
   const [reminder, setReminder] = useState(stop.reminder_min != null ? String(stop.reminder_min) : '')
+  const [editingLeg, setEditingLeg] = useState(false)
 
   async function commit(patch: {
     arrival_time?: string | null
     duration_min?: number | null
     cost?: number | null
     reminder_min?: number | null
+    travel_mode?: string | null
+    travel_min?: number | null
+    travel_dist_m?: number | null
+    travel_note?: string | null
   }) {
     await supabase.from('stops').update(patch).eq('id', stop.id)
     onChange()
@@ -911,12 +1044,35 @@ function StopItem({
       className="stop-wrap"
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
-      {connector && (
+      {leg && (
         <div className="stop-connector">
           <span className="connector-line" />
-          {/* Numbers + units are LTR data; isolate so it doesn't reorder under RTL. */}
-          <bdi className="connector-text" dir="ltr">🚗 {connector}</bdi>
+          <button
+            type="button"
+            className={`connector-btn${leg.overridden ? ' overridden' : ''}`}
+            onClick={() => setEditingLeg((v) => !v)}
+            title={t('itin.legEdit')}
+          >
+            {/* Numbers + units are LTR data; isolate so they don't reorder under RTL. */}
+            <bdi dir="ltr">{modeIcon(leg.mode)} {legText(leg, t)}</bdi>
+            {leg.note && <span title={leg.note}> 📝</span>}
+          </button>
         </div>
+      )}
+      {leg && editingLeg && (
+        <LegEditor
+          autoMins={leg.autoMins}
+          autoMeters={leg.autoMeters}
+          initMode={stop.travel_mode}
+          initMin={stop.travel_min}
+          initDistM={stop.travel_dist_m}
+          initNote={stop.travel_note}
+          onSave={(patch) => {
+            commit(patch)
+            setEditingLeg(false)
+          }}
+          onClose={() => setEditingLeg(false)}
+        />
       )}
       <div
         className={`stop-card${isDragging ? ' dragging' : ''}`}
@@ -1015,6 +1171,112 @@ function StopItem({
         )}
       </div>
       <button className="linklike danger" onClick={remove} title={t('itin.removeFromDay')} aria-label={t('itin.removeFromDay')}>×</button>
+      </div>
+    </div>
+  )
+}
+
+// Inline editor for the travel leg arriving into a stop: mode, manual time/distance
+// (overriding the auto OSRM values shown as placeholders), and a per-leg note.
+function LegEditor({
+  autoMins,
+  autoMeters,
+  initMode,
+  initMin,
+  initDistM,
+  initNote,
+  onSave,
+  onClose,
+}: {
+  autoMins: number | null
+  autoMeters: number | null
+  initMode: string | null
+  initMin: number | null
+  initDistM: number | null
+  initNote: string | null
+  onSave: (patch: {
+    travel_mode: string | null
+    travel_min: number | null
+    travel_dist_m: number | null
+    travel_note: string | null
+  }) => void
+  onClose: () => void
+}) {
+  const { t } = useT()
+  const [mode, setMode] = useState(initMode ?? '')
+  const [min, setMin] = useState(initMin != null ? String(initMin) : '')
+  const [distKm, setDistKm] = useState(initDistM != null ? String(initDistM / 1000) : '')
+  const [note, setNote] = useState(initNote ?? '')
+
+  return (
+    <div className="leg-editor">
+      <div className="leg-modes">
+        {TRAVEL_MODES.map((m) => (
+          <button
+            key={m.key}
+            type="button"
+            className={`mode-chip${mode === m.key ? ' active' : ''}`}
+            title={t(`itin.mode.${m.key}`)}
+            aria-label={t(`itin.mode.${m.key}`)}
+            aria-pressed={mode === m.key}
+            onClick={() => setMode(mode === m.key ? '' : m.key)}
+          >
+            {m.icon}
+          </button>
+        ))}
+      </div>
+      <div className="leg-fields">
+        <label>
+          {t('itin.legDuration')}
+          <input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={min}
+            placeholder={autoMins != null ? String(autoMins) : ''}
+            onChange={(e) => setMin(e.target.value)}
+          />
+        </label>
+        <label>
+          {t('itin.legDistance')}
+          <input
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={distKm}
+            placeholder={autoMeters != null ? (autoMeters / 1000).toFixed(1) : ''}
+            onChange={(e) => setDistKm(e.target.value)}
+          />
+        </label>
+      </div>
+      <input
+        className="leg-note-input"
+        value={note}
+        placeholder={t('itin.legNote')}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <div className="button-row">
+        <button
+          onClick={() =>
+            onSave({
+              travel_mode: mode || null,
+              travel_min: min.trim() === '' ? null : Number(min),
+              travel_dist_m: distKm.trim() === '' ? null : Math.round(Number(distKm) * 1000),
+              travel_note: note.trim() || null,
+            })
+          }
+        >
+          {t('common.save')}
+        </button>
+        <button
+          className="secondary"
+          onClick={() => onSave({ travel_mode: null, travel_min: null, travel_dist_m: null, travel_note: null })}
+        >
+          {t('itin.legReset')}
+        </button>
+        <button className="linklike" onClick={onClose}>
+          {t('common.close')}
+        </button>
       </div>
     </div>
   )

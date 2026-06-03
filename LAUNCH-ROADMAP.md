@@ -43,6 +43,12 @@ The visible layer. What a new user judges in the first 30 seconds.
   Supabase scheduler (pg_cron + Edge Function) + VAPID; iOS requires the installed PWA.
 - ☐ **Per-day weather** (Open-Meteo, keyless; forecast within range).
 - ☐ **Export / print** a clean itinerary (print stylesheet → PDF).
+- ☑ **Editable travel legs** — click the connector between two stops to edit that leg:
+  transport mode (walk/car/train/bus/bike/other, icon shown on the connector),
+  manual time + distance overriding the auto OSRM values, and a per-leg note.
+  Overrides win when set and feed the per-day travel total + the "too tight" time
+  warning. Stored on the destination stop (`stops.travel_mode/_min/_dist_m/_note`,
+  migration `0013`); editor `LegEditor` in `ItineraryBoard.tsx`.
 
 ## Phase 1 — Platform hardening (launch gate)
 Required before any real traffic.
