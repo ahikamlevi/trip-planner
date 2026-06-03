@@ -1243,6 +1243,7 @@ button.secondary.danger {
 .stop-times {
   display: flex;
   gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
 .stop-times input {
@@ -2052,7 +2053,11 @@ button.secondary.danger {
 .reminder-select {
   font-size: 0.78rem;
   padding: 0.2rem 0.25rem;
-  max-width: 9rem;
+  /* Wrap onto its own line within the stop card so it never overflows under the
+     sticky day map. */
+  flex: 1 1 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 .cal-export {
   margin-inline-start: auto;

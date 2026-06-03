@@ -947,25 +947,24 @@ function StopItem({
             onBlur={() => commit({ cost: cost === '' ? null : Number(cost) })}
             title={t('places.estCost')}
           />
-          {time && (
-            <select
-              className="reminder-select"
-              value={reminder}
-              title={t('itin.remindTitle')}
-              aria-label={t('itin.remindTitle')}
-              onChange={(e) => {
-                setReminder(e.target.value)
-                commit({ reminder_min: e.target.value === '' ? null : Number(e.target.value) })
-              }}
-            >
-              <option value="">{t('itin.remind.off')}</option>
-              <option value="0">{t('itin.remind.at')}</option>
-              <option value="10">{t('itin.remind.10')}</option>
-              <option value="30">{t('itin.remind.30')}</option>
-              <option value="60">{t('itin.remind.60')}</option>
-              <option value="1440">{t('itin.remind.1440')}</option>
-            </select>
-          )}
+          <select
+            className="reminder-select"
+            value={reminder}
+            disabled={!time}
+            title={time ? t('itin.remindTitle') : t('itin.remindNeedsTime')}
+            aria-label={t('itin.remindTitle')}
+            onChange={(e) => {
+              setReminder(e.target.value)
+              commit({ reminder_min: e.target.value === '' ? null : Number(e.target.value) })
+            }}
+          >
+            <option value="">{t('itin.remind.off')}</option>
+            <option value="0">{t('itin.remind.at')}</option>
+            <option value="10">{t('itin.remind.10')}</option>
+            <option value="30">{t('itin.remind.30')}</option>
+            <option value="60">{t('itin.remind.60')}</option>
+            <option value="1440">{t('itin.remind.1440')}</option>
+          </select>
         </div>
       </div>
       <button className="linklike danger" onClick={remove} title={t('itin.removeFromDay')} aria-label={t('itin.removeFromDay')}>×</button>
