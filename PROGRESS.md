@@ -77,6 +77,7 @@ They are mostly idempotent.
 | `0009_dietary.sql` | `profiles.dietary_restrictions` (text[]) + `profiles.dietary_note` + `places.dietary_notes` |
 | `0010_trip_cover.sql` | `trips.cover_emoji` (optional cover emoji shown on dashboard + trip header) |
 | `0011_place_color_city.sql` | `places.color` (per-place color label) + `places.city` (auto-captured, editable; used for filtering) |
+| `0012_stop_reminder.sql` | `stops.reminder_min` (minutes before arrival; becomes a calendar .ics alarm) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
@@ -85,7 +86,7 @@ They are mostly idempotent.
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)
 - `places` (trip_id, name, lat, lng, category[food|sight|beach|hotel|transport], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, scheduled[UNUSED now])
-- `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost)
+- `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost, reminder_min)
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
 - `packing_items` (trip_id, label, packed, sort_order)
@@ -164,6 +165,11 @@ authenticated user (cache only). Types hand-authored in
     `src/i18n/strings.ts`, `I18nProvider`/`useT()`, header language switcher,
     persists choice, flips `dir`/`lang` (he=rtl, en=ltr), default Hebrew. Dates and
     currency are locale-aware via `Intl`.
+  - **Stop reminders + calendar export**: each timed stop has a "remind me N before"
+    selector (`stops.reminder_min`); an "📅 Add to calendar" button in the itinerary
+    toolbar downloads an `.ics` of all timed stops, with a `VALARM` for ones that have
+    a reminder set, so the phone's calendar delivers the alert (offline, app closed).
+    Builder in `src/itinerary/ics.ts`. True web push is parked for a later phase.
   - **Per-place color labels** (Google-Calendar style): preset palette in the place
     editor, overriding the category color; applied to map pins, wishlist rows,
     palette cards, and itinerary stop cards (falls back to category color).

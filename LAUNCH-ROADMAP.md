@@ -37,6 +37,10 @@ The visible layer. What a new user judges in the first 30 seconds.
 - ☐ **"Deleted · Undo" toasts** (upgrade from confirm() dialogs). Note: the
   instant-save + realtime model makes true undo non-trivial — likely a deferred-
   delete toast pattern.
+- ☑ **Stop reminders (calendar)**: per-stop "remind me N before" + an "Add to
+  calendar" .ics export with alarms; the phone delivers them. **True web push**
+  (notify with the app closed) is a later phase — needs PWA + Service Worker +
+  Supabase scheduler (pg_cron + Edge Function) + VAPID; iOS requires the installed PWA.
 - ☐ **Per-day weather** (Open-Meteo, keyless; forecast within range).
 - ☐ **Export / print** a clean itinerary (print stylesheet → PDF).
 

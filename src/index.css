@@ -2048,6 +2048,16 @@ button.secondary.danger {
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+/* Per-stop reminder select + calendar export */
+.reminder-select {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.25rem;
+  max-width: 9rem;
+}
+.cal-export {
+  margin-inline-start: auto;
+}
+
 /* When printing, show only the allergy card. */
 @media print {
   body * {

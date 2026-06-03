@@ -43,6 +43,7 @@ import {
   weekDates,
   weekdayHeaders,
 } from './dates'
+import { buildICS, downloadICS, type IcsEvent } from './ics'
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -125,6 +126,33 @@ export function ItineraryBoard({
     }
     return map
   }, [days, stops, placeMap])
+
+  // Build a calendar (.ics) of every scheduled (timed) stop, with an alarm for any
+  // stop that has a reminder set. The phone calendar then delivers the reminders.
+  const timedEvents = useMemo<IcsEvent[]>(() => {
+    const out: IcsEvent[] = []
+    for (const day of days) {
+      for (const s of stops.filter((x) => x.day_id === day.id)) {
+        if (!s.arrival_time) continue
+        const place = placeMap.get(s.place_id)
+        if (!place) continue
+        out.push({
+          date: day.date,
+          time: s.arrival_time.slice(0, 5),
+          durationMin: s.duration_min,
+          reminderMin: s.reminder_min,
+          title: place.name,
+          location: place.city ?? null,
+        })
+      }
+    }
+    return out
+  }, [days, stops, placeMap])
+
+  function exportCalendar() {
+    if (timedEvents.length === 0) return
+    downloadICS('trip-itinerary.ics', buildICS(timedEvents, t('itin.calName')))
+  }
 
   // Places stay in the palette permanently (reusable). Count how many times each
   // is scheduled so the panel can show a ×N badge.
@@ -401,6 +429,14 @@ export function ItineraryBoard({
                   </button>
                 ))}
               </div>
+              <button
+                className="secondary cal-export"
+                onClick={exportCalendar}
+                disabled={timedEvents.length === 0}
+                title={t('itin.addToCalendarHint')}
+              >
+                {t('itin.addToCalendar')}
+              </button>
             </div>
 
             {view === 'month' && (
@@ -818,8 +854,14 @@ function StopItem({
   const [time, setTime] = useState(stop.arrival_time?.slice(0, 5) ?? '')
   const [dur, setDur] = useState(stop.duration_min?.toString() ?? '')
   const [cost, setCost] = useState(stop.cost?.toString() ?? '')
+  const [reminder, setReminder] = useState(stop.reminder_min != null ? String(stop.reminder_min) : '')
 
-  async function commit(patch: { arrival_time?: string | null; duration_min?: number | null; cost?: number | null }) {
+  async function commit(patch: {
+    arrival_time?: string | null
+    duration_min?: number | null
+    cost?: number | null
+    reminder_min?: number | null
+  }) {
     await supabase.from('stops').update(patch).eq('id', stop.id)
     onChange()
   }
@@ -905,6 +947,25 @@ function StopItem({
             onBlur={() => commit({ cost: cost === '' ? null : Number(cost) })}
             title={t('places.estCost')}
           />
+          {time && (
+            <select
+              className="reminder-select"
+              value={reminder}
+              title={t('itin.remindTitle')}
+              aria-label={t('itin.remindTitle')}
+              onChange={(e) => {
+                setReminder(e.target.value)
+                commit({ reminder_min: e.target.value === '' ? null : Number(e.target.value) })
+              }}
+            >
+              <option value="">{t('itin.remind.off')}</option>
+              <option value="0">{t('itin.remind.at')}</option>
+              <option value="10">{t('itin.remind.10')}</option>
+              <option value="30">{t('itin.remind.30')}</option>
+              <option value="60">{t('itin.remind.60')}</option>
+              <option value="1440">{t('itin.remind.1440')}</option>
+            </select>
+          )}
         </div>
       </div>
       <button className="linklike danger" onClick={remove} title={t('itin.removeFromDay')} aria-label={t('itin.removeFromDay')}>×</button>

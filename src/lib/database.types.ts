@@ -184,6 +184,7 @@ export interface Database {
           arrival_time: string | null
           duration_min: number | null
           cost: number | null
+          reminder_min: number | null
           created_at: string
         }
         Insert: {
@@ -194,6 +195,7 @@ export interface Database {
           arrival_time?: string | null
           duration_min?: number | null
           cost?: number | null
+          reminder_min?: number | null
           created_at?: string
         }
         Update: {
@@ -204,6 +206,7 @@ export interface Database {
           arrival_time?: string | null
           duration_min?: number | null
           cost?: number | null
+          reminder_min?: number | null
           created_at?: string
         }
         Relationships: []
