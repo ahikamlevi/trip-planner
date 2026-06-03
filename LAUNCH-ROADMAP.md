@@ -67,8 +67,11 @@ Turn "manually-created accounts" into self-serve.
 ## Phase 3 — Data quality
 Make the recommendations genuinely good.
 
-- ☐ **Foursquare-backed discovery** (ratings, photos, categories, dietary) behind the
-  Edge Function from Phase 1, augmenting/replacing Overpass.
+- ◐ **Foursquare-backed discovery** (ratings, categories, dietary) — built: `discover`
+  Edge Function (`supabase/functions/discover/`) + client provider, with Overpass
+  fallback. **Needs deploy + `FOURSQUARE_API_KEY` secret to go live.** This is also
+  the project's first Edge Function (the Phase-1 hardening pattern). Photos/Place
+  Details enrichment still TODO.
 - ☐ Optional **Google Place Details** on-demand for a place's reviews/photos.
 - ☐ Multi-currency with live FX; richer budget insights.
 

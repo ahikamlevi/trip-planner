@@ -197,8 +197,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         color: SUGGESTION_COLOR,
         label: d.name,
         popup: `<div class="map-popup"><strong>${escapeHtml(d.name)}</strong><div>🌱 ${escapeHtml(
-          d.kind,
-        )}${d.cuisine ? ' · ' + escapeHtml(d.cuisine) : ''}</div></div>`,
+          d.cuisine || d.kind,
+        )}${d.rating != null ? ' · ★ ' + d.rating : ''}</div>${
+          d.address ? `<div>${escapeHtml(d.address)}</div>` : ''
+        }</div>`,
       })),
     [discoveries],
   )
@@ -333,6 +335,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                   >
                     <span className="place-emoji">🌱</span>
                     <span className="place-row-name">{d.name}</span>
+                    {d.rating != null && <span className="muted small disco-rating">★ {d.rating}</span>}
                     <span className="muted small">{d.cuisine || d.kind}</span>
                   </button>
                   <button className="secondary" onClick={() => void addDiscovery(d)}>

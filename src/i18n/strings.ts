@@ -218,6 +218,10 @@ const en: Dict = {
   'itin.remind.30': '30 min before',
   'itin.remind.60': '1 hour before',
   'itin.remind.1440': '1 day before',
+  'itin.timeOrder': '⚠ Time out of order',
+  'itin.timeOrderHint': "This stop's time is earlier than the previous stop's — the order looks wrong. Reorder the stops or fix the times.",
+  'itin.timeTight': '⚠ Too tight (+{min}m)',
+  'itin.timeTightHint': "About {min} min short — after the previous stop's visit and the drive here, you'd arrive later than this set time.",
 
   // Budget
   'budget.loading': 'Loading budget…',
@@ -498,6 +502,10 @@ const he: Dict = {
   'itin.remind.30': '30 דק׳ לפני',
   'itin.remind.60': 'שעה לפני',
   'itin.remind.1440': 'יום לפני',
+  'itin.timeOrder': '⚠ סדר זמנים שגוי',
+  'itin.timeOrderHint': 'השעה של העצירה הזו מוקדמת מזו שלפניה — הסדר נראה שגוי. סדרו מחדש את העצירות או תקנו את השעות.',
+  'itin.timeTight': '⚠ צפוף מדי (+{min} ד׳)',
+  'itin.timeTightHint': 'חסרות כ-{min} דקות — אחרי הביקור בעצירה הקודמת והנסיעה לכאן, תגיעו אחרי השעה שנקבעה.',
 
   'budget.loading': 'טוען תקציב…',
   'budget.total': 'עלות כוללת לטיול',

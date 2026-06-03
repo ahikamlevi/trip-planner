@@ -31,9 +31,11 @@ live.
   (`src/map/`). Place search via OSM Nominatim (`src/places/search.ts`).
 - **Routing/travel time:** OSRM public server (keyless), behind a swappable
   `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
-- **Place discovery:** Overpass API (keyless OSM POI search) behind a swappable
-  `DiscoveryProvider` adapter (`src/discovery/`). Finds food POIs in the current map
-  view, filterable by OSM `diet:*` tags (vegan/vegetarian/gluten_free/kosher/halal).
+- **Place discovery:** behind a swappable `DiscoveryProvider` adapter
+  (`src/discovery/`). Primary = **Foursquare** via the `discover` Supabase **Edge
+  Function** (key server-side; richer data + ratings); **falls back to Overpass**
+  (keyless OSM) if the function errors / isn't deployed. Finds food POIs in the
+  current map view, filterable by diet (vegan/vegetarian/gluten_free/kosher/halal).
 - **Drag & drop:** `@dnd-kit` (core, sortable, utilities).
 - **i18n:** custom lightweight solution in `src/i18n/` (English + Hebrew, RTL).
 - **No backend code of our own** beyond SQL — everything is client + Supabase. No

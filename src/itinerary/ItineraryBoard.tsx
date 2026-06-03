@@ -647,6 +647,28 @@ function DayPanel({
     return `${formatKm(leg.distanceMeters)} · ${mins} min`
   })
 
+  // Per-stop time-consistency warning: a time earlier than the previous stop
+  // (order looks wrong), or not enough time to leave the previous stop, drive over,
+  // and arrive by this stop's set time.
+  const timeWarnings = stops.map((s, i): TimeWarning | null => {
+    if (i === 0) return null
+    const prev = stops[i - 1]
+    const curMin = timeToMin(s.arrival_time)
+    const prevMin = timeToMin(prev.arrival_time)
+    if (curMin == null || prevMin == null) return null
+    if (curMin < prevMin) return { kind: 'order' }
+    let legMins = 0
+    if (prev.place.lat != null && prev.place.lng != null && s.place.lat != null && s.place.lng != null) {
+      const leg = routeLegs.get(
+        legKey({ lat: prev.place.lat, lng: prev.place.lng }, { lat: s.place.lat, lng: s.place.lng }),
+      )
+      if (leg) legMins = Math.round(leg.durationSeconds / 60)
+    }
+    const earliest = prevMin + (prev.duration_min ?? 0) + legMins
+    if (earliest > curMin) return { kind: 'tight', shortBy: earliest - curMin }
+    return null
+  })
+
   const visitMin = stops.reduce((sum, s) => sum + (s.duration_min ?? 0), 0)
   const busy = travelMin > 300 || travelMin + visitMin > 720
 
@@ -692,6 +714,7 @@ function DayPanel({
               key={s.id}
               stop={s}
               connector={connectors[i]}
+              timeWarning={timeWarnings[i]}
               onFocus={onFocusStop ? () => onFocusStop(s) : undefined}
               onChange={onStopChange}
             />
@@ -785,6 +808,16 @@ function formatKm(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`
 }
 
+// "HH:MM[:SS]" -> minutes since midnight, or null if unset/invalid.
+function timeToMin(value?: string | null): number | null {
+  if (!value) return null
+  const [h, m] = value.slice(0, 5).split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return null
+  return h * 60 + m
+}
+
+type TimeWarning = { kind: 'order' | 'tight'; shortBy?: number }
+
 function formatTravelTotal(mins: number): string {
   if (mins < 60) return `${mins} min`
   const h = Math.floor(mins / 60)
@@ -838,11 +871,13 @@ function PaletteItem({ place, count }: { place: Place; count: number }) {
 function StopItem({
   stop,
   connector,
+  timeWarning,
   onFocus,
   onChange,
 }: {
   stop: BoardStop
   connector: string | null
+  timeWarning?: TimeWarning | null
   onFocus?: () => void
   onChange: () => void
 }) {
@@ -966,6 +1001,18 @@ function StopItem({
             <option value="1440">{t('itin.remind.1440')}</option>
           </select>
         </div>
+        {timeWarning && (
+          <span
+            className="time-warn"
+            title={
+              timeWarning.kind === 'order'
+                ? t('itin.timeOrderHint')
+                : t('itin.timeTightHint', { min: timeWarning.shortBy ?? 0 })
+            }
+          >
+            {timeWarning.kind === 'order' ? t('itin.timeOrder') : t('itin.timeTight', { min: timeWarning.shortBy ?? 0 })}
+          </span>
+        )}
       </div>
       <button className="linklike danger" onClick={remove} title={t('itin.removeFromDay')} aria-label={t('itin.removeFromDay')}>×</button>
       </div>

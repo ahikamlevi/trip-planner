@@ -19,6 +19,10 @@ export interface DiscoveryResult {
   kind: string
   /** Free-text cuisine tag, when present. */
   cuisine?: string
+  /** Provider rating (Foursquare: 0–10), when available. */
+  rating?: number | null
+  /** Human-readable address, when available. */
+  address?: string | null
 }
 
 export interface DiscoveryQuery {

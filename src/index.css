@@ -1789,6 +1789,10 @@ button.secondary.danger {
 .discovery-row .place-row {
   flex: 1;
 }
+.disco-rating {
+  color: var(--warn);
+  font-weight: 600;
+}
 
 /* Green ring on the wishlist emoji isn't needed; suggestion pins are green on the map. */
 
@@ -2058,6 +2062,14 @@ button.secondary.danger {
   flex: 1 1 100%;
   max-width: 100%;
   min-width: 0;
+}
+.time-warn {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--warn);
+  cursor: help;
 }
 .cal-export {
   margin-inline-start: auto;
