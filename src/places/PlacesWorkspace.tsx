@@ -529,17 +529,24 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
               })}
             </ul>
           </div>
+      </div>
 
-          {selected && (
+      {selected && (
+        <div className="modal-overlay" onClick={() => setSelectedId(null)}>
+          <div className="modal place-editor-modal" onClick={(e) => e.stopPropagation()}>
             <PlaceEditor
               key={selected.id}
               place={selected}
-              onSave={(patch) => updatePlace(selected.id, patch)}
+              onSave={(patch) => {
+                updatePlace(selected.id, patch)
+                setSelectedId(null)
+              }}
               onDelete={() => deletePlace(selected.id)}
               onClose={() => setSelectedId(null)}
             />
-          )}
-      </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

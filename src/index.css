@@ -242,6 +242,18 @@ button:disabled {
   margin-bottom: 0.25rem;
 }
 
+/* Place editor shown as a centered modal (not buried below the results/map). */
+.place-editor-modal {
+  max-width: 440px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.place-editor-modal .place-editor {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
 .auth-error {
   color: var(--error);
   font-size: 0.9rem;
