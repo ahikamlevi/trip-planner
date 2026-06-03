@@ -150,9 +150,12 @@ authenticated user (cache only). Types hand-authored in
   - **Shared packing checklist** (Packing tab, live-synced).
   - **Place discovery** (Map & places tab): "Find nearby" bar with a **category
     picker** (Food · Cafés · Bars · Attractions · Museums · Outdoors · Beaches ·
-    Hotels · Shopping). **Food** additionally shows **diet chips** (vegan/veg/
-    gluten-free/kosher/halal) + a "Match my restrictions" button; other categories
-    have no sub-filter. "Search this area" queries the current map viewport.
+    Hotels · Shopping · Pharmacy · Hospital · Police · **🔎 free-text**). **Food**
+    additionally shows **diet chips** (vegan/veg/gluten-free/kosher/halal) + a
+    "Match my restrictions" button; **Other** reveals a free-text box (type anything
+    — viewpoint, ATM…). "Search this area" queries the current map viewport.
+    Suggestions persist per trip (sessionStorage); the map is sticky; clicking a
+    result zooms in (never out) and highlights its pin.
     Primary provider = **Foursquare** (Edge Function; rating, price, hours, website,
     address — richer card + a Google **Maps ↗** link), falling back to **Overpass**.
     Suggestions are **green pins** + cards; "+ Add" drops one into the wishlist with
@@ -175,6 +178,9 @@ authenticated user (cache only). Types hand-authored in
     `src/i18n/strings.ts`, `I18nProvider`/`useT()`, header language switcher,
     persists choice, flips `dir`/`lang` (he=rtl, en=ltr), default Hebrew. Dates and
     currency are locale-aware via `Intl`.
+  - **Itinerary places palette**: when there are >6 places, a search box + category
+    filter chips appear and the list scrolls (max-height) so a long palette doesn't
+    stretch the page.
   - **Editable travel legs**: click the connector between two stops to set transport
     mode (walk/car/train/bus/bike/other), override the auto time/distance, and add a
     per-leg note. Overrides win over OSRM and feed the day travel total + "too tight"

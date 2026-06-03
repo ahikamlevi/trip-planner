@@ -63,7 +63,10 @@ export function createLeafletRenderer(opts: MapRendererOptions): MapRenderer {
       }
     },
     setView(center, zoom) {
-      map.setView([center.lat, center.lng], zoom ?? map.getZoom())
+      // Never zoom OUT when focusing a point — keep the user's zoom if they're
+      // already closer than the requested level; otherwise zoom in to it.
+      const target = zoom != null ? Math.max(zoom, map.getZoom()) : map.getZoom()
+      map.setView([center.lat, center.lng], target)
     },
     fitToMarkers(markers) {
       if (markers.length === 0) return

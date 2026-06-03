@@ -54,6 +54,8 @@ export interface DiscoveryResult {
   address?: string | null
   /** App place category to use if this result is added (from the search category). */
   placeCategory?: PlaceCategory
+  /** Emoji to show for this result (from the search category, e.g. 🏥 💊). */
+  icon?: string
 }
 
 export interface DiscoveryQuery {
@@ -63,6 +65,8 @@ export interface DiscoveryQuery {
   category: DiscoCategory
   /** Diet sub-filters (only meaningful for the 'food' category). */
   diets: DietFilter[]
+  /** Free-text term (only for the 'other' category). */
+  freeText?: string
   /** Cap on results (provider may return fewer). */
   limit?: number
 }

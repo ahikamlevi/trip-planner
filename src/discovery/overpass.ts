@@ -29,6 +29,12 @@ interface OverpassElement {
 function buildQuery(q: DiscoveryQuery): string {
   const { south, west, north, east } = q.bounds
   const bbox = `${south},${west},${north},${east}`
+  // 'other' category: best-effort name regex from the free text.
+  if (q.category.key === 'other') {
+    const term = (q.freeText ?? '').trim().replace(/["\\]/g, '')
+    const sel = term ? `["name"~"${term}",i]` : `["name"]`
+    return `[out:json][timeout:25];(nwr${sel}(${bbox}););out center ${q.limit ?? 50};`
+  }
   // Diets only apply to food; the UI only sends them for the food category.
   const dietFilters = q.diets.map((d) => `["diet:${d}"~"yes|only"]`).join('')
   const body = `nwr["name"]${q.category.osm}${dietFilters}(${bbox});`
@@ -58,7 +64,7 @@ async function postWithTimeout(
   }
 }
 
-function parseElements(elements: OverpassElement[], placeCategory: PlaceCategory): DiscoveryResult[] {
+function parseElements(elements: OverpassElement[], placeCategory: PlaceCategory, icon: string): DiscoveryResult[] {
   const seen = new Set<string>()
   const out: DiscoveryResult[] = []
   for (const el of elements) {
@@ -80,6 +86,7 @@ function parseElements(elements: OverpassElement[], placeCategory: PlaceCategory
       kind: el.tags?.amenity ?? el.tags?.tourism ?? el.tags?.shop ?? 'place',
       cuisine: el.tags?.cuisine?.replace(/[_;]/g, ' '),
       placeCategory,
+      icon,
     })
   }
   return out
@@ -99,7 +106,7 @@ export const discoverViaOverpass: DiscoveryProvider = async (q, signal) => {
         continue
       }
       const json: { elements?: OverpassElement[] } = await res.json()
-      return parseElements(json.elements ?? [], q.category.placeCategory)
+      return parseElements(json.elements ?? [], q.category.placeCategory, q.category.icon)
     } catch (err) {
       // A real user-initiated abort should propagate; mirror failures fall through.
       if (signal?.aborted) throw err

@@ -78,8 +78,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const restored = useMemo(() => loadDiscoState(tripId), [tripId])
   const [catKey, setCatKey] = useState(restored?.catKey ?? 'food')
   const [diets, setDiets] = useState<DietFilter[]>(restored?.diets ?? [])
+  const [freeText, setFreeText] = useState('')
   const isFood = discoCategory(catKey).placeCategory === 'food'
+  const isOther = catKey === 'other'
   const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>(restored?.discoveries ?? [])
+  const [discoSelId, setDiscoSelId] = useState<string | null>(null)
   const [discoBusy, setDiscoBusy] = useState(false)
   const [discoMsg, setDiscoMsg] = useState<string | null>(null)
   const [myRestrictions, setMyRestrictions] = useState<string[]>([])
@@ -164,10 +167,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   )
 
   const runDiscovery = useCallback(
-    async (catK: string, useDiets: DietFilter[]) => {
+    async (catK: string, useDiets: DietFilter[], freeVal = '') => {
       const bounds = mapApiRef.current?.getBounds()
       if (!bounds) return
       const category = discoCategory(catK)
+      if (category.key === 'other' && !freeVal.trim()) return
       setDiscoBusy(true)
       setDiscoMsg(null)
       try {
@@ -175,6 +179,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           bounds,
           category,
           diets: category.placeCategory === 'food' ? useDiets : [],
+          freeText: freeVal,
           limit: 50,
         })
         setDiscoveries(results)
@@ -191,7 +196,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   function matchMyRestrictions() {
     setCatKey('food')
     setDiets(myDietFilters)
-    void runDiscovery('food', myDietFilters)
+    void runDiscovery('food', myDietFilters, '')
   }
 
   async function addDiscovery(d: DiscoveryResult) {
@@ -249,12 +254,13 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const discoMarkers: MapMarker[] = useMemo(
     () =>
       discoveries.map((d) => {
-        const emo = categoryMeta(d.placeCategory ?? 'sight').emoji
+        const emo = d.icon ?? categoryMeta(d.placeCategory ?? 'sight').emoji
         return {
           id: 'disco:' + d.id,
           position: { lat: d.lat, lng: d.lng },
           category: d.placeCategory ?? 'sight',
           color: SUGGESTION_COLOR,
+          selected: d.id === discoSelId,
           label: d.name,
           popup: `<div class="map-popup"><strong>${escapeHtml(d.name)}</strong><div>${emo} ${escapeHtml(
             d.cuisine || d.kind,
@@ -263,7 +269,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           }${d.address ? `<div>${escapeHtml(d.address)}</div>` : ''}</div>`,
         }
       }),
-    [discoveries],
+    [discoveries, discoSelId],
   )
 
   const allMarkers = useMemo(() => [...markers, ...discoMarkers], [markers, discoMarkers])
@@ -343,8 +349,22 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
             ))}
           </div>
         )}
+        {isOther && (
+          <input
+            className="disco-freetext"
+            value={freeText}
+            placeholder={t('disco.otherPlaceholder')}
+            onChange={(e) => setFreeText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void runDiscovery(catKey, diets, freeText)
+            }}
+          />
+        )}
         <div className="discovery-actions">
-          <button onClick={() => void runDiscovery(catKey, diets)} disabled={discoBusy}>
+          <button
+            onClick={() => void runDiscovery(catKey, diets, freeText)}
+            disabled={discoBusy || (isOther && !freeText.trim())}
+          >
             {discoBusy ? t('disco.searching') : t('disco.searchArea')}
           </button>
           {isFood && myDietFilters.length > 0 && (
@@ -411,11 +431,14 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                   <div className="discovery-card">
                     <button
                       className="discovery-main"
-                      onClick={() => setFocus({ lat: d.lat, lng: d.lng })}
+                      onClick={() => {
+                        setDiscoSelId(d.id)
+                        setFocus({ lat: d.lat, lng: d.lng })
+                      }}
                       title={t('disco.showOnMap')}
                     >
                       <span className="discovery-title">
-                        <span className="place-emoji">{categoryMeta(d.placeCategory ?? 'sight').emoji}</span>
+                        <span className="place-emoji">{d.icon ?? categoryMeta(d.placeCategory ?? 'sight').emoji}</span>
                         <span className="place-row-name">{d.name}</span>
                         {d.rating != null && <span className="disco-rating">★ {d.rating}</span>}
                         {d.price != null && d.price > 0 && <span className="disco-price">{'$'.repeat(d.price)}</span>}

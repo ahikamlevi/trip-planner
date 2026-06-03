@@ -74,7 +74,9 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
   // Recenter when a focus target is set.
   useEffect(() => {
     if (focus && rendererRef.current) {
-      rendererRef.current.setView(focus, 15)
+      // Zoom in to at least 16 (clear neighborhood view); never zoom out (renderer
+      // keeps the larger of this and the current zoom).
+      rendererRef.current.setView(focus, 16)
     }
   }, [focus])
 

@@ -13,6 +13,12 @@ export const DISCO_CATEGORIES: DiscoCategory[] = [
   { key: 'beach', icon: '🏖️', placeCategory: 'beach', fsqQuery: 'beach', osm: '["natural"="beach"]' },
   { key: 'hotel', icon: '🏨', placeCategory: 'hotel', fsqQuery: 'hotel', osm: '["tourism"~"^(hotel|hostel|guest_house|motel|apartment)$"]' },
   { key: 'shopping', icon: '🛍️', placeCategory: 'sight', fsqQuery: 'shopping', osm: '["shop"~"^(mall|department_store|supermarket|gift|clothes)$"]' },
+  // Services / useful-while-travelling.
+  { key: 'pharmacy', icon: '💊', placeCategory: 'sight', fsqQuery: 'pharmacy', osm: '["amenity"="pharmacy"]' },
+  { key: 'hospital', icon: '🏥', placeCategory: 'sight', fsqQuery: 'hospital', osm: '["amenity"~"^(hospital|clinic|doctors)$"]' },
+  { key: 'police', icon: '🚓', placeCategory: 'sight', fsqQuery: 'police station', osm: '["amenity"="police"]' },
+  // Free text — type anything ("viewpoint", "atm", "laundry"). osm '' = name regex.
+  { key: 'other', icon: '🔎', placeCategory: 'sight', fsqQuery: '', osm: '' },
 ]
 
 export const DEFAULT_DISCO_CATEGORY = DISCO_CATEGORIES[0]

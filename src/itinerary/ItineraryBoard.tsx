@@ -24,8 +24,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useT } from '../i18n/I18nProvider'
-import type { Area, Day, Place, Stop } from '../lib/database.types'
-import { categoryMeta, placeColor } from '../places/categories'
+import type { Area, Day, Place, PlaceCategory, Stop } from '../lib/database.types'
+import { CATEGORIES, categoryMeta, placeColor } from '../places/categories'
 import { MapView } from '../map/MapView'
 import type { MapMarker } from '../map'
 import { getRouteCached, getRoutePathCached, legKey, type LatLng, type RouteLeg } from '../routing'
@@ -957,16 +957,61 @@ function formatTravelTotal(mins: number): string {
 function PlacesPalette({ places, counts }: { places: Place[]; counts: Map<string, number> }) {
   const { t } = useT()
   const { setNodeRef, isOver } = useDroppable({ id: 'wishlist' })
+  const [cat, setCat] = useState<PlaceCategory | 'all'>('all')
+  const [q, setQ] = useState('')
+  const query = q.trim().toLowerCase()
+  const filtered = places.filter(
+    (p) => (cat === 'all' || p.category === cat) && (!query || p.name.toLowerCase().includes(query)),
+  )
   return (
     <div ref={setNodeRef} className={`wishlist-col${isOver ? ' over' : ''}`}>
       <div className="wishlist-head">
         <span>{t('itin.palettePlaces')}</span>
-        <span className="muted">{places.length}</span>
+        <span className="muted">
+          {filtered.length}
+          {filtered.length !== places.length ? ` / ${places.length}` : ''}
+        </span>
       </div>
+
+      {places.length > 6 && (
+        <div className="palette-filters">
+          <input
+            className="palette-search"
+            value={q}
+            placeholder={t('itin.addSearch')}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <div className="cat-chips">
+            <button
+              type="button"
+              className={`cat-chip${cat === 'all' ? ' active' : ''}`}
+              onClick={() => setCat('all')}
+            >
+              {t('places.allCategories')}
+            </button>
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                className={`cat-chip${cat === c.key ? ' active' : ''}`}
+                title={t(`cat.${c.key}`)}
+                aria-label={t(`cat.${c.key}`)}
+                onClick={() => setCat(cat === c.key ? 'all' : c.key)}
+              >
+                {c.emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {places.length === 0 && <p className="muted small">{t('itin.paletteEmpty')}</p>}
-      {places.map((p) => (
-        <PaletteItem key={p.id} place={p} count={counts.get(p.id) ?? 0} />
-      ))}
+      {places.length > 0 && filtered.length === 0 && <p className="muted small">{t('places.noneMatch')}</p>}
+      <div className="palette-list">
+        {filtered.map((p) => (
+          <PaletteItem key={p.id} place={p} count={counts.get(p.id) ?? 0} />
+        ))}
+      </div>
       <p className="muted small drag-hint">{t('itin.paletteHint')}</p>
     </div>
   )

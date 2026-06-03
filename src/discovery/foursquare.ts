@@ -14,12 +14,14 @@ const DIET_TERM: Record<DietFilter, string> = {
 }
 
 export const discoverViaFoursquare: DiscoveryProvider = async (q) => {
-  // Food + diets → search the diet terms (implies restaurants); otherwise the
-  // category's own search term (hotel, beach, museum…).
+  // 'other' → the user's free text; food + diets → the diet terms; otherwise the
+  // category's own search term (hotel, beach, museum, pharmacy…).
   const query =
-    q.category.placeCategory === 'food' && q.diets.length
-      ? q.diets.map((d) => DIET_TERM[d]).join(' ')
-      : q.category.fsqQuery
+    q.category.key === 'other'
+      ? (q.freeText ?? '').trim()
+      : q.category.placeCategory === 'food' && q.diets.length
+        ? q.diets.map((d) => DIET_TERM[d]).join(' ')
+        : q.category.fsqQuery
 
   const { data, error } = await supabase.functions.invoke('discover', {
     body: { bounds: q.bounds, query, limit: q.limit ?? 40 },
@@ -27,6 +29,7 @@ export const discoverViaFoursquare: DiscoveryProvider = async (q) => {
   if (error) throw error
   if (data?.error) throw new Error(data.error)
   const results = (data?.results ?? []) as DiscoveryResult[]
-  // Stamp the app category so an added place lands in the right bucket.
-  return results.map((r) => ({ ...r, placeCategory: q.category.placeCategory }))
+  // Stamp the app category + icon so an added place lands in the right bucket and
+  // the suggestion shows the category's emoji.
+  return results.map((r) => ({ ...r, placeCategory: q.category.placeCategory, icon: q.category.icon }))
 }

@@ -1835,6 +1835,10 @@ button.secondary.danger {
   color: var(--muted);
   font-weight: 600;
 }
+.disco-freetext {
+  flex: 1 1 12rem;
+  min-width: 8rem;
+}
 
 .discovery-actions {
   display: flex;
@@ -2215,6 +2219,24 @@ button.secondary.danger {
   flex-direction: column;
   gap: 0.2rem;
   max-height: 260px;
+  overflow-y: auto;
+}
+
+/* Places palette: filters + scrollable list so a long list doesn't stretch the page */
+.palette-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+.palette-search {
+  width: 100%;
+}
+.palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 55vh;
   overflow-y: auto;
 }
 .cal-export {
