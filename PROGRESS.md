@@ -81,6 +81,7 @@ They are mostly idempotent.
 | `0011_place_color_city.sql` | `places.color` (per-place color label) + `places.city` (auto-captured, editable; used for filtering) |
 | `0012_stop_reminder.sql` | `stops.reminder_min` (minutes before arrival; becomes a calendar .ics alarm) |
 | `0013_stop_travel.sql` | `stops.travel_mode/_min/_dist_m/_note` (editable travel-leg overrides into each stop) |
+| `0014_poi_cache.sql` | `poi_cache` table (server-side discovery cache; written/read only by the `discover` Edge Function via service role) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
@@ -93,6 +94,7 @@ They are mostly idempotent.
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
 - `packing_items` (trip_id, label, packed, sort_order)
+- `poi_cache` (cache_key, results jsonb, fetched_at) — discovery cache, Edge-Function only
 
 **RLS model:** every row is reachable only by members of its trip
 (`is_trip_member` / `is_day_member`). `route_cache` is readable/writable by any

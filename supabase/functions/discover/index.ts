@@ -7,9 +7,21 @@
 // Secret:   supabase secrets set FOURSQUARE_API_KEY=xxxxx
 //           (or Dashboard → Edge Functions → Manage secrets)
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 const FSQ_KEY = Deno.env.get('FOURSQUARE_API_KEY')
 const FSQ_URL = 'https://places-api.foursquare.com/places/search'
 const API_VERSION = '2025-06-17'
+
+// Shared POI cache (poi_cache table) to protect Foursquare quota on repeat searches.
+// SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are injected into Edge Functions automatically.
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const sb = SUPABASE_URL && SERVICE_KEY ? createClient(SUPABASE_URL, SERVICE_KEY) : null
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+// Snap a coordinate to ~1km so nearby viewports share a cache entry.
+const snap = (n: number) => Math.round(n * 100) / 100
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -77,12 +89,32 @@ Deno.serve(async (req: Request) => {
       (typeof bodyQuery === 'string' && bodyQuery.trim()) ||
       (diets as string[]).map((d) => DIET_QUERY[d] ?? d).join(' ') ||
       'restaurant'
+    const cap = Math.min(Number(limit) || 40, 50)
+
+    // Cache lookup first — keyed by query + snapped viewport + result cap.
+    const cacheKey = `${query}|${snap(bounds.south)},${snap(bounds.west)},${snap(bounds.north)},${snap(
+      bounds.east,
+    )}|${cap}`
+    if (sb) {
+      try {
+        const { data: hit } = await sb
+          .from('poi_cache')
+          .select('results, fetched_at')
+          .eq('cache_key', cacheKey)
+          .maybeSingle()
+        if (hit && Date.now() - new Date(hit.fetched_at).getTime() < CACHE_TTL_MS) {
+          return json({ results: hit.results, cached: true })
+        }
+      } catch (_) {
+        // Cache miss/error must never block a live search.
+      }
+    }
 
     const params = new URLSearchParams({
       ne,
       sw,
       query,
-      limit: String(Math.min(Number(limit) || 40, 50)),
+      limit: String(cap),
       fields: 'fsq_place_id,name,latitude,longitude,categories,location,rating,price,hours,tel,website,description',
     })
 
@@ -116,6 +148,17 @@ Deno.serve(async (req: Request) => {
     const results = (data.results ?? data.places ?? [])
       .map(normalize)
       .filter((r: unknown) => r !== null)
+
+    // Cache the fresh results for next time (best effort).
+    if (sb) {
+      try {
+        await sb
+          .from('poi_cache')
+          .upsert({ cache_key: cacheKey, results, fetched_at: new Date().toISOString() })
+      } catch (_) {
+        // Never fail the request because caching failed.
+      }
+    }
 
     return json({ results })
   } catch (e) {

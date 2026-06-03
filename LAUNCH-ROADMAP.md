@@ -55,8 +55,9 @@ Required before any real traffic.
 
 - ☐ **Proxy every third-party call behind Supabase Edge Functions** with the key
   server-side: discovery (Foursquare), geocoding, routing, tiles where needed.
-- ☐ **Cache tables** (like `route_cache`) for POI/geocode/route results to cut cost
-  and latency; respect each provider's caching terms.
+- ◐ **Cache tables** (like `route_cache`) for POI/geocode/route results to cut cost
+  and latency; respect each provider's caching terms. **POI done** (`poi_cache` +
+  `discover` function, 7-day TTL, viewport-snapped key). Geocode/route caching TODO.
 - ☐ **Per-user rate limiting** + quota guards on those functions.
 - ☐ **Error monitoring** (e.g. Sentry) + basic uptime/log alerts.
 - ☐ **DB review:** indexes on hot paths, RLS audit for untrusted users.
