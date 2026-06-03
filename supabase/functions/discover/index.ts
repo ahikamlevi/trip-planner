@@ -49,6 +49,13 @@ function normalize(p: any) {
     kind: cat?.short_name ?? cat?.name ?? 'place',
     cuisine: cat?.name ?? undefined,
     rating: typeof p.rating === 'number' ? p.rating : null,
+    price: typeof p.price === 'number' ? p.price : null,
+    tel: p.tel ?? null,
+    website: p.website ?? null,
+    // Full schedule (e.g. "Mon-Fri 9:00-17:00") — useful for planning, unlike open_now.
+    hours: p.hours?.display ?? null,
+    openNow: p.hours?.open_now ?? null,
+    description: p.description ?? null,
     city: p.location?.locality ?? p.location?.region ?? null,
     address: p.location?.formatted_address ?? null,
   }
@@ -59,19 +66,24 @@ Deno.serve(async (req: Request) => {
   try {
     if (!FSQ_KEY) return json({ error: 'FOURSQUARE_API_KEY is not set' }, 500)
 
-    const { bounds, diets = [], limit = 40 } = await req.json()
+    const { bounds, query: bodyQuery, diets = [], limit = 40 } = await req.json()
     if (!bounds) return json({ error: 'bounds is required' }, 400)
 
     const ne = `${bounds.north},${bounds.east}`
     const sw = `${bounds.south},${bounds.west}`
-    const query = (diets as string[]).map((d) => DIET_QUERY[d] ?? d).join(' ') || 'restaurant'
+    // Prefer an explicit query (the client builds it from the chosen category +
+    // diets); fall back to diet terms / 'restaurant' for older callers.
+    const query =
+      (typeof bodyQuery === 'string' && bodyQuery.trim()) ||
+      (diets as string[]).map((d) => DIET_QUERY[d] ?? d).join(' ') ||
+      'restaurant'
 
     const params = new URLSearchParams({
       ne,
       sw,
       query,
       limit: String(Math.min(Number(limit) || 40, 50)),
-      fields: 'fsq_place_id,name,latitude,longitude,categories,location,rating',
+      fields: 'fsq_place_id,name,latitude,longitude,categories,location,rating,price,hours,tel,website,description',
     })
 
     let res = await fetch(`${FSQ_URL}?${params}`, {

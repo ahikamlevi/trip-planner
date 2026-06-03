@@ -146,12 +146,17 @@ authenticated user (cache only). Types hand-authored in
   - **Live realtime sync** (`useTripRealtime`): Supabase Realtime → debounced reload
     on any trip-table change. Edits appear for both users without refresh.
   - **Shared packing checklist** (Packing tab, live-synced).
-  - **Place discovery** (Map & places tab): "Find food nearby" bar with diet-tag
-    chips + "Search this area" (queries Overpass for the current viewport).
-    Suggestions appear as **green pins** + a results list; tap "+ Add" (or the green
-    pin) to drop one into the wishlist. A "Match my restrictions" button maps the
-    user's dietary profile onto the diet filters. Map adapter gained `getBounds()`
-    and a per-marker `color` override; `MapView` exposes a `MapApi` via `onReady`.
+  - **Place discovery** (Map & places tab): "Find nearby" bar with a **category
+    picker** (Food · Cafés · Bars · Attractions · Museums · Outdoors · Beaches ·
+    Hotels · Shopping). **Food** additionally shows **diet chips** (vegan/veg/
+    gluten-free/kosher/halal) + a "Match my restrictions" button; other categories
+    have no sub-filter. "Search this area" queries the current map viewport.
+    Primary provider = **Foursquare** (Edge Function; rating, price, hours, website,
+    address — richer card + a Google **Maps ↗** link), falling back to **Overpass**.
+    Suggestions are **green pins** + cards; "+ Add" drops one into the wishlist with
+    the matching category, its **city**, and **opening hours** filled in. The top
+    box stays "search a place by name" (Nominatim) — distinct from discovery.
+    Map adapter gained `getBounds()` + per-marker `color`; `MapView` exposes `MapApi`.
   - **Dietary & allergies** (Dietary tab): each member sets their own restrictions
     (tag chips + free note) on their `profiles` row; other members' restrictions
     show read-only (live-synced). Generates a **printable allergy card** whose

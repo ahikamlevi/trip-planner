@@ -15,5 +15,6 @@ export const discoverPlaces: DiscoveryProvider = async (q, signal) => {
   }
 }
 
-export type { DiscoveryQuery, DiscoveryResult, DietFilter } from './DiscoveryProvider'
+export type { DiscoveryQuery, DiscoveryResult, DietFilter, DiscoCategory } from './DiscoveryProvider'
 export { DIET_FILTERS } from './DiscoveryProvider'
+export { DISCO_CATEGORIES, DEFAULT_DISCO_CATEGORY, discoCategory } from './categories'

@@ -6,9 +6,7 @@
 // still depends on what OSM contributors tagged — for a polished public product this
 // would move to a paid POI provider (Foursquare) behind an Edge Function with caching.
 import type { DiscoveryProvider, DiscoveryQuery, DiscoveryResult } from './DiscoveryProvider'
-
-// Food-ish amenities we treat as "places to eat".
-const FOOD_AMENITIES = 'restaurant|cafe|fast_food|bar|pub|ice_cream|biergarten'
+import type { PlaceCategory } from '../lib/database.types'
 
 // Tried in order; on rate-limit / timeout / network error we move to the next.
 const ENDPOINTS = [
@@ -31,26 +29,10 @@ interface OverpassElement {
 function buildQuery(q: DiscoveryQuery): string {
   const { south, west, north, east } = q.bounds
   const bbox = `${south},${west},${north},${east}`
-  const base = `["amenity"~"^(${FOOD_AMENITIES})$"]["name"]`
-  const limit = q.limit ?? 50
-
-  let body: string
-  if (q.diets.length === 0) {
-    body = `nwr${base}(${bbox});`
-  } else if (q.diets.length === 1) {
-    // Single diet: match the diet:* tag OR a matching cuisine value. Many kosher/
-    // halal/vegan spots are tagged cuisine=<diet> rather than diet:<x>=yes.
-    const d = q.diets[0]
-    body =
-      `nwr${base}["diet:${d}"~"yes|only"](${bbox});` +
-      `nwr${base}["cuisine"~"${d}"](${bbox});`
-  } else {
-    // Multiple diets: must satisfy ALL of them ("fits everyone").
-    const dietFilters = q.diets.map((d) => `["diet:${d}"~"yes|only"]`).join('')
-    body = `nwr${base}${dietFilters}(${bbox});`
-  }
-
-  return `[out:json][timeout:25];(${body});out center ${limit};`
+  // Diets only apply to food; the UI only sends them for the food category.
+  const dietFilters = q.diets.map((d) => `["diet:${d}"~"yes|only"]`).join('')
+  const body = `nwr["name"]${q.category.osm}${dietFilters}(${bbox});`
+  return `[out:json][timeout:25];(${body});out center ${q.limit ?? 50};`
 }
 
 async function postWithTimeout(
@@ -76,7 +58,7 @@ async function postWithTimeout(
   }
 }
 
-function parseElements(elements: OverpassElement[]): DiscoveryResult[] {
+function parseElements(elements: OverpassElement[], placeCategory: PlaceCategory): DiscoveryResult[] {
   const seen = new Set<string>()
   const out: DiscoveryResult[] = []
   for (const el of elements) {
@@ -85,8 +67,7 @@ function parseElements(elements: OverpassElement[]): DiscoveryResult[] {
     const name = el.tags?.name
     if (lat == null || lng == null || !name) continue
 
-    // De-dupe a place that exists as both a node and a way/relation, and across the
-    // two union branches (diet tag + cuisine) for the single-diet case.
+    // De-dupe a place that exists as both a node and a way/relation.
     const key = `${name}@${lat.toFixed(4)},${lng.toFixed(4)}`
     if (seen.has(key)) continue
     seen.add(key)
@@ -96,8 +77,9 @@ function parseElements(elements: OverpassElement[]): DiscoveryResult[] {
       name,
       lat,
       lng,
-      kind: el.tags?.amenity ?? 'place',
+      kind: el.tags?.amenity ?? el.tags?.tourism ?? el.tags?.shop ?? 'place',
       cuisine: el.tags?.cuisine?.replace(/[_;]/g, ' '),
+      placeCategory,
     })
   }
   return out
@@ -117,7 +99,7 @@ export const discoverViaOverpass: DiscoveryProvider = async (q, signal) => {
         continue
       }
       const json: { elements?: OverpassElement[] } = await res.json()
-      return parseElements(json.elements ?? [])
+      return parseElements(json.elements ?? [], q.category.placeCategory)
     } catch (err) {
       // A real user-initiated abort should propagate; mirror failures fall through.
       if (signal?.aborted) throw err

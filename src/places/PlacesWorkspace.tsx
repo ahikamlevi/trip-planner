@@ -8,7 +8,14 @@ import { MapView, type MapApi } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
 import { CATEGORIES, categoryMeta, placeColor, PLACE_COLORS } from './categories'
 import { searchPlaces, reverseCity, type SearchResult } from './search'
-import { discoverPlaces, DIET_FILTERS, type DietFilter, type DiscoveryResult } from '../discovery'
+import {
+  discoverPlaces,
+  DIET_FILTERS,
+  DISCO_CATEGORIES,
+  discoCategory,
+  type DietFilter,
+  type DiscoveryResult,
+} from '../discovery'
 
 // Profile restriction tags that map to a queryable OSM diet filter.
 const RESTRICTION_TO_DIET: Record<string, DietFilter> = {
@@ -49,9 +56,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const [catFilter, setCatFilter] = useState<PlaceCategory | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
 
-  // --- Discovery (find places nearby via Overpass) ---
+  // --- Discovery (find places nearby) ---
   const mapApiRef = useRef<MapApi | null>(null)
+  const [catKey, setCatKey] = useState('food')
   const [diets, setDiets] = useState<DietFilter[]>([])
+  const isFood = discoCategory(catKey).placeCategory === 'food'
   const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>([])
   const [discoBusy, setDiscoBusy] = useState(false)
   const [discoMsg, setDiscoMsg] = useState<string | null>(null)
@@ -92,7 +101,14 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   useTripRealtime(tripId, load)
 
   const addPlace = useCallback(
-    async (input: { name: string; lat: number; lng: number; category?: PlaceCategory; city?: string }) => {
+    async (input: {
+      name: string
+      lat: number
+      lng: number
+      category?: PlaceCategory
+      city?: string
+      opening_hours?: string | null
+    }) => {
       const { data, error } = await supabase
         .from('places')
         .insert({
@@ -102,6 +118,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           lng: input.lng,
           category: input.category ?? 'sight',
           city: input.city ?? null,
+          opening_hours: input.opening_hours ?? null,
           scheduled: false,
         })
         .select('*')
@@ -120,13 +137,19 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   )
 
   const runDiscovery = useCallback(
-    async (useDiets: DietFilter[]) => {
+    async (catK: string, useDiets: DietFilter[]) => {
       const bounds = mapApiRef.current?.getBounds()
       if (!bounds) return
+      const category = discoCategory(catK)
       setDiscoBusy(true)
       setDiscoMsg(null)
       try {
-        const results = await discoverPlaces({ bounds, diets: useDiets, limit: 50 })
+        const results = await discoverPlaces({
+          bounds,
+          category,
+          diets: category.placeCategory === 'food' ? useDiets : [],
+          limit: 50,
+        })
         setDiscoveries(results)
         setDiscoMsg(results.length === 0 ? t('disco.none') : null)
       } catch {
@@ -139,13 +162,21 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   )
 
   function matchMyRestrictions() {
+    setCatKey('food')
     setDiets(myDietFilters)
-    void runDiscovery(myDietFilters)
+    void runDiscovery('food', myDietFilters)
   }
 
   async function addDiscovery(d: DiscoveryResult) {
     setDiscoveries((prev) => prev.filter((x) => x.id !== d.id))
-    await addPlace({ name: d.name, lat: d.lat, lng: d.lng, category: 'food' })
+    await addPlace({
+      name: d.name,
+      lat: d.lat,
+      lng: d.lng,
+      category: d.placeCategory ?? 'sight',
+      city: d.city ?? undefined,
+      opening_hours: d.hours ?? null,
+    })
   }
 
   const updatePlace = useCallback(
@@ -190,18 +221,21 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
   const discoMarkers: MapMarker[] = useMemo(
     () =>
-      discoveries.map((d) => ({
-        id: 'disco:' + d.id,
-        position: { lat: d.lat, lng: d.lng },
-        category: 'food',
-        color: SUGGESTION_COLOR,
-        label: d.name,
-        popup: `<div class="map-popup"><strong>${escapeHtml(d.name)}</strong><div>🌱 ${escapeHtml(
-          d.cuisine || d.kind,
-        )}${d.rating != null ? ' · ★ ' + d.rating : ''}</div>${
-          d.address ? `<div>${escapeHtml(d.address)}</div>` : ''
-        }</div>`,
-      })),
+      discoveries.map((d) => {
+        const emo = categoryMeta(d.placeCategory ?? 'sight').emoji
+        return {
+          id: 'disco:' + d.id,
+          position: { lat: d.lat, lng: d.lng },
+          category: d.placeCategory ?? 'sight',
+          color: SUGGESTION_COLOR,
+          label: d.name,
+          popup: `<div class="map-popup"><strong>${escapeHtml(d.name)}</strong><div>${emo} ${escapeHtml(
+            d.cuisine || d.kind,
+          )}${d.rating != null ? ' · ★ ' + d.rating : ''}</div>${
+            d.hours ? `<div>🕑 ${escapeHtml(d.hours)}</div>` : ''
+          }${d.address ? `<div>${escapeHtml(d.address)}</div>` : ''}</div>`,
+        }
+      }),
     [discoveries],
   )
 
@@ -254,24 +288,39 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
       <div className="discovery-bar">
         <span className="discovery-label small">{t('disco.find')}</span>
-        <div className="cat-chips diet-chips">
-          {DIET_FILTERS.map((d) => (
+        <div className="cat-chips">
+          {DISCO_CATEGORIES.map((c) => (
             <button
-              key={d}
+              key={c.key}
               type="button"
-              className={`cat-chip${diets.includes(d) ? ' active' : ''}`}
-              aria-pressed={diets.includes(d)}
-              onClick={() => toggleDiet(d)}
+              className={`cat-chip${catKey === c.key ? ' active' : ''}`}
+              aria-pressed={catKey === c.key}
+              onClick={() => setCatKey(c.key)}
             >
-              {t(`disco.diet.${d}`)}
+              {c.icon} {t(`disco.cat.${c.key}`)}
             </button>
           ))}
         </div>
+        {isFood && (
+          <div className="cat-chips diet-chips">
+            {DIET_FILTERS.map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`cat-chip${diets.includes(d) ? ' active' : ''}`}
+                aria-pressed={diets.includes(d)}
+                onClick={() => toggleDiet(d)}
+              >
+                {t(`disco.diet.${d}`)}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="discovery-actions">
-          <button onClick={() => void runDiscovery(diets)} disabled={discoBusy}>
+          <button onClick={() => void runDiscovery(catKey, diets)} disabled={discoBusy}>
             {discoBusy ? t('disco.searching') : t('disco.searchArea')}
           </button>
-          {myDietFilters.length > 0 && (
+          {isFood && myDietFilters.length > 0 && (
             <button className="secondary" onClick={matchMyRestrictions} disabled={discoBusy}>
               {t('disco.matchMine')}
             </button>
@@ -325,25 +374,46 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
             <span className="muted">{discoveries.length}</span>
           </div>
           <ul className="place-list">
-            {discoveries.map((d) => (
-              <li key={d.id}>
-                <div className="discovery-row">
-                  <button
-                    className="place-row"
-                    onClick={() => setFocus({ lat: d.lat, lng: d.lng })}
-                    title={t('disco.showOnMap')}
-                  >
-                    <span className="place-emoji">🌱</span>
-                    <span className="place-row-name">{d.name}</span>
-                    {d.rating != null && <span className="muted small disco-rating">★ {d.rating}</span>}
-                    <span className="muted small">{d.cuisine || d.kind}</span>
-                  </button>
-                  <button className="secondary" onClick={() => void addDiscovery(d)}>
-                    {t('disco.add')}
-                  </button>
-                </div>
-              </li>
-            ))}
+            {discoveries.map((d) => {
+              const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                `${d.name} ${d.lat},${d.lng}`,
+              )}`
+              const meta = d.cuisine || d.kind
+              return (
+                <li key={d.id}>
+                  <div className="discovery-card">
+                    <button
+                      className="discovery-main"
+                      onClick={() => setFocus({ lat: d.lat, lng: d.lng })}
+                      title={t('disco.showOnMap')}
+                    >
+                      <span className="discovery-title">
+                        <span className="place-emoji">{categoryMeta(d.placeCategory ?? 'sight').emoji}</span>
+                        <span className="place-row-name">{d.name}</span>
+                        {d.rating != null && <span className="disco-rating">★ {d.rating}</span>}
+                        {d.price != null && d.price > 0 && <span className="disco-price">{'$'.repeat(d.price)}</span>}
+                      </span>
+                      {meta && <span className="muted small">{meta}</span>}
+                      {d.hours && <span className="muted small">🕑 {d.hours}</span>}
+                      {(d.address || d.city) && <span className="muted small">{d.address || d.city}</span>}
+                    </button>
+                    <div className="discovery-actions-row">
+                      <button className="secondary" onClick={() => void addDiscovery(d)}>
+                        {t('disco.add')}
+                      </button>
+                      {d.website && (
+                        <a className="disco-link" href={d.website} target="_blank" rel="noreferrer">
+                          {t('disco.website')}
+                        </a>
+                      )}
+                      <a className="disco-link" href={maps} target="_blank" rel="noreferrer">
+                        {t('disco.maps')}
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}

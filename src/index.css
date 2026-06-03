@@ -1853,6 +1853,55 @@ button.secondary.danger {
   color: var(--warn);
   font-weight: 600;
 }
+.disco-price {
+  color: var(--ok);
+  font-weight: 600;
+}
+.discovery-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.discovery-main {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+}
+.discovery-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.discovery-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.discovery-actions-row button {
+  margin: 0;
+}
+.disco-link {
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.disco-link:hover {
+  text-decoration: underline;
+}
 
 /* Green ring on the wishlist emoji isn't needed; suggestion pins are green on the map. */
 
