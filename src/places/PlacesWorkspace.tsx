@@ -31,6 +31,23 @@ const SUGGESTION_COLOR = '#22c55e'
 const DEFAULT_CENTER: LatLng = { lat: 20, lng: 0 }
 const DEFAULT_ZOOM = 2
 
+// Persist discovery state per trip so suggestions survive a tab switch / reload
+// (the Map tab unmounts when you switch tabs). Session-scoped — cleared with the tab.
+interface DiscoState {
+  catKey: string
+  diets: DietFilter[]
+  discoveries: DiscoveryResult[]
+}
+const discoStoreKey = (tripId: string) => `disco:${tripId}`
+function loadDiscoState(tripId: string): DiscoState | null {
+  try {
+    const raw = sessionStorage.getItem(discoStoreKey(tripId))
+    return raw ? (JSON.parse(raw) as DiscoState) : null
+  } catch {
+    return null
+  }
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
 }
@@ -58,13 +75,23 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
   // --- Discovery (find places nearby) ---
   const mapApiRef = useRef<MapApi | null>(null)
-  const [catKey, setCatKey] = useState('food')
-  const [diets, setDiets] = useState<DietFilter[]>([])
+  const restored = useMemo(() => loadDiscoState(tripId), [tripId])
+  const [catKey, setCatKey] = useState(restored?.catKey ?? 'food')
+  const [diets, setDiets] = useState<DietFilter[]>(restored?.diets ?? [])
   const isFood = discoCategory(catKey).placeCategory === 'food'
-  const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>([])
+  const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>(restored?.discoveries ?? [])
   const [discoBusy, setDiscoBusy] = useState(false)
   const [discoMsg, setDiscoMsg] = useState<string | null>(null)
   const [myRestrictions, setMyRestrictions] = useState<string[]>([])
+
+  // Keep the persisted copy in sync so the suggestions survive tab switches.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(discoStoreKey(tripId), JSON.stringify({ catKey, diets, discoveries }))
+    } catch {
+      /* ignore quota/serialization errors */
+    }
+  }, [tripId, catKey, diets, discoveries])
 
   useEffect(() => {
     supabase
@@ -375,9 +402,9 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           </div>
           <ul className="place-list">
             {discoveries.map((d) => {
-              const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                `${d.name} ${d.lat},${d.lng}`,
-              )}`
+              // Search the name centered at its coordinates — works on web, Android,
+              // and iPhone (combining name + "lat,lng" in one query finds nothing).
+              const maps = `https://www.google.com/maps/search/${encodeURIComponent(d.name)}/@${d.lat},${d.lng},16z`
               const meta = d.cuisine || d.kind
               return (
                 <li key={d.id}>

@@ -798,12 +798,15 @@ button.secondary.danger {
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
-  position: relative;
-  z-index: 0; /* contains Leaflet's stacking so it never overlaps the side panel */
+  /* Pin the map while scrolling the results/wishlist below, so clicking a result
+     always shows it on a visible map. */
+  position: sticky;
+  top: 0.5rem;
+  z-index: 1; /* above the lists below; keeps Leaflet's own stacking contained */
 }
 
 .map {
-  height: 480px;
+  height: 440px;
   width: 100%;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -1461,6 +1464,13 @@ button.secondary.danger {
 @media (max-width: 680px) {
   .budget-cols {
     grid-template-columns: 1fr;
+  }
+  /* Shorter sticky map on phones so the results list still has room. */
+  .places-map-wrap {
+    top: 0;
+  }
+  .map {
+    height: 280px;
   }
 }
 
