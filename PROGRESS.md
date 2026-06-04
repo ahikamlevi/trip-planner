@@ -20,7 +20,7 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0014`** must be run in Supabase; the **`discover` Edge
+- **Migrations through `0015`** must be run in Supabase; the **`discover` Edge
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
   discovery silently falls back to free Overpass/OSM.
 - Now being built toward a **public, polished product** (not just 2 users) — see
@@ -92,6 +92,7 @@ They are mostly idempotent.
 | `0012_stop_reminder.sql` | `stops.reminder_min` (minutes before arrival; becomes a calendar .ics alarm) |
 | `0013_stop_travel.sql` | `stops.travel_mode/_min/_dist_m/_note` (editable travel-leg overrides into each stop) |
 | `0014_poi_cache.sql` | `poi_cache` table (server-side discovery cache; written/read only by the `discover` Edge Function via service role) |
+| `0015_place_categories.sql` | expands `place_category` enum (cafe, bar, museum, outdoors, shopping, pharmacy, hospital, police, **other**) + `places.category_other` (free-text label shown when category=`other`) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
@@ -99,7 +100,7 @@ They are mostly idempotent.
 - `trip_members` (trip_id, user_id, role: owner|editor)
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)
-- `places` (trip_id, name, lat, lng, category[food|sight|beach|hotel|transport], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, scheduled[UNUSED now])
+- `places` (trip_id, name, lat, lng, category[food|cafe|bar|sight|museum|outdoors|beach|hotel|shopping|transport|pharmacy|hospital|police|other], category_other[free-text label when category=other], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, scheduled[UNUSED now])
 - `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost, reminder_min, travel_mode, travel_min, travel_dist_m, travel_note)
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
@@ -249,6 +250,10 @@ signed-in users can reach it. Two modes:
   - **Error boundary** (shows the error instead of a blank page).
   - **Destructive-delete confirmations** (place, member, budget entry, trip,
     clear-day). Stop-remove and packing-uncheck stay instant (easily reversible).
+  - **Gear/settings dropdown** (`src/components/Menu.tsx`, reusable, outside-click +
+    Esc to close): the trip **Edit / Delete** actions live behind a ⚙️ on the trip
+    header (Delete is no longer one exposed click), and the header **Change password /
+    Sign out** live behind a ⚙️ account menu.
 
 ---
 
@@ -340,8 +345,10 @@ supabase/functions/discover/index.ts   Deno Edge Function (Foursquare) — see �
 - **Place photos** / image uploads + trip cover *image* (needs Supabase Storage).
 
 **Discovery follow-ups:**
-- Real **Service/Health place categories** (enum migration) — pharmacy/hospital/police
-  currently save as the generic `sight` bucket.
+- ~~Real **Service/Health place categories** (enum migration)~~ — DONE in `0015`:
+  the place editor now offers the full category set (cafe/bar/museum/outdoors/shopping/
+  pharmacy/hospital/police) + a free-text **Other** category (`places.category_other`).
+  Discovery still maps Foursquare/OSM results into the closest of these on add.
 - **Hebrew result localization** for Foursquare (`Accept-Language` header). Category
   chips already work in any language; free-text needs English or a real place name.
 - **"Scheduled outside opening hours" warning** on a stop (places now carry

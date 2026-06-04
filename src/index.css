@@ -533,6 +533,66 @@ button.secondary.danger {
   border-color: var(--danger-border);
 }
 
+/* Gear / settings dropdown menu (tucks away edit/delete, account actions…) */
+.menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu-trigger {
+  padding: 0.4rem 0.55rem;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menu-popover {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  z-index: 1100;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.menu-end {
+  inset-inline-end: 0;
+}
+
+.menu-start {
+  inset-inline-start: 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--text);
+  text-align: start;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: var(--bg);
+}
+
+.menu-item.danger {
+  color: var(--error);
+}
+
 .back-link {
   display: inline-block;
   margin-bottom: 1rem;
@@ -708,15 +768,29 @@ button.secondary.danger {
   gap: 0.25rem;
 }
 
+.place-row-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.place-row-wrap.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .place-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   margin: 0;
   padding: 0.5rem 0.6rem;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 8px;
   color: var(--text);
   text-align: start;
@@ -727,9 +801,21 @@ button.secondary.danger {
   background: var(--bg);
 }
 
-.place-row.active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+.place-edit-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 0.7rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.place-edit-btn:hover {
+  background: var(--bg);
 }
 
 .place-emoji {
@@ -2161,6 +2247,13 @@ button.secondary.danger {
 .place-city {
   margin-inline-start: auto;
   font-style: italic;
+}
+
+.place-cat-tag {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 /* Per-place color swatches (editor) */

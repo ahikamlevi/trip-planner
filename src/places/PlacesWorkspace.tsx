@@ -6,7 +6,7 @@ import { useT } from '../i18n/I18nProvider'
 import type { Place, PlaceCategory } from '../lib/database.types'
 import { MapView, type MapApi } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
-import { CATEGORIES, categoryMeta, placeColor, PLACE_COLORS } from './categories'
+import { CATEGORIES, categoryMeta, categoryLabel, placeColor, PLACE_COLORS } from './categories'
 import { searchPlaces, reverseCity, type SearchResult } from './search'
 import {
   discoverPlaces,
@@ -69,6 +69,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [focus, setFocus] = useState<LatLng | null>(null)
   // A searched-but-not-yet-saved candidate place (preview with an "Add" button).
   const [pending, setPending] = useState<{ name: string; lat: number; lng: number; city?: string } | null>(null)
@@ -140,6 +141,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       lat: number
       lng: number
       category?: PlaceCategory
+      category_other?: string | null
       city?: string
       opening_hours?: string | null
       notes?: string | null
@@ -156,6 +158,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           lat: input.lat,
           lng: input.lng,
           category: input.category ?? 'sight',
+          category_other: input.category_other ?? null,
           city: input.city ?? null,
           opening_hours: input.opening_hours ?? null,
           notes: input.notes ?? null,
@@ -172,7 +175,9 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       }
       await load()
       if (data) {
-        if (input.select !== false) setSelectedId(data.id)
+        setSelectedId(data.id)
+        // For a brand-new place (drop-a-pin) open the editor so it can be named.
+        if (input.select !== false) setEditingId(data.id)
         setFocus({ lat: input.lat, lng: input.lng })
       }
     },
@@ -228,6 +233,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       lat: pending.lat,
       lng: pending.lng,
       category: patch.category ?? 'sight',
+      category_other: patch.category_other ?? null,
       city: (patch.city ?? pending.city) || undefined,
       opening_hours: patch.opening_hours ?? null,
       notes: patch.notes ?? null,
@@ -263,6 +269,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       category: place.placeCategory ?? 'sight',
       city: place.city ?? undefined,
       opening_hours: place.hours ?? null,
+      select: false,
     })
   }
 
@@ -281,10 +288,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       if (error) setError(error.message)
       else {
         if (selectedId === id) setSelectedId(null)
+        if (editingId === id) setEditingId(null)
         await load()
       }
     },
-    [load, selectedId],
+    [load, selectedId, editingId],
   )
 
   const located = useMemo(
@@ -301,7 +309,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         color: p.color ?? undefined,
         label: p.name,
         selected: p.id === selectedId,
-        popup: placePopupHtml(p, t(`cat.${p.category}`)),
+        popup: placePopupHtml(p, categoryLabel(p.category, p.category_other, t(`cat.${p.category}`))),
       })),
     [located, selectedId, t],
   )
@@ -344,7 +352,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   }, [markers, discoMarkers, pending])
 
   const center = located[0] ? { lat: located[0].lat as number, lng: located[0].lng as number } : DEFAULT_CENTER
-  const selected = places?.find((p) => p.id === selectedId) ?? null
+  const editing = places?.find((p) => p.id === editingId) ?? null
 
   const cityOptions = useMemo(
     () =>
@@ -582,19 +590,31 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                 const meta = categoryMeta(p.category)
                 return (
                   <li key={p.id}>
-                    <button
-                      className={`place-row${p.id === selectedId ? ' active' : ''}`}
-                      onClick={() => selectPlace(p.id)}
+                    <div
+                      className={`place-row-wrap${p.id === selectedId ? ' active' : ''}`}
                       style={{ borderInlineStartColor: placeColor(p.category, p.color), borderInlineStartWidth: 3 }}
                     >
-                      <span className="place-emoji" title={t(`cat.${p.category}`)}>{meta.emoji}</span>
-                      <span className="place-row-name">{p.name}</span>
-                      {p.city && <span className="muted small place-city">{p.city}</span>}
-                      {p.est_cost != null && <span className="muted small">{p.est_cost}</span>}
-                      {(p.lat == null || p.lng == null) && (
-                        <span className="muted small">{t('places.noPin')}</span>
-                      )}
-                    </button>
+                      <button className="place-row" onClick={() => selectPlace(p.id)} title={t('disco.showOnMap')}>
+                        <span className="place-emoji" title={categoryLabel(p.category, p.category_other, t(`cat.${p.category}`))}>{meta.emoji}</span>
+                        <span className="place-row-name">{p.name}</span>
+                        {p.category === 'other' && p.category_other && (
+                          <span className="muted small place-cat-tag">{p.category_other}</span>
+                        )}
+                        {p.city && <span className="muted small place-city">{p.city}</span>}
+                        {p.est_cost != null && <span className="muted small">{p.est_cost}</span>}
+                        {(p.lat == null || p.lng == null) && (
+                          <span className="muted small">{t('places.noPin')}</span>
+                        )}
+                      </button>
+                      <button
+                        className="place-edit-btn"
+                        onClick={() => setEditingId(p.id)}
+                        aria-label={t('common.edit')}
+                        title={t('common.edit')}
+                      >
+                        ✏️
+                      </button>
+                    </div>
                   </li>
                 )
               })}
@@ -602,18 +622,18 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           </div>
       </div>
 
-      {selected && (
-        <div className="modal-overlay" onClick={() => setSelectedId(null)}>
+      {editing && (
+        <div className="modal-overlay" onClick={() => setEditingId(null)}>
           <div className="modal place-editor-modal" onClick={(e) => e.stopPropagation()}>
             <PlaceEditor
-              key={selected.id}
-              place={selected}
+              key={editing.id}
+              place={editing}
               onSave={(patch) => {
-                updatePlace(selected.id, patch)
-                setSelectedId(null)
+                updatePlace(editing.id, patch)
+                setEditingId(null)
               }}
-              onDelete={() => deletePlace(selected.id)}
-              onClose={() => setSelectedId(null)}
+              onDelete={() => deletePlace(editing.id)}
+              onClose={() => setEditingId(null)}
             />
           </div>
         </div>
@@ -632,6 +652,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                 lat: pending.lat,
                 lng: pending.lng,
                 category: 'sight',
+                category_other: null,
                 google_place_id: null,
                 notes: null,
                 opening_hours: null,
@@ -734,6 +755,7 @@ function PlaceEditor({
   const { t } = useT()
   const [name, setName] = useState(place.name)
   const [category, setCategory] = useState<PlaceCategory>(place.category)
+  const [categoryOther, setCategoryOther] = useState(place.category_other ?? '')
   const [notes, setNotes] = useState(place.notes ?? '')
   const [hours, setHours] = useState(place.opening_hours ?? '')
   const [dietary, setDietary] = useState(place.dietary_notes ?? '')
@@ -769,6 +791,17 @@ function PlaceEditor({
           ))}
         </div>
       </label>
+
+      {category === 'other' && (
+        <label>
+          {t('places.categoryOther')}
+          <input
+            value={categoryOther}
+            onChange={(e) => setCategoryOther(e.target.value)}
+            placeholder={t('places.categoryOtherHint')}
+          />
+        </label>
+      )}
 
       <label>
         {t('places.color')}
@@ -840,6 +873,7 @@ function PlaceEditor({
             onSave({
               name: name.trim() || t('places.newPlace'),
               category,
+              category_other: category === 'other' ? categoryOther.trim() || null : null,
               notes: notes.trim() || null,
               opening_hours: hours.trim() || null,
               dietary_notes: dietary.trim() || null,

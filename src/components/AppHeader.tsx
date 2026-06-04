@@ -6,6 +6,7 @@ import { useT } from '../i18n/I18nProvider'
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
 import { useTheme } from '../theme/ThemeProvider'
 import { supabase } from '../lib/supabase'
+import { Menu } from './Menu'
 
 export function AppHeader() {
   const { t } = useT()
@@ -65,10 +66,28 @@ export function AppHeader() {
             {name || session!.user.email}
           </button>
         )}
-        <button onClick={() => setShowPassword(true)} title={t('auth.setYourPassword')}>
-          {t('auth.password')}
-        </button>
-        <button onClick={signOut}>{t('common.signOut')}</button>
+        <Menu label={t('common.account')}>
+          {(close) => (
+            <>
+              <button
+                type="button"
+                className="menu-item"
+                role="menuitem"
+                onClick={() => { close(); setShowPassword(true) }}
+              >
+                🔑 {t('auth.changePassword')}
+              </button>
+              <button
+                type="button"
+                className="menu-item"
+                role="menuitem"
+                onClick={() => { close(); void signOut() }}
+              >
+                🚪 {t('common.signOut')}
+              </button>
+            </>
+          )}
+        </Menu>
       </div>
 
       {showPassword && (

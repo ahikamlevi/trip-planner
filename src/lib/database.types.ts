@@ -2,7 +2,21 @@
 // Once the Supabase CLI is set up you can regenerate this with:
 //   supabase gen types typescript --project-id <ref> > src/lib/database.types.ts
 
-export type PlaceCategory = 'food' | 'sight' | 'beach' | 'hotel' | 'transport'
+export type PlaceCategory =
+  | 'food'
+  | 'cafe'
+  | 'bar'
+  | 'sight'
+  | 'museum'
+  | 'outdoors'
+  | 'beach'
+  | 'hotel'
+  | 'shopping'
+  | 'transport'
+  | 'pharmacy'
+  | 'hospital'
+  | 'police'
+  | 'other'
 export type TripRole = 'owner' | 'editor'
 
 export interface Database {
@@ -87,6 +101,7 @@ export interface Database {
           lat: number | null
           lng: number | null
           category: PlaceCategory
+          category_other: string | null
           google_place_id: string | null
           notes: string | null
           opening_hours: string | null
@@ -104,6 +119,7 @@ export interface Database {
           lat?: number | null
           lng?: number | null
           category?: PlaceCategory
+          category_other?: string | null
           google_place_id?: string | null
           notes?: string | null
           opening_hours?: string | null
@@ -121,6 +137,7 @@ export interface Database {
           lat?: number | null
           lng?: number | null
           category?: PlaceCategory
+          category_other?: string | null
           google_place_id?: string | null
           notes?: string | null
           opening_hours?: string | null

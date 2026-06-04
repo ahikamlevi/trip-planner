@@ -58,9 +58,47 @@ Required before any real traffic.
 - ◐ **Cache tables** (like `route_cache`) for POI/geocode/route results to cut cost
   and latency; respect each provider's caching terms. **POI done** (`poi_cache` +
   `discover` function, 7-day TTL, viewport-snapped key). Geocode/route caching TODO.
-- ☐ **Per-user rate limiting** + quota guards on those functions.
+- ☐ **Per-user rate limiting + abuse/bot defense** (see the detailed plan below).
 - ☐ **Error monitoring** (e.g. Sentry) + basic uptime/log alerts.
 - ☐ **DB review:** indexes on hot paths, RLS audit for untrusted users.
+
+### Rate limiting & abuse defense — detailed plan
+**Why it matters / threat model.** Three distinct stakes, not equal:
+1. **Real money 🔴** — `discover` → Foursquare bills per *premium field × result*. An
+   abuser (or a logged-in bot) varying the viewport to bust `poi_cache` can run up a bill.
+2. **Shared availability 🟠** — once we proxy Nominatim/OSRM/Overpass behind Edge
+   Functions (above), abuse uses **our** IP → those public servers throttle/ban us for
+   *everyone*. (Today they're called from the browser, i.e. each user's own IP.)
+3. **Auth & data 🟡** — login/forgot brute-force, signup spam (post-launch), bulk writes.
+
+**Architectural constraint.** The SPA talks **directly** to PostgREST with the user's
+JWT — we can't bolt a limiter onto the managed DB API. Enforcement therefore lives in
+one of three places: **Supabase Auth (built-in)**, **our Edge Functions (custom)**, or
+**the database (triggers/quotas)**. A CDN in front of Vercel guards the *frontend* only,
+not direct `*.supabase.co` calls.
+
+**Plan, in priority order:**
+- ☐ **Foursquare billing cap + spend alert** (do first; ~5 min in the FSQ console). The
+  backstop — caps the bill even if every other control fails. Highest leverage.
+- ☐ **Per-user rate limit inside `discover`** (it's already JWT-verified, so we know the
+  caller). Postgres-backed counter: `api_rate_limit` table + `consume_rate_limit(_user,
+  _bucket, _limit, _window_seconds)` SECURITY-DEFINER RPC (fixed-window upsert returning
+  whether under the limit); Edge Function returns **429** when exceeded. Limit the
+  **premium/details** path harder than search (that's the costly one). `pg_cron` prunes
+  old windows. (Alt: Upstash Redis `@upstash/ratelimit` — native in Deno Edge, faster,
+  but an added dependency; Postgres is fine at our volume.) → new migration `0016`.
+- ☐ **Harden the cache against busting** — keep the `poi_cache` viewport key coarse
+  (~1 km) and rate-limit per-place *details* fetches specifically; caching + rate limit
+  together bound the marginal cost of a determined attacker.
+- ☐ **Bot front door** (when public sign-ups open, Phase 2): enable **CAPTCHA in Supabase
+  Auth** (Cloudflare Turnstile / hCaptcha on signup, sign-in, password reset) — the single
+  most effective anti-bot lever; tune **Supabase Auth's built-in rate limits** (emails/hr,
+  OTP, token verify, sign-ups, sign-ins); require **email verification** before any
+  billable action.
+- ☐ **DB write quotas** — `BEFORE INSERT` trigger capping a user's rows/hour on
+  `places`/`stops`/`packing_items` (RLS already scopes access; this bounds volume).
+- ☐ **Usage monitoring + anomaly alert** (pairs with Sentry above) — per-user usage
+  logging; can't rate-limit what we can't see.
 
 ## Phase 2 — Accounts & onboarding
 Turn "manually-created accounts" into self-serve.
@@ -69,7 +107,8 @@ Turn "manually-created accounts" into self-serve.
 - ☐ **Onboarding flow** (create first trip, sample data, guided tips).
 - ☐ **Generalized roles:** owner / editor / **viewer** (read-only share links).
 - ☐ Polished password reset + account settings + delete-account (GDPR).
-- ☐ Abuse controls (signup throttling, disposable-email guard).
+- ☐ Abuse controls (signup throttling, disposable-email guard) — see the
+  **Rate limiting & abuse defense** plan under Phase 1.
 
 ## Phase 3 — Data quality
 Make the recommendations genuinely good.

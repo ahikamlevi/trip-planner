@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { AppHeader } from '../components/AppHeader'
+import { Menu } from '../components/Menu'
 import { EmojiPicker, DEFAULT_COVER } from '../components/EmojiPicker'
 import { PlacesWorkspace } from '../places/PlacesWorkspace'
 import { ItineraryBoard } from '../itinerary/ItineraryBoard'
@@ -333,10 +334,28 @@ function TripHeader({
         </div>
       </div>
       {isOwner && (
-        <div className="button-row">
-          <button className="secondary" onClick={() => setEditing(true)}>{t('tripview.edit')}</button>
-          <button className="secondary danger" onClick={remove}>{t('common.delete')}</button>
-        </div>
+        <Menu label={t('tripview.tripOptions')}>
+          {(close) => (
+            <>
+              <button
+                type="button"
+                className="menu-item"
+                role="menuitem"
+                onClick={() => { close(); setEditing(true) }}
+              >
+                ✏️ {t('tripview.edit')}
+              </button>
+              <button
+                type="button"
+                className="menu-item danger"
+                role="menuitem"
+                onClick={() => { close(); void remove() }}
+              >
+                🗑️ {t('common.delete')}
+              </button>
+            </>
+          )}
+        </Menu>
       )}
     </div>
   )
