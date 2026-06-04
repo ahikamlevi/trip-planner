@@ -80,13 +80,12 @@ not direct `*.supabase.co` calls.
 **Plan, in priority order:**
 - ☐ **Foursquare billing cap + spend alert** (do first; ~5 min in the FSQ console). The
   backstop — caps the bill even if every other control fails. Highest leverage.
-- ☐ **Per-user rate limit inside `discover`** (it's already JWT-verified, so we know the
-  caller). Postgres-backed counter: `api_rate_limit` table + `consume_rate_limit(_user,
-  _bucket, _limit, _window_seconds)` SECURITY-DEFINER RPC (fixed-window upsert returning
-  whether under the limit); Edge Function returns **429** when exceeded. Limit the
-  **premium/details** path harder than search (that's the costly one). `pg_cron` prunes
-  old windows. (Alt: Upstash Redis `@upstash/ratelimit` — native in Deno Edge, faster,
-  but an added dependency; Postgres is fine at our volume.) → its own new migration.
+- ☑ **Per-user rate limit inside `discover`** — DONE (migration `0019`). `api_rate_limit`
+  table + `consume_rate_limit(_user,_bucket,_limit,_window_seconds)` SECURITY-DEFINER RPC
+  (fixed-window, self-pruning → no pg_cron; client EXECUTE revoked). The function reads
+  the caller's JWT `sub`, checks the limit before each cache-miss call, and returns **429**
+  when over. **search 60/hr, details 100/day** (details = the Premium-billed path, capped
+  harder). Cache hits don't count; fails open on any limiter error.
 - ☐ **Harden the cache against busting** — keep the `poi_cache` viewport key coarse
   (~1 km) and rate-limit per-place *details* fetches specifically; caching + rate limit
   together bound the marginal cost of a determined attacker.

@@ -20,7 +20,7 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0018`** must be run in Supabase; the **`discover` Edge
+- **Migrations through `0019`** must be run in Supabase; the **`discover` Edge
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
   discovery silently falls back to free Overpass/OSM.
 - Now being built toward a **public, polished product** (not just 2 users) — see
@@ -96,6 +96,7 @@ They are mostly idempotent.
 | `0016_profile_email.sql` | `profiles.email` (mirrored from `auth.users` via the signup trigger + an email-change trigger; backfilled) so the members list can identify invitees by email when they have no display name |
 | `0017_trip_owner_check.sql` | adds `WITH CHECK (owner_id = auth.uid())` to the `trips` UPDATE policy so an owner can't reassign `owner_id` and orphan the trip (security hardening) |
 | `0018_stop_travel_cost.sql` | `stops.travel_cost` (price of the travel leg into a stop; edited in the leg editor, counted in the budget under Transport) |
+| `0019_rate_limit.sql` | `api_rate_limit` table + `consume_rate_limit(_user,_bucket,_limit,_window_seconds)` SECURITY DEFINER fn (fixed-window per-user limiter for the `discover` function; client EXECUTE revoked; self-pruning, no pg_cron) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -150,6 +151,14 @@ signed-in users can reach it. Two modes:
   bulk search requests core fields only (no rating) and premium details are on-demand
   per place + cached. Billing must be enabled on the Foursquare org for any calls to
   succeed (free credits require a card on file).
+- **Per-user rate limiting (migration `0019`):** before each *billed* (cache-miss) call
+  the function calls `consume_rate_limit` keyed by the caller's JWT `sub` — **`search`
+  60/hour, `details` 100/day per user** (constants in `index.ts` `LIMITS`) — and returns
+  **429** when exceeded so one user/bot can't drain the shared credits. Cache hits don't
+  count. **Fails open** (allows) if the user id / service client / migration is missing,
+  so a hiccup never breaks discovery; the FSQ billing cap is the hard backstop. Client
+  degrades gracefully: a 429 on search falls back to Overpass, on details the "Details"
+  button stays retryable.
 
 ---
 

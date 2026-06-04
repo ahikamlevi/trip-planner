@@ -64,6 +64,53 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
+// --- Per-user rate limiting (protects the shared Foursquare credits) ---
+// The function is JWT-verified, so the Authorization header carries a trusted user
+// token; read the `sub` claim (no extra round-trip / verification needed here).
+function userIdFromReq(req: Request): string | null {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  const part = token.split('.')[1]
+  if (!part) return null
+  try {
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '==='.slice((b64.length + 3) % 4)
+    return JSON.parse(atob(padded)).sub ?? null
+  } catch {
+    return null
+  }
+}
+
+// Per-user caps. 'details' (Premium-billed) is stricter than 'search' (Pro-tier).
+const LIMITS: Record<string, { max: number; windowSeconds: number }> = {
+  search: { max: 60, windowSeconds: 3600 }, // 60 / hour
+  details: { max: 100, windowSeconds: 86400 }, // 100 / day
+}
+
+// Returns true if the caller may proceed. Fails OPEN (allows) if we can't enforce
+// — no user id, no service client, or the limiter errors — so a limiter hiccup or
+// an unapplied migration never breaks discovery. The Foursquare billing cap is the
+// hard backstop.
+async function underLimit(userId: string | null, bucket: 'search' | 'details'): Promise<boolean> {
+  if (!sb || !userId) return true
+  const { max, windowSeconds } = LIMITS[bucket]
+  try {
+    const { data, error } = await sb.rpc('consume_rate_limit', {
+      _user: userId,
+      _bucket: bucket,
+      _limit: max,
+      _window_seconds: windowSeconds,
+    })
+    if (error) {
+      console.error('rate-limit check failed (allowing):', error.message)
+      return true
+    }
+    return data === true
+  } catch (e) {
+    console.error('rate-limit check threw (allowing):', e)
+    return true
+  }
+}
+
 // Foursquare's response shape has shifted across versions; parse defensively.
 // deno-lint-ignore no-explicit-any
 function normalize(p: any) {
@@ -97,9 +144,10 @@ Deno.serve(async (req: Request) => {
   try {
     if (!FSQ_KEY) return json({ error: 'FOURSQUARE_API_KEY is not set' }, 500)
     const body = await req.json()
+    const userId = userIdFromReq(req)
     // Two modes: { placeId } → on-demand details for one place; otherwise a search.
-    if (body.placeId) return await handleDetails(String(body.placeId))
-    return await handleSearch(body)
+    if (body.placeId) return await handleDetails(String(body.placeId), userId)
+    return await handleSearch(body, userId)
   } catch (e) {
     console.error('discover error:', e)
     return json({ error: 'discovery_failed' }, 500)
@@ -107,7 +155,7 @@ Deno.serve(async (req: Request) => {
 })
 
 // deno-lint-ignore no-explicit-any
-async function handleSearch(body: any): Promise<Response> {
+async function handleSearch(body: any, userId: string | null): Promise<Response> {
   const { bounds, query: bodyQuery, diets = [], limit = 40 } = body
   if (!bounds) return json({ error: 'bounds is required' }, 400)
 
@@ -127,6 +175,9 @@ async function handleSearch(body: any): Promise<Response> {
   )}|${cap}`
   const cached = await cacheGet(cacheKey)
   if (cached) return json({ results: cached, cached: true })
+
+  // Cache miss → about to spend a Foursquare call: enforce the per-user limit.
+  if (!(await underLimit(userId, 'search'))) return json({ error: 'rate_limited' }, 429)
 
   const params = new URLSearchParams({ ne, sw, query, limit: String(cap), fields: SEARCH_FIELDS })
 
@@ -150,10 +201,13 @@ async function handleSearch(body: any): Promise<Response> {
   return json({ results })
 }
 
-async function handleDetails(placeId: string): Promise<Response> {
+async function handleDetails(placeId: string, userId: string | null): Promise<Response> {
   const cacheKey = `details|${placeId}`
   const cached = await cacheGet(cacheKey)
   if (cached) return json({ details: cached, cached: true })
+
+  // Cache miss → about to spend a (Premium) Foursquare call: enforce the limit.
+  if (!(await underLimit(userId, 'details'))) return json({ error: 'rate_limited' }, 429)
 
   const params = new URLSearchParams({ fields: DETAILS_FIELDS })
   const res = await fetch(`${FSQ_PLACE_URL}${encodeURIComponent(placeId)}?${params}`, { headers: fsqHeaders() })
