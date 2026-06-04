@@ -53,6 +53,21 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
 }
 
+// The places table has no columns for rating/price/phone/website, so fold the
+// premium details we fetched (and paid Foursquare for) into the saved place's
+// notes — editable afterwards in the place editor. Returns null if there's nothing.
+function discoveryNote(d: DiscoveryResult): string | null {
+  const lines: string[] = []
+  const head: string[] = []
+  if (d.rating != null) head.push(`★ ${d.rating}`)
+  if (d.price != null && d.price > 0) head.push('$'.repeat(d.price))
+  if (head.length) lines.push(head.join(' · '))
+  if (d.tel) lines.push(`☎ ${d.tel}`)
+  if (d.website) lines.push(`🔗 ${d.website}`)
+  if (d.description) lines.push(d.description)
+  return lines.length ? lines.join('\n') : null
+}
+
 function placePopupHtml(p: Place, catLabel: string): string {
   const meta = categoryMeta(p.category)
   const rows = [`<strong>${escapeHtml(p.name)}</strong>`, `<div>${meta.emoji} ${escapeHtml(catLabel)}</div>`]
@@ -284,6 +299,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       category: place.placeCategory ?? 'sight',
       city: place.city ?? undefined,
       opening_hours: place.hours ?? null,
+      notes: discoveryNote(place),
       select: false,
     })
   }
