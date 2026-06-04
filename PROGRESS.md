@@ -20,7 +20,7 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0015`** must be run in Supabase; the **`discover` Edge
+- **Migrations through `0017`** must be run in Supabase; the **`discover` Edge
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
   discovery silently falls back to free Overpass/OSM.
 - Now being built toward a **public, polished product** (not just 2 users) — see
@@ -94,6 +94,7 @@ They are mostly idempotent.
 | `0014_poi_cache.sql` | `poi_cache` table (server-side discovery cache; written/read only by the `discover` Edge Function via service role) |
 | `0015_place_categories.sql` | expands `place_category` enum (cafe, bar, museum, outdoors, shopping, pharmacy, hospital, police, **other**) + `places.category_other` (free-text label shown when category=`other`) |
 | `0016_profile_email.sql` | `profiles.email` (mirrored from `auth.users` via the signup trigger + an email-change trigger; backfilled) so the members list can identify invitees by email when they have no display name |
+| `0017_trip_owner_check.sql` | adds `WITH CHECK (owner_id = auth.uid())` to the `trips` UPDATE policy so an owner can't reassign `owner_id` and orphan the trip (security hardening) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -121,12 +122,13 @@ in `src/lib/database.types.ts` (regenerate via `supabase gen types` if desired).
 Location: `supabase/functions/discover/index.ts` (Deno/TypeScript). Called from the
 client via `supabase.functions.invoke('discover', { body })` — JWT-verified, so only
 signed-in users can reach it. Two modes:
-- **Search:** `{ bounds, query, limit }` → Foursquare `places/search`, **cheap fields
-  only** (+ rating), normalized → `{ results }`. Result of one search cached in
-  `poi_cache` (key = query + viewport snapped to ~1 km + cap, 7-day TTL).
+- **Search:** `{ bounds, query, limit }` → Foursquare `places/search`, **core/Pro
+  fields only** (id/name/coords/categories/location — NO rating), normalized →
+  `{ results }`. Result of one search cached in `poi_cache` (key = query + viewport
+  snapped to ~1 km + cap, 7-day TTL).
 - **Details:** `{ placeId }` → Foursquare `places/{id}` for the **premium fields**
-  (hours/price/website/phone/description). Cached per place id. The client only calls
-  this when a suggestion is clicked or added (`fetchPlaceDetails`) → controls cost.
+  (rating/hours/price/website/phone/description). Cached per place id. The client only
+  calls this when a suggestion is clicked or added (`fetchPlaceDetails`) → controls cost.
 
 **To deploy / change it (do this when `index.ts` changes):**
 - Dashboard: Edge Functions → `discover` → paste the file's contents → **Deploy**.
@@ -138,9 +140,13 @@ signed-in users can reach it. Two modes:
   only OSM-style results, the function errored and fell back to Overpass — check
   Edge Functions → `discover` → Logs (`Foursquare 401` = wrong key, `429` = no credits/
   premium-field cost, `FOURSQUARE_API_KEY is not set` = secret missing).
-- **Cost:** Foursquare bills per premium field × result; that's why the bulk search is
-  kept cheap and details are on-demand + cached. Billing must be enabled on the
-  Foursquare org for any calls to succeed (free credits require a card on file).
+- **Cost:** Foursquare bills **per API call, by tier** — a call requesting ANY premium
+  field (rating/hours/price/photos/tips) is billed at the Premium rate with no free
+  allowance; a call with only core/Pro fields stays in the free/cheaper Pro tier
+  (10k free calls + $200 credit, then ~$15/1k vs ~$18.75/1k Premium). That's why the
+  bulk search requests core fields only (no rating) and premium details are on-demand
+  per place + cached. Billing must be enabled on the Foursquare org for any calls to
+  succeed (free credits require a card on file).
 
 ---
 
@@ -198,11 +204,12 @@ signed-in users can reach it. Two modes:
     Suggestions persist per trip (sessionStorage); the map is sticky; clicking a
     result zooms in (never out) and highlights its pin.
     Primary provider = **Foursquare** (Edge Function), falling back to **Overpass**.
-    **Cost control:** the bulk search asks only for cheap fields (+ rating, capped at
-    25 results); the premium fields (hours/price/website/phone) are fetched **on
-    demand** — one Place Details call — only when a suggestion is clicked or added,
-    via `fetchPlaceDetails`. Both search and details are cached in `poi_cache`.
-    Card shows rating + a Google **Maps ↗** link; details fill in on click.
+    **Cost control:** the bulk search asks only for **core/Pro fields** (no rating,
+    capped at 25 results) so it stays on Foursquare's free/cheap Pro tier; the premium
+    fields (**rating**/hours/price/website/phone) are fetched **on demand** — one Place
+    Details call — only when a suggestion is clicked or added, via `fetchPlaceDetails`.
+    Both search and details are cached in `poi_cache`.
+    Card shows a Google **Maps ↗** link; rating + the other details fill in on click.
     Suggestions are **green pins** + cards; "+ Add" drops one into the wishlist with
     the matching category, its **city**, and **opening hours** filled in. The top
     box stays "search a place by name" (Nominatim) — distinct from discovery.
@@ -320,8 +327,9 @@ supabase/functions/discover/index.ts   Deno Edge Function (Foursquare) — see �
 - **Day-map road geometry** is cached in-memory per session only (not in `route_cache`,
   which is per origin-dest pair).
 - **Discovery / Foursquare:** changing `supabase/functions/discover/index.ts` requires
-  a **redeploy** to take effect (§4.1). Costs money (premium fields × results) — keep
-  the search lightweight + details on-demand. Overpass public servers are the free
+  a **redeploy** to take effect (§4.1). Costs money — billing is **per call by tier**, so
+  any premium field (rating/hours/price) on a call makes it Premium-billed; keep the bulk
+  search to core fields only and premium details on-demand per place (see §4.1). Overpass public servers are the free
   fallback but rate-limit/timeout (we fail over across 3 mirrors). The discovery cache
   key snaps the viewport to ~1 km, so very different zoom/pan misses the cache; results
   also **persist per trip in sessionStorage** so tab switches don't lose them.

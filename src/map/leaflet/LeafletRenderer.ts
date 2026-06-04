@@ -3,6 +3,13 @@ import 'leaflet/dist/leaflet.css'
 import type { MapBounds, MapMarker, MapRenderer, MapRendererOptions } from '../MapRenderer'
 import { categoryMeta } from '../../places/categories'
 
+// Leaflet renders string tooltip/popup content via innerHTML, so any
+// user-controlled text (place names) must be escaped before it's passed in,
+// or a saved place named e.g. `<img src=x onerror=…>` becomes stored XSS.
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
+}
+
 function pinIcon(marker: MapMarker): L.DivIcon {
   const color = marker.color ?? categoryMeta(marker.category).color
   const hasBadge = marker.badge != null
@@ -45,7 +52,7 @@ export function createLeafletRenderer(opts: MapRendererOptions): MapRenderer {
       for (const m of markers) {
         const marker = L.marker([m.position.lat, m.position.lng], { icon: pinIcon(m) })
         if (m.popup) marker.bindPopup(m.popup)
-        if (m.label) marker.bindTooltip(m.label, { direction: 'top', offset: [0, -8] })
+        if (m.label) marker.bindTooltip(escapeHtml(m.label), { direction: 'top', offset: [0, -8] })
         marker.on('click', () => opts.onMarkerClick?.(m.id))
         marker.addTo(layer)
       }

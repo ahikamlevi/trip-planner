@@ -14,11 +14,14 @@ const FSQ_URL = 'https://places-api.foursquare.com/places/search'
 const FSQ_PLACE_URL = 'https://places-api.foursquare.com/places/'
 const API_VERSION = '2025-06-17'
 
-// Cost control: the bulk search asks only for cheap "core" fields (+ rating).
-// Expensive premium fields (hours, price, phone, website, description) are fetched
-// on demand — one Place Details call — only for a place the user actually opens/adds,
-// instead of paying per-field × every result.
-const SEARCH_FIELDS = 'fsq_place_id,name,latitude,longitude,categories,location,rating'
+// Cost control: Foursquare bills per API CALL by tier — a call that requests ANY
+// premium field (rating, hours, price, photos, tips) is billed at the Premium rate
+// with NO free allowance, while a call with only core/Pro fields stays in the free/
+// cheaper Pro tier. So the bulk search requests ONLY core fields (id/name/coords/
+// categories/location) to keep every "search this area" on the Pro tier. The premium
+// fields — including rating — are fetched on demand via ONE Place Details call, only
+// for a place the user actually opens or adds, and cached.
+const SEARCH_FIELDS = 'fsq_place_id,name,latitude,longitude,categories,location'
 const DETAILS_FIELDS = 'price,hours,tel,website,description,rating'
 
 function fsqHeaders() {
@@ -98,7 +101,8 @@ Deno.serve(async (req: Request) => {
     if (body.placeId) return await handleDetails(String(body.placeId))
     return await handleSearch(body)
   } catch (e) {
-    return json({ error: String(e) }, 500)
+    console.error('discover error:', e)
+    return json({ error: 'discovery_failed' }, 500)
   }
 })
 
@@ -133,8 +137,11 @@ async function handleSearch(body: any): Promise<Response> {
     res = await fetch(`${FSQ_URL}?${params}`, { headers: fsqHeaders() })
   }
   if (!res.ok) {
-    const detail = (await res.text()).slice(0, 300)
-    return json({ error: `Foursquare ${res.status}`, detail }, 502)
+    // Log the upstream detail to the function logs (Dashboard → Edge Functions →
+    // discover → Logs) but never echo it to the client — it can carry internal
+    // provider/request specifics. The client just falls back to Overpass.
+    console.error('Foursquare request failed', res.status, (await res.text()).slice(0, 300))
+    return json({ error: 'discovery_failed' }, 502)
   }
 
   const data = await res.json()
@@ -151,8 +158,11 @@ async function handleDetails(placeId: string): Promise<Response> {
   const params = new URLSearchParams({ fields: DETAILS_FIELDS })
   const res = await fetch(`${FSQ_PLACE_URL}${encodeURIComponent(placeId)}?${params}`, { headers: fsqHeaders() })
   if (!res.ok) {
-    const detail = (await res.text()).slice(0, 300)
-    return json({ error: `Foursquare ${res.status}`, detail }, 502)
+    // Log the upstream detail to the function logs (Dashboard → Edge Functions →
+    // discover → Logs) but never echo it to the client — it can carry internal
+    // provider/request specifics. The client just falls back to Overpass.
+    console.error('Foursquare request failed', res.status, (await res.text()).slice(0, 300))
+    return json({ error: 'discovery_failed' }, 502)
   }
   // deno-lint-ignore no-explicit-any
   const p: any = await res.json()

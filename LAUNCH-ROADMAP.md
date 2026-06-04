@@ -131,6 +131,93 @@ Make the recommendations genuinely good.
 
 ---
 
+## Improvement audit (2026-06) — findings & status
+A multi-angle review (security, code/architecture, UX/features, tech best-practices,
+with web research) produced the backlog below. Items already addressed in existing
+phases are cross-referenced, not duplicated.
+
+### Security (audit)
+- ☑ **Stored XSS in map tooltips** — place-name labels hit Leaflet's `innerHTML`
+  unescaped (`src/map/leaflet/LeafletRenderer.ts`). Fixed: labels are now
+  `escapeHtml`-escaped before `bindTooltip`. (Popups were already escaped.)
+- ☑ **Edge Function leaked raw upstream error text** to clients
+  (`supabase/functions/discover/index.ts`). Fixed: upstream detail is logged to the
+  function logs; the client now gets a generic `discovery_failed`. **Needs redeploy.**
+- ☑ **`trips` UPDATE policy had no `WITH CHECK`** → owner could reassign `owner_id`
+  and orphan the trip. Fixed in migration `0017`.
+- ☐ **Foursquare billing cap + spend alert** (FSQ console, ~5 min) — the money
+  backstop. Do before public launch. (Pairs with the rate-limit plan in Phase 1.)
+- ☐ **`route_cache` open to any authenticated write** (cache poisoning / bloat) —
+  add a numeric-range `CHECK` + periodic prune, or fold routing behind an Edge
+  Function (Phase 1 proxy work).
+- ☐ **Tighten `invite_member_by_email`** (email-enumeration: distinct
+  `no_account`/`already_member`) once public sign-ups open.
+- ☐ **Raise password min length** (currently 6) for public launch.
+- ☐ **RLS isolation test** — a two-user / pgTAP test proving user B can't read
+  user A's data, run in CI. (Also under Engineering health.)
+- Verified-clean: no `service_role` in client, secrets clean, `poi_cache`/`profiles`
+  RLS correct, SECURITY DEFINER funcs sound, popups/JSX escaped, `npm audit` prod-clean.
+
+### Engineering health (audit)
+- ☐ **Add a test harness** — Vitest + RTL for units (start with pure logic:
+  `dates.ts`, `ics.ts`, `money.ts`, the itinerary "too-tight/busy-day" math), one
+  Playwright happy-path e2e. *Zero tests today — biggest single gap.*
+- ☐ **Add ESLint + Prettier** (and `eslint-plugin-react-hooks`) — 6 files already
+  carry hand-written `eslint-disable` comments but nothing runs them.
+- ☐ **Code-split the ~690 kB bundle** — `React.lazy` the routes + dynamic-`import()`
+  Leaflet and @dnd-kit (map/itinerary only); `manualChunks` for vendor caching;
+  add `rollup-plugin-visualizer`. (Overlaps Phase 4 code-splitting.)
+- ☐ **Split `ItineraryBoard.tsx`** (1,354 lines, ~12 components) along its existing
+  seams; memoize `DayPanel`'s per-render leg/warning computation.
+- ☐ **Surface swallowed mutation errors** — many writes (`ItineraryBoard`
+  commit/remove/clearDay, `PackingPanel`, `TripView`) ignore `.error` and fail
+  silently; thread them to the UI (pairs with the toast system below).
+- ☐ **Regenerate `database.types.ts` from migrations** (`supabase gen types`) — the
+  hand-authored file is drifting (stale comment, `poi_cache` absent, one RPC typed).
+- ☐ **Collapse N+1 fetches** (`ItineraryBoard`/`BudgetPanel` fetch days then stops)
+  into nested selects; forward an abort signal to discovery search.
+- ☐ **Add a unique constraint on `days(trip_id, date)`** + upsert to prevent the
+  duplicate-day race in `ensureDay`.
+
+### UX (audit) — feeds Phase 0
+- ☐ **Global toast system** — *keystone*: confirms instant-saves, enables the
+  long-planned "Deleted · Undo", surfaces collaborator changes, replaces raw error
+  text. Unlocks several existing Phase-0 items at once.
+- ☐ **Real empty states + center map on the trip's country** (reuse the dashboard's
+  `empty-state` component) instead of a zoom-2 globe + one-line hint.
+- ☐ **Friendly, localized error messages** + replace native `confirm()`/`alert()`
+  with themed RTL modals (users currently can see raw RLS errors).
+- ☐ Move invite/members out of the bottom `<details>` into a Share affordance;
+  plan tab overflow (mobile bottom-tab bar) before adding more tabs.
+- ☐ Collapse the dense `StopItem` controls behind an edit affordance on mobile;
+  extend the dashboard skeleton loader to the tab panels.
+
+### Feature ideas (audit) — feeds Phase 3
+- ☐ **Expense splitting** (`paid_by` + settle-up) — top group-travel differentiator;
+  builds on the existing budget model; keyless.
+- ☐ **Route optimization** — nearest-neighbor reorder of a day's stops over the OSRM
+  legs already fetched; one-tap "apply". Keyless, high wow-factor.
+- ☐ **Group voting / ❤️ on wishlist places** — cheap collaboration win, reuses realtime.
+- ☐ **Packing templates + drag-reorder/categories** (`sort_order` already in schema).
+- ☐ **Per-place / per-stop comments** (attributed, realtime).
+- ☐ **Manual bookings section** (flights/lodging/confirmations as timed stops).
+- ☐ **AI "draft a day from my wishlist"** assistant (paid API, behind an Edge
+  Function like `discover`) — standout differentiator if paid APIs are ever in scope.
+
+### Tech best-practices (audit) — feeds Phase 1/4
+- ☐ **Error monitoring (Sentry)** — React app + Edge Function. Zero prod visibility
+  today; highest-leverage ops gap.
+- ☐ **Security headers + CSP in `vercel.json`** (HSTS, X-Content-Type-Options,
+  X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP report-only first).
+- ☐ **PWA + offline** (`vite-plugin-pwa`) — app shell + current-trip + tiles cached;
+  disproportionately valuable for travel (signal loss abroad). (Phase 4.)
+- ☐ **Managed maps/geo provider** (MapTiler/Stadia/Geoapify; Photon for autocomplete)
+  — see Phase 1; the public OSM/Nominatim/OSRM servers forbid production volume and
+  can block without notice. Top infra/outage risk at launch.
+- ☐ **RLS performance**: wrap `auth.uid()` as `(select auth.uid())` and index
+  policy-filter columns before traffic grows.
+- ☐ **Supabase backups/PITR** + Supavisor transaction-mode pooling for the edge path.
+
 ## Suggested sequence
 0 (polish, in progress) → 1 (gate) → 2 (accounts) → 3 (data) → 4 (reach).
 Phase 0 buys first impressions while Phase 1 is the hard prerequisite for opening
