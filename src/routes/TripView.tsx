@@ -21,7 +21,7 @@ type Tab = 'places' | 'itinerary' | 'budget' | 'packing' | 'dietary'
 interface MemberRow {
   user_id: string
   role: TripRole
-  profile: { display_name: string | null } | null
+  profile: { display_name: string | null; email: string | null } | null
 }
 
 export function TripView() {
@@ -46,7 +46,7 @@ export function TripView() {
       supabase.from('trips').select('*').eq('id', tripId).maybeSingle(),
       supabase
         .from('trip_members')
-        .select('user_id, role, profile:profiles(display_name)')
+        .select('user_id, role, profile:profiles(display_name, email)')
         .eq('trip_id', tripId)
         .returns<MemberRow[]>(),
     ])
@@ -148,9 +148,16 @@ export function TripView() {
           <ul className="member-list">
             {members.map((m) => (
               <li key={m.user_id}>
-                <span>
-                  {m.profile?.display_name || (m.user_id === uid ? t('tripview.you') : t('tripview.unnamed'))}
-                  {m.user_id === uid && m.profile?.display_name && <span className="muted"> {t('tripview.youSuffix')}</span>}
+                <span className="member-id">
+                  <span className="member-name">
+                    {m.profile?.display_name || m.profile?.email || (m.user_id === uid ? t('tripview.you') : t('tripview.unnamed'))}
+                    {m.user_id === uid && (m.profile?.display_name || m.profile?.email) && (
+                      <span className="muted"> {t('tripview.youSuffix')}</span>
+                    )}
+                  </span>
+                  {m.profile?.display_name && m.profile?.email && (
+                    <span className="muted small member-email">{m.profile.email}</span>
+                  )}
                 </span>
                 <span className="member-actions">
                   <span className={`role-badge role-${m.role}`}>{t(`role.${m.role}`)}</span>

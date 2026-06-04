@@ -93,9 +93,10 @@ They are mostly idempotent.
 | `0013_stop_travel.sql` | `stops.travel_mode/_min/_dist_m/_note` (editable travel-leg overrides into each stop) |
 | `0014_poi_cache.sql` | `poi_cache` table (server-side discovery cache; written/read only by the `discover` Edge Function via service role) |
 | `0015_place_categories.sql` | expands `place_category` enum (cafe, bar, museum, outdoors, shopping, pharmacy, hospital, police, **other**) + `places.category_other` (free-text label shown when category=`other`) |
+| `0016_profile_email.sql` | `profiles.email` (mirrored from `auth.users` via the signup trigger + an email-change trigger; backfilled) so the members list can identify invitees by email when they have no display name |
 
 **Data model (tables):**
-- `profiles` (id→auth.users, display_name, dietary_restrictions[], dietary_note)
+- `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
 - `trips` (name, country, start_date, end_date, owner_id, currency, notes, cover_emoji)
 - `trip_members` (trip_id, user_id, role: owner|editor)
 - `areas` (trip_id, name, sort_order)

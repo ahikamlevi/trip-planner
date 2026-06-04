@@ -28,6 +28,7 @@ export interface Database {
         Row: {
           id: string
           display_name: string | null
+          email: string | null
           dietary_restrictions: string[]
           dietary_note: string | null
           created_at: string
@@ -35,6 +36,7 @@ export interface Database {
         Insert: {
           id: string
           display_name?: string | null
+          email?: string | null
           dietary_restrictions?: string[]
           dietary_note?: string | null
           created_at?: string
@@ -42,6 +44,7 @@ export interface Database {
         Update: {
           id?: string
           display_name?: string | null
+          email?: string | null
           dietary_restrictions?: string[]
           dietary_note?: string | null
           created_at?: string

@@ -86,7 +86,7 @@ not direct `*.supabase.co` calls.
   whether under the limit); Edge Function returns **429** when exceeded. Limit the
   **premium/details** path harder than search (that's the costly one). `pg_cron` prunes
   old windows. (Alt: Upstash Redis `@upstash/ratelimit` — native in Deno Edge, faster,
-  but an added dependency; Postgres is fine at our volume.) → new migration `0016`.
+  but an added dependency; Postgres is fine at our volume.) → its own new migration.
 - ☐ **Harden the cache against busting** — keep the `poi_cache` viewport key coarse
   (~1 km) and rate-limit per-place *details* fetches specifically; caching + rate limit
   together bound the marginal cost of a determined attacker.
