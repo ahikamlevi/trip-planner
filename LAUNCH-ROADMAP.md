@@ -239,9 +239,11 @@ phases are cross-referenced, not duplicated.
   X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP report-only first).
 - ☐ **PWA + offline** (`vite-plugin-pwa`) — app shell + current-trip + tiles cached;
   disproportionately valuable for travel (signal loss abroad). (Phase 4.)
-- ☐ **Managed maps/geo provider** (MapTiler/Stadia/Geoapify; Photon for autocomplete)
-  — see Phase 1; the public OSM/Nominatim/OSRM servers forbid production volume and
-  can block without notice. Top infra/outage risk at launch.
+- ◐ **Managed maps/geo provider** — **tiles done**: `src/map/tiles.ts` uses **Stadia
+  Maps** (theme-matched light/dark) when `VITE_STADIA_API_KEY` is set, else falls back
+  to public OSM. **Remaining:** move **geocoding** (`places/search.ts` — Nominatim) and
+  **routing** (`routing/osrm.ts` — OSRM) to Stadia too; both public servers forbid
+  production volume / can block without notice. Top infra/outage risk at launch.
 - ☐ **RLS performance**: wrap `auth.uid()` as `(select auth.uid())` and index
   policy-filter columns before traffic grows.
 - ☐ **Supabase backups/PITR** + Supavisor transaction-mode pooling for the edge path.

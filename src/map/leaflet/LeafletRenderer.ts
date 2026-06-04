@@ -2,6 +2,7 @@ import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { MapBounds, MapMarker, MapRenderer, MapRendererOptions } from '../MapRenderer'
 import { categoryMeta } from '../../places/categories'
+import { activeTileLayer } from '../tiles'
 
 // Leaflet renders string tooltip/popup content via innerHTML, so any
 // user-controlled text (place names) must be escaped before it's passed in,
@@ -29,10 +30,8 @@ function pinIcon(marker: MapMarker): L.DivIcon {
 export function createLeafletRenderer(opts: MapRendererOptions): MapRenderer {
   const map = L.map(opts.container).setView([opts.center.lat, opts.center.lng], opts.zoom)
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19,
-  }).addTo(map)
+  const tiles = activeTileLayer()
+  L.tileLayer(tiles.url, { attribution: tiles.attribution, maxZoom: tiles.maxZoom }).addTo(map)
 
   if (opts.onMapClick) {
     map.on('click', (e: L.LeafletMouseEvent) =>

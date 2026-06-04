@@ -36,8 +36,10 @@ live.
 - **Frontend:** React 18 + TypeScript + Vite. Plain CSS in `src/index.css` (no
   Tailwind/UI lib). Routing via `react-router-dom`.
 - **Backend:** Supabase — Postgres, Auth, Row Level Security, Realtime.
-- **Map:** Leaflet + OpenStreetMap tiles, behind a swappable `MapRenderer` adapter
-  (`src/map/`). Place search via OSM Nominatim (`src/places/search.ts`).
+- **Map:** Leaflet behind a swappable `MapRenderer` adapter (`src/map/`). **Tiles** are
+  configurable (`src/map/tiles.ts`): **Stadia Maps** (production-licensed, theme-matched
+  light/dark) when `VITE_STADIA_API_KEY` is set, else the free public **OpenStreetMap**
+  tiles. Place search via OSM Nominatim (`src/places/search.ts`).
 - **Routing/travel time:** OSRM public server (keyless), behind a swappable
   `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
 - **Place discovery:** behind a swappable `DiscoveryProvider` adapter
@@ -67,6 +69,7 @@ Requires a `.env` (git-ignored) at repo root:
 VITE_SUPABASE_URL=https://<project>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon public key>
 VITE_SENTRY_DSN=<optional — enables Sentry error monitoring; leave blank to disable>
+VITE_STADIA_API_KEY=<optional — map tiles from Stadia Maps; blank = free public OSM tiles>
 ```
 Supabase values come from Supabase → Project Settings → API. Never commit the
 service_role key. `VITE_SENTRY_DSN` is optional (Sentry stays off if unset); add it in
@@ -310,8 +313,10 @@ signed-in users can reach it. Two modes:
   - **Error monitoring (Sentry)** (`src/lib/sentry.ts`, `@sentry/react`): initialized
     in `main.tsx` **only when `VITE_SENTRY_DSN` is set** (opt-in via env — the app runs
     fine without it). Captures uncaught errors + unhandled promise rejections (global
-    handlers) and render errors (via the ErrorBoundary), plus light Web-Vitals tracing
-    (10% sample). No session replay / PII. Source-map upload is a later add-on.
+    handlers) and render errors (via the ErrorBoundary, through `captureException`).
+    **Errors only** — no performance tracing or session replay (the heavy parts), so
+    the static import tree-shakes small (~29 kB gzip). Source-map upload + Edge-Function
+    instrumentation are later add-ons.
   - **Destructive-delete confirmations** (place, member, budget entry, trip,
     clear-day). Stop-remove and packing-uncheck stay instant (easily reversible).
   - **Gear/settings dropdown** (`src/components/Menu.tsx`, reusable, outside-click +
@@ -354,9 +359,9 @@ components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu), ErrorBoundar
              Toast.tsx (ToastProvider + useToast — app-wide notifications/Undo)
 i18n/        strings.ts (EN+HE dict), I18nProvider.tsx (useT), LanguageSwitcher.tsx
 theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
-lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts
+lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts, sentry.ts
 map/         MapRenderer.ts (interface), MapView.tsx (React wrapper), index.ts (active
-             provider), leaflet/LeafletRenderer.ts
+             provider), tiles.ts (Stadia/OSM tile config), leaflet/LeafletRenderer.ts
 places/      PlacesWorkspace.tsx (map tab; search=preview-only, editor-as-modal),
              categories.ts (incl. PLACE_COLORS + placeColor), search.ts (Nominatim
              search + reverseCity), dietary.ts (tags)
