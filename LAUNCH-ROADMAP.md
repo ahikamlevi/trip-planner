@@ -34,12 +34,11 @@ The visible layer. What a new user judges in the first 30 seconds.
 - ◐ **Trip cover emoji** done (preset picker on create + edit; shown on dashboard
   cards and trip header; migration `0010`). **Photos on places / image uploads**
   still pending (needs Supabase Storage).
-- ◐ **Toasts + "Deleted · Undo"** — toast system shipped (`src/components/Toast.tsx`,
-  `ToastProvider`/`useToast`): save confirmations, friendly localized errors, and an
-  action button for Undo. Wired on Places (add/save/remove + errors) and Packing
-  remove (clean re-insert Undo). **Remaining:** adopt `useToast` in the other panels
-  (Budget/Dietary/TripView/Itinerary) and a deferred-delete Undo for cascade-y deletes
-  (place/trip) — non-trivial under instant-save + realtime.
+- ◐ **Toasts + "Deleted · Undo"** — toast system shipped (`src/components/Toast.tsx`)
+  and **adopted across all panels** (Places, Packing w/ re-insert Undo, Budget, Dietary,
+  TripView, Itinerary): save confirmations + friendly localized errors everywhere.
+  **Remaining:** a deferred-delete Undo for cascade-y deletes (place/trip) — non-trivial
+  under instant-save + realtime — and optional collaborator-change pings.
 - ☑ **Stop reminders (calendar)**: per-stop "remind me N before" + an "Add to
   calendar" .ics export with alarms; the phone delivers them. **True web push**
   (notify with the app closed) is a later phase — needs PWA + Service Worker +
@@ -187,10 +186,10 @@ phases are cross-referenced, not duplicated.
   duplicate-day race in `ensureDay`.
 
 ### UX (audit) — feeds Phase 0
-- ◐ **Global toast system** — DONE (infra): `src/components/Toast.tsx`
-  (`ToastProvider`/`useToast`) confirms saves, shows friendly errors, supports Undo.
-  Wired on Places + Packing so far; remaining = adopt across the other panels and
-  add collaborator-change pings + deferred-delete Undo.
+- ☑ **Global toast system** — DONE. `src/components/Toast.tsx` (`ToastProvider`/
+  `useToast`) confirms saves, shows friendly errors, supports Undo — adopted across
+  all panels (Places, Packing, Budget, Dietary, TripView, Itinerary). Remaining
+  follow-ups: collaborator-change pings + deferred-delete Undo for cascade-y deletes.
 - ☐ **Real empty states + center map on the trip's country** (reuse the dashboard's
   `empty-state` component) instead of a zoom-2 globe + one-line hint.
 - ☐ **Friendly, localized error messages** + replace native `confirm()`/`alert()`

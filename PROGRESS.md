@@ -297,10 +297,11 @@ signed-in users can reach it. Two modes:
   - **Toasts** (`src/components/Toast.tsx`, `ToastProvider`/`useToast`): app-wide
     notifications mounted at the root. Confirm instant-saves ("Saved", "Added X",
     "Removed X"), surface **friendly localized errors** (replacing raw RLS/Postgres
-    strings on the write paths), and support an **action button** for **Undo** —
-    wired so far on Places (add/save/remove + errors) and Packing remove (clean
-    re-insert Undo). Success/error/info variants, auto-dismiss, reduced-motion aware,
-    RTL via logical props. Other panels can adopt `useToast` incrementally.
+    strings on the write paths), and support an **action button** for **Undo**.
+    **Adopted across all panels** — Places, Packing (with re-insert **Undo**), Budget,
+    Dietary, TripView (trip edit/delete, member remove, notes), and the Itinerary
+    (stop edit/remove, day clear, area/note, add, drag — error-surfacing). Success/
+    error/info variants, auto-dismiss, reduced-motion aware, RTL via logical props.
   - **Error boundary** (shows the error instead of a blank page).
   - **Destructive-delete confirmations** (place, member, budget entry, trip,
     clear-day). Stop-remove and packing-uncheck stay instant (easily reversible).

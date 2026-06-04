@@ -12,6 +12,7 @@ import { DietaryPanel } from '../dietary/DietaryPanel'
 import { CURRENCIES } from '../budget/money'
 import { today } from '../itinerary/dates'
 import { useT } from '../i18n/I18nProvider'
+import { useToast } from '../components/Toast'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
@@ -26,6 +27,7 @@ interface MemberRow {
 
 export function TripView() {
   const { t } = useT()
+  const toast = useToast()
   const { tripId } = useParams<{ tripId: string }>()
   const { session } = useAuth()
   const uid = session!.user.id
@@ -166,8 +168,13 @@ export function TripView() {
                       className="linklike danger"
                       onClick={async () => {
                         if (!confirm(t('tripview.confirmRemoveMember'))) return
-                        await supabase.from('trip_members').delete().eq('trip_id', trip.id).eq('user_id', m.user_id)
-                        void load()
+                        const { error } = await supabase
+                          .from('trip_members')
+                          .delete()
+                          .eq('trip_id', trip.id)
+                          .eq('user_id', m.user_id)
+                        if (error) toast.error(t('common.deleteFailed'))
+                        else void load()
                       }}
                     >
                       {t('common.remove')}
@@ -187,6 +194,7 @@ export function TripView() {
 
 function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; onChange: () => void }) {
   const { t } = useT()
+  const toast = useToast()
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(trip.notes ?? '')
   const [saving, setSaving] = useState(false)
@@ -198,10 +206,15 @@ function TripNotes({ trip, isOwner, onChange }: { trip: Trip; isOwner: boolean; 
 
   async function save() {
     setSaving(true)
-    await supabase.from('trips').update({ notes: text.trim() || null }).eq('id', trip.id)
+    const { error } = await supabase.from('trips').update({ notes: text.trim() || null }).eq('id', trip.id)
     setSaving(false)
+    if (error) {
+      toast.error(t('common.saveFailed'))
+      return
+    }
     setEditing(false)
     onChange()
+    toast.success(t('common.saved'))
   }
 
   // Non-owner with no notes: nothing to show.
@@ -264,11 +277,12 @@ function TripHeader({
   const [emoji, setEmoji] = useState<string | null>(trip.cover_emoji)
   const [saving, setSaving] = useState(false)
   const { t } = useT()
+  const toast = useToast()
 
   async function save(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('trips')
       .update({
         name: name.trim(),
@@ -280,13 +294,22 @@ function TripHeader({
       })
       .eq('id', trip.id)
     setSaving(false)
+    if (error) {
+      toast.error(t('common.saveFailed'))
+      return
+    }
     setEditing(false)
     onChange()
+    toast.success(t('common.saved'))
   }
 
   async function remove() {
     if (!confirm(t('tripview.confirmDelete', { name: trip.name }))) return
-    await supabase.from('trips').delete().eq('id', trip.id)
+    const { error } = await supabase.from('trips').delete().eq('id', trip.id)
+    if (error) {
+      toast.error(t('common.deleteFailed'))
+      return
+    }
     onDeleted()
   }
 

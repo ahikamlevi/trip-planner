@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import { DICTS, LANGUAGES, type Lang } from '../i18n/strings'
 import { ALLERGEN_TAGS, DIET_TAGS, isAllergen, type DietaryTag } from '../places/dietary'
@@ -81,6 +82,7 @@ function SelfEditor({
   onSaved: () => void
 }) {
   const { t } = useT()
+  const toast = useToast()
   const [tags, setTags] = useState<string[]>(member?.profile?.dietary_restrictions ?? [])
   const [note, setNote] = useState(member?.profile?.dietary_note ?? '')
   const [saving, setSaving] = useState(false)
@@ -96,7 +98,11 @@ function SelfEditor({
       .update({ dietary_restrictions: tags, dietary_note: note.trim() || null })
       .eq('id', uid)
     setSaving(false)
-    if (!error) onSaved()
+    if (error) toast.error(t('common.saveFailed'))
+    else {
+      onSaved()
+      toast.success(t('common.saved'))
+    }
   }
 
   function chip(tag: DietaryTag) {

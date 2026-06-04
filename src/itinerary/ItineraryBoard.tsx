@@ -23,6 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import type { Area, Day, Place, PlaceCategory, Stop } from '../lib/database.types'
 import { CATEGORIES, categoryMeta, placeColor } from '../places/categories'
@@ -67,6 +68,7 @@ export function ItineraryBoard({
   endDate: string | null
 }) {
   const { t, locale } = useT()
+  const toast = useToast()
   const [days, setDays] = useState<Day[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [places, setPlaces] = useState<Place[]>([])
@@ -240,11 +242,15 @@ export function ItineraryBoard({
   )
 
   // --- persistence helpers -------------------------------------------------
-  const persistOrder = useCallback(async (dayId: string, stopIds: string[]) => {
-    await Promise.all(
-      stopIds.map((id, i) => supabase.from('stops').update({ day_id: dayId, sort_order: i }).eq('id', id)),
-    )
-  }, [])
+  const persistOrder = useCallback(
+    async (dayId: string, stopIds: string[]) => {
+      const results = await Promise.all(
+        stopIds.map((id, i) => supabase.from('stops').update({ day_id: dayId, sort_order: i }).eq('id', id)),
+      )
+      if (results.some((r) => r.error)) toast.error(t('common.saveFailed'))
+    },
+    [toast, t],
+  )
 
   // Returns the day row id for a date, creating the row if it doesn't exist yet.
   async function ensureDay(iso: string): Promise<string | null> {
@@ -256,7 +262,7 @@ export function ItineraryBoard({
       .select('id')
       .single()
     if (error) {
-      setError(error.message)
+      toast.error(t('common.saveFailed'))
       return null
     }
     return data.id
@@ -271,7 +277,10 @@ export function ItineraryBoard({
     const { error } = await supabase
       .from('stops')
       .insert({ day_id: dayId, place_id: placeId, sort_order: nextOrder, cost: prefillCost })
-    if (error) return setError(error.message)
+    if (error) {
+      toast.error(t('common.saveFailed'))
+      return
+    }
     return load()
   }
 
@@ -311,7 +320,10 @@ export function ItineraryBoard({
         .insert({ day_id: dayId, place_id: placeId, sort_order: 9999, cost: prefillCost })
         .select('id')
         .single()
-      if (error) return setError(error.message)
+      if (error) {
+        toast.error(t('common.saveFailed'))
+        return
+      }
       const ids = (byDate.get(dest.iso)?.stops ?? []).map((s) => s.id)
       ids.splice(dest.index, 0, created.id)
       await persistOrder(dayId, ids)
@@ -326,7 +338,8 @@ export function ItineraryBoard({
 
       if (dest.type === 'wishlist') {
         // Remove just this visit; the place stays in the palette.
-        await supabase.from('stops').delete().eq('id', stopId)
+        const { error } = await supabase.from('stops').delete().eq('id', stopId)
+        if (error) toast.error(t('common.deleteFailed'))
         return load()
       }
 
@@ -389,25 +402,28 @@ export function ItineraryBoard({
   // --- area helpers --------------------------------------------------------
   async function addArea(name: string) {
     const { error } = await supabase.from('areas').insert({ trip_id: tripId, name, sort_order: areas.length })
-    if (error) setError(error.message)
+    if (error) toast.error(t('common.saveFailed'))
     else load()
   }
   async function setDayArea(iso: string, areaId: string | null) {
     const dayId = await ensureDay(iso)
     if (!dayId) return
-    await supabase.from('days').update({ area_id: areaId }).eq('id', dayId)
-    load()
+    const { error } = await supabase.from('days').update({ area_id: areaId }).eq('id', dayId)
+    if (error) toast.error(t('common.saveFailed'))
+    else load()
   }
   async function setDayNote(iso: string, note: string) {
     const dayId = await ensureDay(iso)
     if (!dayId) return
-    await supabase.from('days').update({ note: note.trim() || null }).eq('id', dayId)
-    load()
+    const { error } = await supabase.from('days').update({ note: note.trim() || null }).eq('id', dayId)
+    if (error) toast.error(t('common.saveFailed'))
+    else load()
   }
   async function clearDay(bd: BoardDay) {
     if (!confirm(t('itin.confirmClearDay', { day: formatDayLabel(bd.day.date, locale) }))) return
-    await supabase.from('days').delete().eq('id', bd.day.id) // cascades its stops
-    load()
+    const { error } = await supabase.from('days').delete().eq('id', bd.day.id) // cascades its stops
+    if (error) toast.error(t('common.deleteFailed'))
+    else load()
   }
 
   // --- navigation ----------------------------------------------------------
@@ -1124,6 +1140,7 @@ function StopItem({
   onChange: () => void
 }) {
   const { t } = useT()
+  const toast = useToast()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `stop:${stop.id}`,
   })
@@ -1145,12 +1162,14 @@ function StopItem({
     travel_note?: string | null
     travel_cost?: number | null
   }) {
-    await supabase.from('stops').update(patch).eq('id', stop.id)
-    onChange()
+    const { error } = await supabase.from('stops').update(patch).eq('id', stop.id)
+    if (error) toast.error(t('common.saveFailed'))
+    else onChange()
   }
   async function remove() {
-    await supabase.from('stops').delete().eq('id', stop.id)
-    onChange()
+    const { error } = await supabase.from('stops').delete().eq('id', stop.id)
+    if (error) toast.error(t('common.deleteFailed'))
+    else onChange()
   }
 
   return (

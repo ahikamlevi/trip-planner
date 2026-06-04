@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import type { BudgetEntry, Day, Place, Stop } from '../lib/database.types'
 import { CATEGORIES } from '../places/categories'
@@ -11,6 +12,7 @@ const ENTRY_CATEGORIES = ['Transport', 'Lodging', 'Food', 'Activities', 'Shoppin
 
 export function BudgetPanel({ tripId, currency }: { tripId: string; currency: string }) {
   const { t, locale } = useT()
+  const toast = useToast()
   const [places, setPlaces] = useState<Place[]>([])
   const [days, setDays] = useState<Day[]>([])
   const [stops, setStops] = useState<Stop[]>([])
@@ -103,14 +105,18 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
       note: input.note,
       day_id: input.day_id,
     })
-    if (error) setError(error.message)
-    else load()
+    if (error) toast.error(t('common.saveFailed'))
+    else {
+      load()
+      toast.success(t('common.saved'))
+    }
   }
 
   async function deleteEntry(id: string) {
     if (!confirm(t('budget.confirmDelete'))) return
-    await supabase.from('budget_entries').delete().eq('id', id)
-    load()
+    const { error } = await supabase.from('budget_entries').delete().eq('id', id)
+    if (error) toast.error(t('common.deleteFailed'))
+    else load()
   }
 
   if (loading) return <p className="muted">{t('budget.loading')}</p>
