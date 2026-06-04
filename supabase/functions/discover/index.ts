@@ -166,13 +166,16 @@ async function handleDetails(placeId: string): Promise<Response> {
   }
   // deno-lint-ignore no-explicit-any
   const p: any = await res.json()
+  // Foursquare omits fields it has no data for, so most are simply absent → null.
+  // rating/price are top-level; hours is an object whose `display` is the formatted
+  // schedule string (e.g. "Mon–Sun: 6:00 AM–8:00 PM").
   const details = {
     rating: typeof p.rating === 'number' ? p.rating : null,
     price: typeof p.price === 'number' ? p.price : null,
     tel: p.tel ?? null,
     website: p.website ?? null,
     hours: p.hours?.display ?? null,
-    description: p.description ?? null,
+    description: p.description || null,
   }
   await cachePut(cacheKey, details)
   return json({ details })

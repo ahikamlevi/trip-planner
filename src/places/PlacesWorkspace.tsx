@@ -87,7 +87,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const isOther = catKey === 'other'
   const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>(restored?.discoveries ?? [])
   const [discoSelId, setDiscoSelId] = useState<string | null>(null)
-  const enrichedRef = useRef<Set<string>>(new Set())
+  // Premium details are fetched only on explicit request (the "Details" button), one
+  // cached Foursquare Premium call per place. These track which results have been
+  // enriched (hide the button) and which are mid-fetch (show a spinner).
+  const [enrichedIds, setEnrichedIds] = useState<Set<string>>(() => new Set())
+  const [enrichingIds, setEnrichingIds] = useState<Set<string>>(() => new Set())
   const [discoBusy, setDiscoBusy] = useState(false)
   const [discoMsg, setDiscoMsg] = useState<string | null>(null)
   const [myRestrictions, setMyRestrictions] = useState<string[]>([])
@@ -200,7 +204,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           freeText: freeVal,
           limit: 25,
         })
-        enrichedRef.current.clear()
+        setEnrichedIds(new Set())
+        setEnrichingIds(new Set())
         setDiscoveries(results)
         setDiscoMsg(results.length === 0 ? t('disco.none') : null)
       } catch {
@@ -245,13 +250,23 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     setPending(null)
   }
 
-  // Fetch the premium fields (hours, price, website…) for one place on demand, and
-  // merge them into the suggestion. Cheap: only the places the user actually opens.
+  // Fetch the premium fields (rating, hours, price, website…) for one place — only
+  // when the user explicitly taps "Details". One cached Foursquare Premium call per
+  // place. We mark the place "enriched" ONLY on success, so a transient failure can
+  // be retried (don't pre-mark, or a failed fetch blocks the card forever).
   async function enrich(d: DiscoveryResult) {
-    if (d.source !== 'fsq' || enrichedRef.current.has(d.id)) return
-    enrichedRef.current.add(d.id)
+    if (d.source !== 'fsq' || enrichedIds.has(d.id) || enrichingIds.has(d.id)) return
+    setEnrichingIds((prev) => new Set(prev).add(d.id))
     const det = await fetchPlaceDetails(d.id)
-    if (det) setDiscoveries((prev) => prev.map((x) => (x.id === d.id ? { ...x, ...det } : x)))
+    setEnrichingIds((prev) => {
+      const next = new Set(prev)
+      next.delete(d.id)
+      return next
+    })
+    if (det) {
+      setEnrichedIds((prev) => new Set(prev).add(d.id))
+      setDiscoveries((prev) => prev.map((x) => (x.id === d.id ? { ...x, ...det } : x)))
+    }
   }
 
   async function addDiscovery(d: DiscoveryResult) {
@@ -504,6 +519,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
               // and iPhone (combining name + "lat,lng" in one query finds nothing).
               const maps = `https://www.google.com/maps/search/${encodeURIComponent(d.name)}/@${d.lat},${d.lng},16z`
               const meta = d.cuisine || d.kind
+              const enriched = enrichedIds.has(d.id)
+              const loadingDetails = enrichingIds.has(d.id)
+              const hasExtra =
+                d.rating != null || !!d.hours || (d.price != null && d.price > 0) || !!d.website || !!d.description
               return (
                 <li key={d.id}>
                   <div className="discovery-card">
@@ -512,7 +531,6 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                       onClick={() => {
                         setDiscoSelId(d.id)
                         setFocus({ lat: d.lat, lng: d.lng })
-                        void enrich(d)
                       }}
                       title={t('disco.showOnMap')}
                     >
@@ -524,12 +542,24 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                       </span>
                       {meta && <span className="muted small">{meta}</span>}
                       {d.hours && <span className="muted small">🕑 {d.hours}</span>}
+                      {d.description && <span className="muted small">{d.description}</span>}
                       {(d.address || d.city) && <span className="muted small">{d.address || d.city}</span>}
                     </button>
                     <div className="discovery-actions-row">
                       <button className="secondary" onClick={() => void addDiscovery(d)}>
                         {t('disco.add')}
                       </button>
+                      {/* Premium details fetched only on explicit request (cost control). */}
+                      {d.source === 'fsq' && !enriched && (
+                        <button
+                          className="secondary"
+                          disabled={loadingDetails}
+                          onClick={() => void enrich(d)}
+                        >
+                          {loadingDetails ? t('disco.loadingDetails') : t('disco.details')}
+                        </button>
+                      )}
+                      {enriched && !hasExtra && <span className="muted small">{t('disco.noExtra')}</span>}
                       {d.website && (
                         <a className="disco-link" href={d.website} target="_blank" rel="noreferrer">
                           {t('disco.website')}
