@@ -1692,10 +1692,11 @@ button.secondary.danger {
     height: 280px;
   }
 
-  /* Itinerary: keep the places palette compact above the calendar */
-  .wishlist-col {
-    max-height: 170px;
-    overflow-y: auto;
+  /* Itinerary: keep the places palette compact above the calendar. The inner
+     .palette-list owns the scroll now — don't also cap the column, or the nested
+     scroll areas collapse the list to nothing. */
+  .palette-list {
+    max-height: 240px;
   }
 
   /* Calendar toolbar + month grid get tighter */
