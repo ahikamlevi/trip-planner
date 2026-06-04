@@ -66,7 +66,10 @@ Required before any real traffic.
   and latency; respect each provider's caching terms. **POI done** (`poi_cache` +
   `discover` function, 7-day TTL, viewport-snapped key). Geocode/route caching TODO.
 - ☐ **Per-user rate limiting + abuse/bot defense** (see the detailed plan below).
-- ☐ **Error monitoring** (e.g. Sentry) + basic uptime/log alerts.
+- ◐ **Error monitoring** — Sentry wired (`src/lib/sentry.ts`, `@sentry/react`; opt-in
+  via `VITE_SENTRY_DSN`): uncaught/unhandled + render errors + light Web-Vitals tracing.
+  **Remaining:** set the DSN in Vercel, source-map upload (readable stack traces), and
+  Edge-Function (Deno) Sentry + uptime/log alerts.
 - ☐ **DB review:** indexes on hot paths, RLS audit for untrusted users.
 
 ### Rate limiting & abuse defense — detailed plan
@@ -212,8 +215,9 @@ phases are cross-referenced, not duplicated.
   Function like `discover`) — standout differentiator if paid APIs are ever in scope.
 
 ### Tech best-practices (audit) — feeds Phase 1/4
-- ☐ **Error monitoring (Sentry)** — React app + Edge Function. Zero prod visibility
-  today; highest-leverage ops gap.
+- ◐ **Error monitoring (Sentry)** — React app DONE (`src/lib/sentry.ts`, opt-in via
+  `VITE_SENTRY_DSN`). Remaining: set the DSN in Vercel, source-map upload, and
+  instrument the Edge Function.
 - ☐ **Security headers + CSP in `vercel.json`** (HSTS, X-Content-Type-Options,
   X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP report-only first).
 - ☐ **PWA + offline** (`vite-plugin-pwa`) — app shell + current-trip + tiles cached;

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { DICTS, type Lang } from '../i18n/strings'
+import { Sentry } from '../lib/sentry'
 
 function tr(key: string): string {
   const lang = (document.documentElement.lang === 'en' ? 'en' : 'he') as Lang
@@ -23,6 +24,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('App crashed:', error, info)
+    // No-op if Sentry isn't initialized (no DSN).
+    Sentry.captureException(error, { extra: { componentStack: info.componentStack } })
   }
 
   render() {

@@ -66,8 +66,11 @@ Requires a `.env` (git-ignored) at repo root:
 ```
 VITE_SUPABASE_URL=https://<project>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon public key>
+VITE_SENTRY_DSN=<optional — enables Sentry error monitoring; leave blank to disable>
 ```
-Both come from Supabase → Project Settings → API. Never commit the service_role key.
+Supabase values come from Supabase → Project Settings → API. Never commit the
+service_role key. `VITE_SENTRY_DSN` is optional (Sentry stays off if unset); add it in
+Vercel → Project → Settings → Environment Variables to enable it in production.
 
 ---
 
@@ -302,7 +305,13 @@ signed-in users can reach it. Two modes:
     Dietary, TripView (trip edit/delete, member remove, notes), and the Itinerary
     (stop edit/remove, day clear, area/note, add, drag — error-surfacing). Success/
     error/info variants, auto-dismiss, reduced-motion aware, RTL via logical props.
-  - **Error boundary** (shows the error instead of a blank page).
+  - **Error boundary** (shows the error instead of a blank page; also reports the
+    caught error to Sentry).
+  - **Error monitoring (Sentry)** (`src/lib/sentry.ts`, `@sentry/react`): initialized
+    in `main.tsx` **only when `VITE_SENTRY_DSN` is set** (opt-in via env — the app runs
+    fine without it). Captures uncaught errors + unhandled promise rejections (global
+    handlers) and render errors (via the ErrorBoundary), plus light Web-Vitals tracing
+    (10% sample). No session replay / PII. Source-map upload is a later add-on.
   - **Destructive-delete confirmations** (place, member, budget entry, trip,
     clear-day). Stop-remove and packing-uncheck stay instant (easily reversible).
   - **Gear/settings dropdown** (`src/components/Menu.tsx`, reusable, outside-click +
