@@ -211,6 +211,23 @@ phases are cross-referenced, not duplicated.
 - ☐ **Packing templates + drag-reorder/categories** (`sort_order` already in schema).
 - ☐ **Per-place / per-stop comments** (attributed, realtime).
 - ☐ **Manual bookings section** (flights/lodging/confirmations as timed stops).
+- ☐ **Import a place from a Maps link** — the inbound counterpart to the existing
+  "Maps ↗" out-links. A "Paste a Maps link" box where the user pastes what they
+  already copied (the only easy action they know: **Share → Copy link** in
+  Google/Apple Maps), and we extract the coordinates **for** them, then drop a pin +
+  prefill the name via the existing `addPlace`/`reverseCity` flow.
+  - **Design:** full Google/Apple URLs, raw `lat,lng`, and `geo:` URIs parse in the
+    browser (no server). But the common phone case is a **short link**
+    (`maps.app.goo.gl`, Apple share links) which contains **no coordinates** — it's a
+    redirect the browser can't follow (CORS). So the heart of the feature is a tiny
+    **keyless `resolve-place` Edge Function** (like `discover`) that follows the
+    redirect server-side, lands on the expanded URL (e.g. `…/place/Name/@lat,lng…`),
+    and returns coords **+ the place name** (prefer the real marker `!3d!4d` over the
+    viewport `@`). Fold it under the per-user rate limiter so the redirect-follow
+    can't be abused.
+  - **Ultimate UX (needs PWA):** register as a **Web Share Target** so "Share →
+    Trip Planner" appears in the phone share sheet — no paste at all. Ties to the PWA
+    item in Phase 4; the paste box is the works-today version.
 - ☐ **AI "draft a day from my wishlist"** assistant (paid API, behind an Edge
   Function like `discover`) — standout differentiator if paid APIs are ever in scope.
 
