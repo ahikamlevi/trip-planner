@@ -41,7 +41,12 @@ The visible layer. What a new user judges in the first 30 seconds.
   calendar" .ics export with alarms; the phone delivers them. **True web push**
   (notify with the app closed) is a later phase — needs PWA + Service Worker +
   Supabase scheduler (pg_cron + Edge Function) + VAPID; iOS requires the installed PWA.
-- ☐ **Per-day weather** (Open-Meteo, keyless; forecast within range).
+- ☑ **Per-day weather** — DONE. Open-Meteo (keyless, no migration); high/low + emoji
+  on each itinerary day panel and month cell, per-day location (first located stop,
+  falling back to the trip's first place). **Forecast** for the next ~16 days +
+  **climate normal** ("typical for this time of year", 10-yr archive average) for
+  planning further out — shown with a `≈`/italic so it's not mistaken for a forecast.
+  `src/weather/openMeteo.ts` (`useTripWeather`); grouped by location, cached, best-effort.
 - ☐ **Export / print** a clean itinerary (print stylesheet → PDF).
 - ☑ **Editable travel legs** — click the connector between two stops to edit that leg:
   transport mode (walk/car/train/bus/bike/other, icon shown on the connector),

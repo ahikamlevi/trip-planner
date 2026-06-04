@@ -268,6 +268,15 @@ signed-in users can reach it. Two modes:
     cost shows on the connector (💰) and **rolls into the Budget** (counted like a
     per-stop cost, bucketed under **Transport** in the by-category view). Also a
     tap-to-add "+ Add a place" button per day (mobile-friendly add without dragging).
+  - **Per-day weather** (Open-Meteo, **keyless**, no migration): each itinerary day
+    panel + month cell shows a high/low + weather-emoji. **Two modes, auto-picked per
+    date:** a real **forecast** for the next ~16 days (forecast API), and a **climate
+    normal** — "typical for this time of year", averaged from the **last 10 years** of
+    history (archive API) — for anything further out (or past), so planning months
+    ahead still gets guidance. Normals render with a `≈` + italic + "typical (10-yr
+    avg)" tooltip so they're never mistaken for a forecast. Location is the day's first
+    located stop (falling back to the trip's first place) → right city per day; grouped
+    by location + cached, best-effort. `src/weather/openMeteo.ts` (`useTripWeather`).
   - **Stop reminders + calendar export**: each timed stop has a "remind me N before"
     selector (`stops.reminder_min`); an "📅 Add to calendar" button in the itinerary
     toolbar downloads an `.ics` of all timed stops, with a `VALARM` for ones that have
@@ -342,6 +351,7 @@ budget/      BudgetPanel.tsx, money.ts (Intl currency)
 packing/     PackingPanel.tsx
 dietary/     DietaryPanel.tsx (self-editor + members overview + printable allergy card)
 routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes)
+weather/     openMeteo.ts (keyless per-day forecast; useTripWeather + weatherMeta)
 
 supabase/functions/discover/index.ts   Deno Edge Function (Foursquare) — see §4.1
 ```
@@ -378,7 +388,9 @@ supabase/functions/discover/index.ts   Deno Edge Function (Foursquare) — see �
 **still open** (everything in §6 is done):
 
 **Phase 0 polish — remaining:**
-- **Per-day weather** (Open-Meteo, keyless — no migration).
+- ~~Per-day weather~~ — DONE (Open-Meteo, keyless; high/low + emoji on day panels &
+  month cells, per-day location. **Forecast** within ~16 days + **climate normal**
+  ("typical this time of year", 10-yr archive avg) for planning further out; `src/weather/`).
 - **Print/export a clean itinerary** (print stylesheet → PDF).
 - **"Deleted · Undo" toasts** (we use confirmations now; true undo is non-trivial with
   instant-save + realtime — likely a deferred-delete toast).

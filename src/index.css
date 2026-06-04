@@ -1184,6 +1184,34 @@ button.secondary.danger {
 .month-cell-date {
   font-size: 0.78rem;
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+/* Per-day weather badge (Open-Meteo) — on day panels and month cells. */
+.weather-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.weather-chip.compact {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* Climate normal (planning ahead) reads as softer/estimated vs a real forecast. */
+.weather-chip.normal {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.weather-temp {
+  font-variant-numeric: tabular-nums;
 }
 
 .month-cell-stops {

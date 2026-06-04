@@ -32,6 +32,7 @@ import { getRouteCached, getRoutePathCached, legKey, type LatLng, type RouteLeg 
 import {
   addDays,
   addMonths,
+  dateRange,
   dayOfMonth,
   formatDayLabel,
   formatMonthDay,
@@ -44,6 +45,7 @@ import {
   weekdayHeaders,
 } from './dates'
 import { buildICS, downloadICS, type IcsEvent } from './ics'
+import { useTripWeather, weatherMeta, normalEmoji, type DayWeather } from '../weather/openMeteo'
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -126,6 +128,26 @@ export function ItineraryBoard({
     }
     return map
   }, [days, stops, placeMap])
+
+  // Per-day weather (Open-Meteo, keyless). Each day uses its first located stop's
+  // coordinates, falling back to the trip's first located place, so every in-range
+  // date gets a forecast at the right place. Only the ~16-day window is fetched.
+  const tripCoord = useMemo(() => {
+    const p = places.find((x) => x.lat != null && x.lng != null)
+    return p ? { lat: p.lat as number, lng: p.lng as number } : null
+  }, [places])
+  const weatherEntries = useMemo(() => {
+    if (!tripCoord) return []
+    const dates = new Set<string>()
+    if (startDate && endDate) for (const d of dateRange(startDate, endDate)) dates.add(d)
+    for (const d of byDate.keys()) dates.add(d)
+    return [...dates].map((date) => {
+      const located = byDate.get(date)?.stops.find((s) => s.place.lat != null && s.place.lng != null)
+      const coord = located ? { lat: located.place.lat as number, lng: located.place.lng as number } : tripCoord
+      return { date, lat: coord.lat, lng: coord.lng }
+    })
+  }, [byDate, tripCoord, startDate, endDate])
+  const weatherByDate = useTripWeather(weatherEntries)
 
   // Build a calendar (.ics) of every scheduled (timed) stop, with an alarm for any
   // stop that has a reminder set. The phone calendar then delivers the reminders.
@@ -456,6 +478,7 @@ export function ItineraryBoard({
               <MonthView
                 cursor={cursor}
                 byDate={byDate}
+                weatherByDate={weatherByDate}
                 inTrip={inTrip}
                 todayIso={todayIso}
                 onOpenDay={(iso) => {
@@ -472,6 +495,7 @@ export function ItineraryBoard({
                     key={iso}
                     iso={iso}
                     boardDay={byDate.get(iso)}
+                    weather={weatherByDate.get(iso)}
                     areas={areas}
                     inTrip={inTrip(iso)}
                     variant="week"
@@ -497,6 +521,7 @@ export function ItineraryBoard({
                 <DayPanel
                   iso={cursor}
                   boardDay={byDate.get(cursor)}
+                  weather={weatherByDate.get(cursor)}
                   areas={areas}
                   inTrip={inTrip(cursor)}
                   variant="day"
@@ -527,16 +552,41 @@ export function ItineraryBoard({
   )
 }
 
+// Small weather badge shown on day panels and month cells. A real forecast shows the
+// WMO emoji + temps; a climate normal (planning ahead) shows a "≈" + a "typical for
+// this time of year" tooltip so it's never mistaken for an actual forecast.
+function WeatherChip({ weather, compact }: { weather: DayWeather; compact?: boolean }) {
+  const { t } = useT()
+  const isNormal = weather.kind === 'normal'
+  const emoji = isNormal ? normalEmoji(weather.precipMm ?? 0) : weatherMeta(weather.code ?? 0).emoji
+  const label = isNormal ? t('weather.typical') : t(`weather.${weatherMeta(weather.code ?? 0).key}`)
+  const temps = `${weather.tMax}°/${weather.tMin}°`
+  const title = `${label} · ${weather.tMax}° / ${weather.tMin}°${
+    isNormal && weather.precipMm ? ` · ~${weather.precipMm}mm` : ''
+  }`
+  return (
+    <span className={`weather-chip${compact ? ' compact' : ''}${isNormal ? ' normal' : ''}`} title={title}>
+      <span aria-hidden="true">{emoji}</span>
+      <span className="weather-temp">
+        {isNormal ? '≈' : ''}
+        {compact ? `${weather.tMax}°` : temps}
+      </span>
+    </span>
+  )
+}
+
 // --- Month view ----------------------------------------------------------
 function MonthView({
   cursor,
   byDate,
+  weatherByDate,
   inTrip,
   todayIso,
   onOpenDay,
 }: {
   cursor: string
   byDate: Map<string, BoardDay>
+  weatherByDate: Map<string, DayWeather>
   inTrip: (iso: string) => boolean
   todayIso: string
   onOpenDay: (iso: string) => void
@@ -556,6 +606,7 @@ function MonthView({
             key={iso}
             iso={iso}
             boardDay={byDate.get(iso)}
+            weather={weatherByDate.get(iso)}
             dim={!isSameMonth(iso, cursor) || !inTrip(iso)}
             isToday={iso === todayIso}
             onOpen={() => onOpenDay(iso)}
@@ -569,12 +620,14 @@ function MonthView({
 function MonthCell({
   iso,
   boardDay,
+  weather,
   dim,
   isToday,
   onOpen,
 }: {
   iso: string
   boardDay?: BoardDay
+  weather?: DayWeather
   dim: boolean
   isToday: boolean
   onOpen: () => void
@@ -597,7 +650,10 @@ function MonthCell({
         }
       }}
     >
-      <div className="month-cell-date">{dayOfMonth(iso)}{isToday && <span className="today-dot" />}</div>
+      <div className="month-cell-date">
+        <span>{dayOfMonth(iso)}{isToday && <span className="today-dot" />}</span>
+        {weather && <WeatherChip weather={weather} compact />}
+      </div>
       <div className="month-cell-stops">
         {stops.slice(0, 3).map((s) => (
           <div key={s.id} className="month-chip">
@@ -615,6 +671,7 @@ function MonthCell({
 function DayPanel({
   iso,
   boardDay,
+  weather,
   areas,
   inTrip,
   variant,
@@ -631,6 +688,7 @@ function DayPanel({
 }: {
   iso: string
   boardDay?: BoardDay
+  weather?: DayWeather
   areas: Area[]
   inTrip: boolean
   variant: 'week' | 'day'
@@ -726,6 +784,7 @@ function DayPanel({
           </strong>
         )}
         <span className="day-head-right">
+          {weather && <WeatherChip weather={weather} />}
           {busy && <span className="busy-flag" title={t('itin.busyTitle')}>{t('itin.busy')}</span>}
           {travelMin > 0 && <span className="muted small"><bdi dir="ltr">{formatTravelTotal(travelMin)}</bdi> {t('itin.travel')}</span>}
           {onClear && (
