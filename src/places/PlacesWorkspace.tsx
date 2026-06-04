@@ -10,6 +10,7 @@ import { CATEGORIES, categoryMeta, placeColor, PLACE_COLORS } from './categories
 import { searchPlaces, reverseCity, type SearchResult } from './search'
 import {
   discoverPlaces,
+  fetchPlaceDetails,
   DIET_FILTERS,
   DISCO_CATEGORIES,
   discoCategory,
@@ -69,6 +70,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [focus, setFocus] = useState<LatLng | null>(null)
+  // A searched-but-not-yet-saved candidate place (preview with an "Add" button).
+  const [pending, setPending] = useState<{ name: string; lat: number; lng: number; city?: string } | null>(null)
   const [dropMode, setDropMode] = useState(false)
   const [catFilter, setCatFilter] = useState<PlaceCategory | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
@@ -83,6 +86,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const isOther = catKey === 'other'
   const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>(restored?.discoveries ?? [])
   const [discoSelId, setDiscoSelId] = useState<string | null>(null)
+  const enrichedRef = useRef<Set<string>>(new Set())
   const [discoBusy, setDiscoBusy] = useState(false)
   const [discoMsg, setDiscoMsg] = useState<string | null>(null)
   const [myRestrictions, setMyRestrictions] = useState<string[]>([])
@@ -138,6 +142,11 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       category?: PlaceCategory
       city?: string
       opening_hours?: string | null
+      notes?: string | null
+      color?: string | null
+      est_cost?: number | null
+      dietary_notes?: string | null
+      select?: boolean
     }) => {
       const { data, error } = await supabase
         .from('places')
@@ -149,6 +158,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           category: input.category ?? 'sight',
           city: input.city ?? null,
           opening_hours: input.opening_hours ?? null,
+          notes: input.notes ?? null,
+          color: input.color ?? null,
+          est_cost: input.est_cost ?? null,
+          dietary_notes: input.dietary_notes ?? null,
           scheduled: false,
         })
         .select('*')
@@ -159,7 +172,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       }
       await load()
       if (data) {
-        setSelectedId(data.id)
+        if (input.select !== false) setSelectedId(data.id)
         setFocus({ lat: input.lat, lng: input.lng })
       }
     },
@@ -180,8 +193,9 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           category,
           diets: category.placeCategory === 'food' ? useDiets : [],
           freeText: freeVal,
-          limit: 50,
+          limit: 25,
         })
+        enrichedRef.current.clear()
         setDiscoveries(results)
         setDiscoMsg(results.length === 0 ? t('disco.none') : null)
       } catch {
@@ -199,15 +213,56 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     void runDiscovery('food', myDietFilters, '')
   }
 
+  // Selecting a search result only previews it (centers the map + opens the editor
+  // with an Add button). It is NOT saved until the user clicks Add.
+  function selectSearchResult(r: { name: string; lat: number; lng: number; city?: string }) {
+    setSelectedId(null)
+    setPending({ name: r.name, lat: r.lat, lng: r.lng, city: r.city })
+    setFocus({ lat: r.lat, lng: r.lng })
+  }
+
+  async function addPending(patch: Partial<Place>) {
+    if (!pending) return
+    await addPlace({
+      name: patch.name ?? pending.name,
+      lat: pending.lat,
+      lng: pending.lng,
+      category: patch.category ?? 'sight',
+      city: (patch.city ?? pending.city) || undefined,
+      opening_hours: patch.opening_hours ?? null,
+      notes: patch.notes ?? null,
+      color: patch.color ?? null,
+      est_cost: patch.est_cost ?? null,
+      dietary_notes: patch.dietary_notes ?? null,
+      select: false,
+    })
+    setPending(null)
+  }
+
+  // Fetch the premium fields (hours, price, website…) for one place on demand, and
+  // merge them into the suggestion. Cheap: only the places the user actually opens.
+  async function enrich(d: DiscoveryResult) {
+    if (d.source !== 'fsq' || enrichedRef.current.has(d.id)) return
+    enrichedRef.current.add(d.id)
+    const det = await fetchPlaceDetails(d.id)
+    if (det) setDiscoveries((prev) => prev.map((x) => (x.id === d.id ? { ...x, ...det } : x)))
+  }
+
   async function addDiscovery(d: DiscoveryResult) {
+    // Make sure we have the opening hours (and other details) before saving.
+    let place = d
+    if (d.source === 'fsq' && d.hours == null) {
+      const det = await fetchPlaceDetails(d.id)
+      if (det) place = { ...d, ...det }
+    }
     setDiscoveries((prev) => prev.filter((x) => x.id !== d.id))
     await addPlace({
-      name: d.name,
-      lat: d.lat,
-      lng: d.lng,
-      category: d.placeCategory ?? 'sight',
-      city: d.city ?? undefined,
-      opening_hours: d.hours ?? null,
+      name: place.name,
+      lat: place.lat,
+      lng: place.lng,
+      category: place.placeCategory ?? 'sight',
+      city: place.city ?? undefined,
+      opening_hours: place.hours ?? null,
     })
   }
 
@@ -272,7 +327,21 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     [discoveries, discoSelId],
   )
 
-  const allMarkers = useMemo(() => [...markers, ...discoMarkers], [markers, discoMarkers])
+  const allMarkers = useMemo(() => {
+    const pendingMarker: MapMarker[] = pending
+      ? [
+          {
+            id: 'pending',
+            position: { lat: pending.lat, lng: pending.lng },
+            category: 'sight',
+            color: '#3b82f6',
+            selected: true,
+            label: pending.name,
+          },
+        ]
+      : []
+    return [...markers, ...discoMarkers, ...pendingMarker]
+  }, [markers, discoMarkers, pending])
 
   const center = located[0] ? { lat: located[0].lat as number, lng: located[0].lng as number } : DEFAULT_CENTER
   const selected = places?.find((p) => p.id === selectedId) ?? null
@@ -296,6 +365,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   )
 
   function selectPlace(id: string) {
+    setPending(null)
     setSelectedId(id)
     const p = places?.find((x) => x.id === id)
     if (p?.lat != null && p?.lng != null) setFocus({ lat: p.lat, lng: p.lng })
@@ -316,7 +386,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       {error && <p className="auth-error">{error}</p>}
 
       <div className="places-top">
-        <PlaceSearch onAdd={addPlace} />
+        <PlaceSearch onSelect={selectSearchResult} />
       </div>
 
       <div className="discovery-bar">
@@ -434,6 +504,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                       onClick={() => {
                         setDiscoSelId(d.id)
                         setFocus({ lat: d.lat, lng: d.lng })
+                        void enrich(d)
                       }}
                       title={t('disco.showOnMap')}
                     >
@@ -547,14 +618,45 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           </div>
         </div>
       )}
+
+      {pending && (
+        <div className="modal-overlay" onClick={() => setPending(null)}>
+          <div className="modal place-editor-modal" onClick={(e) => e.stopPropagation()}>
+            <PlaceEditor
+              key="pending"
+              isNew
+              place={{
+                id: '',
+                trip_id: tripId,
+                name: pending.name,
+                lat: pending.lat,
+                lng: pending.lng,
+                category: 'sight',
+                google_place_id: null,
+                notes: null,
+                opening_hours: null,
+                dietary_notes: null,
+                color: null,
+                city: pending.city ?? null,
+                est_cost: null,
+                scheduled: false,
+                created_at: '',
+              }}
+              onSave={addPending}
+              onDelete={() => setPending(null)}
+              onClose={() => setPending(null)}
+            />
+          </div>
+        </div>
+      )}
     </section>
   )
 }
 
 function PlaceSearch({
-  onAdd,
+  onSelect,
 }: {
-  onAdd: (input: { name: string; lat: number; lng: number; city?: string }) => void
+  onSelect: (input: { name: string; lat: number; lng: number; city?: string }) => void
 }) {
   const { t } = useT()
   const [query, setQuery] = useState('')
@@ -600,7 +702,7 @@ function PlaceSearch({
             <li key={i}>
               <button
                 onClick={() => {
-                  onAdd({ name: r.name, lat: r.lat, lng: r.lng, city: r.city })
+                  onSelect({ name: r.name, lat: r.lat, lng: r.lng, city: r.city })
                   setQuery('')
                   setResults([])
                 }}
@@ -621,11 +723,13 @@ function PlaceEditor({
   onSave,
   onDelete,
   onClose,
+  isNew = false,
 }: {
   place: Place
   onSave: (patch: Partial<Place>) => void
   onDelete: () => void
   onClose: () => void
+  isNew?: boolean
 }) {
   const { t } = useT()
   const [name, setName] = useState(place.name)
@@ -640,7 +744,7 @@ function PlaceEditor({
   return (
     <div className="place-editor">
       <div className="editor-head">
-        <strong>{t('places.editPlace')}</strong>
+        <strong>{isNew ? t('places.addPlaceTitle') : t('places.editPlace')}</strong>
         <button className="linklike" onClick={onClose}>{t('common.close')}</button>
       </div>
 
@@ -745,16 +849,22 @@ function PlaceEditor({
             })
           }
         >
-          {t('common.save')}
+          {isNew ? t('places.addToList') : t('common.save')}
         </button>
-        <button
-          className="secondary danger"
-          onClick={() => {
-            if (confirm(t('places.confirmDelete', { name: place.name }))) onDelete()
-          }}
-        >
-          {t('common.delete')}
-        </button>
+        {isNew ? (
+          <button className="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </button>
+        ) : (
+          <button
+            className="secondary danger"
+            onClick={() => {
+              if (confirm(t('places.confirmDelete', { name: place.name }))) onDelete()
+            }}
+          >
+            {t('common.delete')}
+          </button>
+        )}
       </div>
     </div>
   )

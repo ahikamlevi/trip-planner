@@ -156,8 +156,12 @@ authenticated user (cache only). Types hand-authored in
     — viewpoint, ATM…). "Search this area" queries the current map viewport.
     Suggestions persist per trip (sessionStorage); the map is sticky; clicking a
     result zooms in (never out) and highlights its pin.
-    Primary provider = **Foursquare** (Edge Function; rating, price, hours, website,
-    address — richer card + a Google **Maps ↗** link), falling back to **Overpass**.
+    Primary provider = **Foursquare** (Edge Function), falling back to **Overpass**.
+    **Cost control:** the bulk search asks only for cheap fields (+ rating, capped at
+    25 results); the premium fields (hours/price/website/phone) are fetched **on
+    demand** — one Place Details call — only when a suggestion is clicked or added,
+    via `fetchPlaceDetails`. Both search and details are cached in `poi_cache`.
+    Card shows rating + a Google **Maps ↗** link; details fill in on click.
     Suggestions are **green pins** + cards; "+ Add" drops one into the wishlist with
     the matching category, its **city**, and **opening hours** filled in. The top
     box stays "search a place by name" (Nominatim) — distinct from discovery.

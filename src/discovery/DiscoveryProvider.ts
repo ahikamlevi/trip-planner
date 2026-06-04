@@ -56,6 +56,18 @@ export interface DiscoveryResult {
   placeCategory?: PlaceCategory
   /** Emoji to show for this result (from the search category, e.g. 🏥 💊). */
   icon?: string
+  /** Which provider produced this (only 'fsq' results support on-demand details). */
+  source?: 'fsq' | 'osm'
+}
+
+/** The premium fields fetched on demand for a single place (Foursquare only). */
+export interface PlaceDetails {
+  rating?: number | null
+  price?: number | null
+  tel?: string | null
+  website?: string | null
+  hours?: string | null
+  description?: string | null
 }
 
 export interface DiscoveryQuery {

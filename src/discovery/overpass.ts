@@ -87,6 +87,7 @@ function parseElements(elements: OverpassElement[], placeCategory: PlaceCategory
       cuisine: el.tags?.cuisine?.replace(/[_;]/g, ' '),
       placeCategory,
       icon,
+      source: 'osm' as const,
     })
   }
   return out
