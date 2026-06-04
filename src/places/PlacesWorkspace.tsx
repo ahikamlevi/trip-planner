@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import type { Place, PlaceCategory } from '../lib/database.types'
 import { MapView, type MapApi } from '../map/MapView'
@@ -79,6 +80,7 @@ function placePopupHtml(p: Place, catLabel: string): string {
 
 export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const { t } = useT()
+  const toast = useToast()
   const { session } = useAuth()
   const uid = session!.user.id
   const [places, setPlaces] = useState<Place[] | null>(null)
@@ -189,7 +191,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         .select('*')
         .single()
       if (error) {
-        setError(error.message)
+        toast.error(t('common.saveFailed'))
         return
       }
       await load()
@@ -198,9 +200,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         // For a brand-new place (drop-a-pin) open the editor so it can be named.
         if (input.select !== false) setEditingId(data.id)
         setFocus({ lat: input.lat, lng: input.lng })
+        toast.success(t('places.added', { name: input.name }))
       }
     },
-    [tripId, load],
+    [tripId, load, toast, t],
   )
 
   const runDiscovery = useCallback(
@@ -307,23 +310,28 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const updatePlace = useCallback(
     async (id: string, patch: Partial<Place>) => {
       const { error } = await supabase.from('places').update(patch).eq('id', id)
-      if (error) setError(error.message)
-      else await load()
+      if (error) toast.error(t('common.saveFailed'))
+      else {
+        await load()
+        toast.success(t('common.saved'))
+      }
     },
-    [load],
+    [load, toast, t],
   )
 
   const deletePlace = useCallback(
     async (id: string) => {
+      const name = places?.find((p) => p.id === id)?.name ?? ''
       const { error } = await supabase.from('places').delete().eq('id', id)
-      if (error) setError(error.message)
+      if (error) toast.error(t('common.deleteFailed'))
       else {
         if (selectedId === id) setSelectedId(null)
         if (editingId === id) setEditingId(null)
         await load()
+        toast.success(t('places.removed', { name }))
       }
     },
-    [load, selectedId, editingId],
+    [load, selectedId, editingId, places, toast, t],
   )
 
   const located = useMemo(

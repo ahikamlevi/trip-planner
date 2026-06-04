@@ -34,9 +34,12 @@ The visible layer. What a new user judges in the first 30 seconds.
 - ◐ **Trip cover emoji** done (preset picker on create + edit; shown on dashboard
   cards and trip header; migration `0010`). **Photos on places / image uploads**
   still pending (needs Supabase Storage).
-- ☐ **"Deleted · Undo" toasts** (upgrade from confirm() dialogs). Note: the
-  instant-save + realtime model makes true undo non-trivial — likely a deferred-
-  delete toast pattern.
+- ◐ **Toasts + "Deleted · Undo"** — toast system shipped (`src/components/Toast.tsx`,
+  `ToastProvider`/`useToast`): save confirmations, friendly localized errors, and an
+  action button for Undo. Wired on Places (add/save/remove + errors) and Packing
+  remove (clean re-insert Undo). **Remaining:** adopt `useToast` in the other panels
+  (Budget/Dietary/TripView/Itinerary) and a deferred-delete Undo for cascade-y deletes
+  (place/trip) — non-trivial under instant-save + realtime.
 - ☑ **Stop reminders (calendar)**: per-stop "remind me N before" + an "Add to
   calendar" .ics export with alarms; the phone delivers them. **True web push**
   (notify with the app closed) is a later phase — needs PWA + Service Worker +
@@ -184,9 +187,10 @@ phases are cross-referenced, not duplicated.
   duplicate-day race in `ensureDay`.
 
 ### UX (audit) — feeds Phase 0
-- ☐ **Global toast system** — *keystone*: confirms instant-saves, enables the
-  long-planned "Deleted · Undo", surfaces collaborator changes, replaces raw error
-  text. Unlocks several existing Phase-0 items at once.
+- ◐ **Global toast system** — DONE (infra): `src/components/Toast.tsx`
+  (`ToastProvider`/`useToast`) confirms saves, shows friendly errors, supports Undo.
+  Wired on Places + Packing so far; remaining = adopt across the other panels and
+  add collaborator-change pings + deferred-delete Undo.
 - ☐ **Real empty states + center map on the trip's country** (reuse the dashboard's
   `empty-state` component) instead of a zoom-2 globe + one-line hint.
 - ☐ **Friendly, localized error messages** + replace native `confirm()`/`alert()`

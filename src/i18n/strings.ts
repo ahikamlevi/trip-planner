@@ -51,6 +51,11 @@ const en: Dict = {
   'common.yourName': 'Your name',
   'common.signOut': 'Sign out',
   'common.account': 'Account',
+  'common.undo': 'Undo',
+  'common.saved': 'Saved',
+  'common.saveFailed': 'Couldn’t save — please try again.',
+  'common.deleteFailed': 'Couldn’t delete — please try again.',
+  'toast.region': 'Notifications',
 
   // Errors
   'error.title': 'Something went wrong',
@@ -155,6 +160,8 @@ const en: Dict = {
   'places.addToList': '➕ Add to my places',
   'places.placeName': 'Name',
   'places.category': 'Category',
+  'places.added': 'Added “{name}”',
+  'places.removed': 'Removed “{name}”',
   'places.categoryOther': 'Custom category',
   'places.categoryOtherHint': 'e.g. viewpoint, laundromat, ATM',
   'places.estCost': 'Est. cost',
@@ -294,6 +301,7 @@ const en: Dict = {
   'packing.packedCount': '{packed}/{total} packed',
   'packing.addItem': 'Add an item…',
   'packing.empty': 'Nothing yet — add what you need to pack. Shared with everyone on the trip.',
+  'packing.removed': 'Removed “{label}”',
 
   // Dietary / allergies
   'diet.title': 'Dietary & allergies',
@@ -408,6 +416,11 @@ const he: Dict = {
   'common.yourName': 'השם שלך',
   'common.signOut': 'התנתקות',
   'common.account': 'חשבון',
+  'common.undo': 'ביטול',
+  'common.saved': 'נשמר',
+  'common.saveFailed': 'השמירה נכשלה — נסו שוב.',
+  'common.deleteFailed': 'המחיקה נכשלה — נסו שוב.',
+  'toast.region': 'התראות',
 
   'error.title': 'משהו השתבש',
   'error.intro': 'האפליקציה נתקלה בשגיאה. פרטים:',
@@ -505,6 +518,8 @@ const he: Dict = {
   'places.addToList': '➕ הוספה למקומות שלי',
   'places.placeName': 'שם',
   'places.category': 'קטגוריה',
+  'places.added': 'נוסף "{name}"',
+  'places.removed': 'הוסר "{name}"',
   'places.categoryOther': 'קטגוריה חופשית',
   'places.categoryOtherHint': 'למשל נקודת תצפית, מכבסה, כספומט',
   'places.estCost': 'עלות משוערת',
@@ -640,6 +655,7 @@ const he: Dict = {
   'packing.packedCount': '{packed}/{total} ארוז',
   'packing.addItem': 'הוסף פריט…',
   'packing.empty': 'עדיין ריק — הוסף מה שצריך לארוז. משותף עם כל המשתתפים בטיול.',
+  'packing.removed': 'הוסר "{label}"',
 
   // תזונה ואלרגיות
   'diet.title': 'תזונה ואלרגיות',

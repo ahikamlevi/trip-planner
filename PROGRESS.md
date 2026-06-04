@@ -294,6 +294,13 @@ signed-in users can reach it. Two modes:
     a header toggle persisted in localStorage. All colors are CSS tokens in `:root` /
     `:root[data-theme="dark"]`; `ThemeProvider` (`src/theme/`) sets `data-theme` on
     `<html>`. The print allergy card stays white/dark on purpose.
+  - **Toasts** (`src/components/Toast.tsx`, `ToastProvider`/`useToast`): app-wide
+    notifications mounted at the root. Confirm instant-saves ("Saved", "Added X",
+    "Removed X"), surface **friendly localized errors** (replacing raw RLS/Postgres
+    strings on the write paths), and support an **action button** for **Undo** —
+    wired so far on Places (add/save/remove + errors) and Packing remove (clean
+    re-insert Undo). Success/error/info variants, auto-dismiss, reduced-motion aware,
+    RTL via logical props. Other panels can adopt `useToast` incrementally.
   - **Error boundary** (shows the error instead of a blank page).
   - **Destructive-delete confirmations** (place, member, budget entry, trip,
     clear-day). Stop-remove and packing-uncheck stay instant (easily reversible).
@@ -333,7 +340,8 @@ vite-env.d.ts
 
 auth/        AuthProvider.tsx (session + passwordRecovery), Login.tsx, SetPassword.tsx
 components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu), ErrorBoundary.tsx,
-             Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx
+             Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx,
+             Toast.tsx (ToastProvider + useToast — app-wide notifications/Undo)
 i18n/        strings.ts (EN+HE dict), I18nProvider.tsx (useT), LanguageSwitcher.tsx
 theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts

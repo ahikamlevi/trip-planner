@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import type { PackingItem } from '../lib/database.types'
 
 export function PackingPanel({ tripId }: { tripId: string }) {
   const { t } = useT()
+  const toast = useToast()
   const [items, setItems] = useState<PackingItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [label, setLabel] = useState('')
@@ -41,9 +43,23 @@ export function PackingPanel({ tripId }: { tripId: string }) {
     load()
   }
 
-  async function remove(id: string) {
-    await supabase.from('packing_items').delete().eq('id', id)
+  async function remove(item: PackingItem) {
+    const { error } = await supabase.from('packing_items').delete().eq('id', item.id)
+    if (error) {
+      toast.error(t('common.deleteFailed'))
+      return
+    }
     load()
+    // Clean to undo — packing items have no references, so just re-insert.
+    toast.success(t('packing.removed', { label: item.label }), {
+      actionLabel: t('common.undo'),
+      onAction: async () => {
+        await supabase
+          .from('packing_items')
+          .insert({ trip_id: tripId, label: item.label, packed: item.packed, sort_order: item.sort_order })
+        load()
+      },
+    })
   }
 
   const packed = items?.filter((i) => i.packed).length ?? 0
@@ -74,7 +90,7 @@ export function PackingPanel({ tripId }: { tripId: string }) {
               <input type="checkbox" checked={item.packed} onChange={() => toggle(item)} />
               <span>{item.label}</span>
             </label>
-            <button className="linklike danger" onClick={() => remove(item.id)} title="Remove" aria-label={`Remove ${item.label}`}>×</button>
+            <button className="linklike danger" onClick={() => remove(item)} title={t('common.remove')} aria-label={`${t('common.remove')} ${item.label}`}>×</button>
           </li>
         ))}
       </ul>

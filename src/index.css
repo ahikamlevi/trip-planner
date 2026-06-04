@@ -242,6 +242,93 @@ button:disabled {
   margin-bottom: 0.25rem;
 }
 
+/* Toasts (save confirmations, friendly errors, Undo) */
+.toast-viewport {
+  position: fixed;
+  inset-block-end: 1rem;
+  inset-inline: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  pointer-events: none; /* clicks pass through except on the toasts themselves */
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: min(440px, 92vw);
+  padding: 0.6rem 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-size: 0.9rem;
+  animation: toast-in 0.18s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+.toast-success {
+  border-inline-start-color: var(--ok);
+}
+.toast-error {
+  border-inline-start-color: var(--error);
+}
+.toast-info {
+  border-inline-start-color: var(--accent);
+}
+
+.toast-msg {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-action {
+  margin: 0;
+  padding: 0.25rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.toast-close {
+  margin: 0;
+  padding: 0 0.3rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
 /* Place editor shown as a centered modal (not buried below the results/map). */
 .place-editor-modal {
   max-width: 440px;
