@@ -679,11 +679,13 @@ function DayPanel({
     return {
       mode: s.travel_mode,
       note: s.travel_note,
+      cost: s.travel_cost,
       autoMins,
       autoMeters,
       mins,
       meters,
-      overridden: s.travel_min != null || s.travel_dist_m != null || s.travel_mode != null,
+      overridden:
+        s.travel_min != null || s.travel_dist_m != null || s.travel_mode != null || s.travel_cost != null,
       loading,
       noRoute,
       locMissing,
@@ -929,13 +931,15 @@ function legText(leg: Leg, t: (k: string, v?: Record<string, string | number>) =
     return '—'
   }
   const dist = leg.meters != null ? `${formatKm(leg.meters)} · ` : ''
-  return `${dist}${leg.mins} min`
+  const price = leg.cost != null && leg.cost > 0 ? ` · 💰 ${leg.cost}` : ''
+  return `${dist}${leg.mins} min${price}`
 }
 
 // A travel leg arriving into a stop: auto OSRM values + any per-stop overrides.
 interface Leg {
   mode: string | null
   note: string | null
+  cost: number | null
   autoMins: number | null
   autoMeters: number | null
   mins: number | null // override ?? auto
@@ -1074,6 +1078,7 @@ function StopItem({
     travel_min?: number | null
     travel_dist_m?: number | null
     travel_note?: string | null
+    travel_cost?: number | null
   }) {
     await supabase.from('stops').update(patch).eq('id', stop.id)
     onChange()
@@ -1112,6 +1117,7 @@ function StopItem({
           initMin={stop.travel_min}
           initDistM={stop.travel_dist_m}
           initNote={stop.travel_note}
+          initCost={stop.travel_cost}
           onSave={(patch) => {
             commit(patch)
             setEditingLeg(false)
@@ -1230,6 +1236,7 @@ function LegEditor({
   initMin,
   initDistM,
   initNote,
+  initCost,
   onSave,
   onClose,
 }: {
@@ -1239,11 +1246,13 @@ function LegEditor({
   initMin: number | null
   initDistM: number | null
   initNote: string | null
+  initCost: number | null
   onSave: (patch: {
     travel_mode: string | null
     travel_min: number | null
     travel_dist_m: number | null
     travel_note: string | null
+    travel_cost: number | null
   }) => void
   onClose: () => void
 }) {
@@ -1252,6 +1261,7 @@ function LegEditor({
   const [min, setMin] = useState(initMin != null ? String(initMin) : '')
   const [distKm, setDistKm] = useState(initDistM != null ? String(initDistM / 1000) : '')
   const [note, setNote] = useState(initNote ?? '')
+  const [cost, setCost] = useState(initCost != null ? String(initCost) : '')
 
   return (
     <div className="leg-editor">
@@ -1293,6 +1303,17 @@ function LegEditor({
             onChange={(e) => setDistKm(e.target.value)}
           />
         </label>
+        <label>
+          {t('itin.legCost')}
+          <input
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={cost}
+            placeholder="0"
+            onChange={(e) => setCost(e.target.value)}
+          />
+        </label>
       </div>
       <input
         className="leg-note-input"
@@ -1308,6 +1329,7 @@ function LegEditor({
               travel_min: min.trim() === '' ? null : Number(min),
               travel_dist_m: distKm.trim() === '' ? null : Math.round(Number(distKm) * 1000),
               travel_note: note.trim() || null,
+              travel_cost: cost.trim() === '' ? null : Number(cost),
             })
           }
         >
@@ -1315,7 +1337,15 @@ function LegEditor({
         </button>
         <button
           className="secondary"
-          onClick={() => onSave({ travel_mode: null, travel_min: null, travel_dist_m: null, travel_note: null })}
+          onClick={() =>
+            onSave({
+              travel_mode: null,
+              travel_min: null,
+              travel_dist_m: null,
+              travel_note: null,
+              travel_cost: null,
+            })
+          }
         >
           {t('itin.legReset')}
         </button>

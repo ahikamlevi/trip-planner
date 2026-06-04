@@ -20,7 +20,7 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0017`** must be run in Supabase; the **`discover` Edge
+- **Migrations through `0018`** must be run in Supabase; the **`discover` Edge
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
   discovery silently falls back to free Overpass/OSM.
 - Now being built toward a **public, polished product** (not just 2 users) — see
@@ -95,6 +95,7 @@ They are mostly idempotent.
 | `0015_place_categories.sql` | expands `place_category` enum (cafe, bar, museum, outdoors, shopping, pharmacy, hospital, police, **other**) + `places.category_other` (free-text label shown when category=`other`) |
 | `0016_profile_email.sql` | `profiles.email` (mirrored from `auth.users` via the signup trigger + an email-change trigger; backfilled) so the members list can identify invitees by email when they have no display name |
 | `0017_trip_owner_check.sql` | adds `WITH CHECK (owner_id = auth.uid())` to the `trips` UPDATE policy so an owner can't reassign `owner_id` and orphan the trip (security hardening) |
+| `0018_stop_travel_cost.sql` | `stops.travel_cost` (price of the travel leg into a stop; edited in the leg editor, counted in the budget under Transport) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -103,7 +104,7 @@ They are mostly idempotent.
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)
 - `places` (trip_id, name, lat, lng, category[food|cafe|bar|sight|museum|outdoors|beach|hotel|shopping|transport|pharmacy|hospital|police|other], category_other[free-text label when category=other], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, scheduled[UNUSED now])
-- `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost, reminder_min, travel_mode, travel_min, travel_dist_m, travel_note)
+- `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost, reminder_min, travel_mode, travel_min, travel_dist_m, travel_note, travel_cost)
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
 - `packing_items` (trip_id, label, packed, sort_order)
@@ -128,7 +129,9 @@ signed-in users can reach it. Two modes:
   snapped to ~1 km + cap, 7-day TTL).
 - **Details:** `{ placeId }` → Foursquare `places/{id}` for the **premium fields**
   (rating/hours/price/website/phone/description). Cached per place id. The client only
-  calls this when a suggestion is clicked or added (`fetchPlaceDetails`) → controls cost.
+  calls this on an **explicit "ℹ️ Details" tap** or when a place is added
+  (`fetchPlaceDetails`) → controls cost. (Each details call is a Premium-tier charge
+  even if the place returns nothing, but the 7-day cache means one charge per place.)
 
 **To deploy / change it (do this when `index.ts` changes):**
 - Dashboard: Edge Functions → `discover` → paste the file's contents → **Deploy**.
@@ -186,8 +189,9 @@ signed-in users can reach it. Two modes:
   connectors between consecutive located stops; per-day travel total; gentle
   "⚠ busy" flag; **road-shaped** route line on the Day map (real OSRM geometry,
   session-cached); straight-line fallback while loading.
-- **Stage 6 — Budget, notes & Today:** Budget tab (total = per-stop costs + manual
-  entries; By-category and By-day rollups; add/delete "other costs"); single trip
+- **Stage 6 — Budget, notes & Today:** Budget tab (total = per-stop costs + per-leg
+  travel costs + manual entries; By-category and By-day rollups; add/delete "other
+  costs"); single trip
   **currency** (Intl-formatted); **trip-level notes** (owner-editable); notes
   surfaced on stop cards + palette; **Today-aware** (auto-opens to Itinerary→Day on
   today when traveling; today highlighted everywhere).
@@ -201,19 +205,34 @@ signed-in users can reach it. Two modes:
     additionally shows **diet chips** (vegan/veg/gluten-free/kosher/halal) + a
     "Match my restrictions" button; **Other** reveals a free-text box (type anything
     — viewpoint, ATM…). "Search this area" queries the current map viewport.
-    Suggestions persist per trip (sessionStorage); the map is sticky; clicking a
-    result zooms in (never out) and highlights its pin.
+    Suggestions persist per trip (sessionStorage); clicking a result zooms in (never
+    out) and highlights its pin.
     Primary provider = **Foursquare** (Edge Function), falling back to **Overpass**.
     **Cost control:** the bulk search asks only for **core/Pro fields** (no rating,
-    capped at 25 results) so it stays on Foursquare's free/cheap Pro tier; the premium
-    fields (**rating**/hours/price/website/phone) are fetched **on demand** — one Place
-    Details call — only when a suggestion is clicked or added, via `fetchPlaceDetails`.
-    Both search and details are cached in `poi_cache`.
-    Card shows a Google **Maps ↗** link; rating + the other details fill in on click.
+    capped at 25 results) so it stays on Foursquare's free/cheap Pro tier. Premium
+    fields (**rating**/hours/price/website/phone/description) are fetched **only on
+    explicit request** — a per-card **"ℹ️ Details"** button → one cached Place Details
+    call (`fetchPlaceDetails`), with **Loading** / **"No extra details"** states and
+    retry-on-failure (a place is marked enriched only on success). Tapping a result now
+    just shows it on the map (free); details are never auto-fetched. Both search and
+    details are cached in `poi_cache`.
     Suggestions are **green pins** + cards; "+ Add" drops one into the wishlist with
-    the matching category, its **city**, and **opening hours** filled in. The top
-    box stays "search a place by name" (Nominatim) — distinct from discovery.
-    Map adapter gained `getBounds()` + per-marker `color`; `MapView` exposes `MapApi`.
+    the matching category, its **city**, and **opening hours** filled in — and since
+    the `places` table has no rating/price/phone/website columns, those premium fields
+    are **folded into the place's `notes`** (★rating · $price / ☎phone / 🔗website /
+    description) so the paid-for data isn't lost. Card also shows a Google **Maps ↗**
+    link. The top box stays "search a place by name" (Nominatim) — distinct from
+    discovery. Map adapter has `getBounds()` + per-marker `color`; `MapView` exposes
+    `MapApi`.
+    **Layout:** the map is a **sticky, opaque panel** (solid background + soft shadow
+    so the lists never bleed through / collide while scrolling); the discovery results
+    and the wishlist each sit in a **capped internal-scroll box** so they don't stretch
+    the page or slide under the pinned map — the map stays visible so tapping a place
+    always shows its focus (key on mobile).
+  - **Place list interaction:** clicking a wishlist row **selects it + focuses the
+    map** (no longer opens the editor); a dedicated **✏️ Edit** button per row opens
+    the editor — so on mobile the editor modal no longer covers the map on every tap.
+    Adding via drop-a-pin still opens the editor to name the new place.
   - **Dietary & allergies** (Dietary tab): each member sets their own restrictions
     (tag chips + free note) on their `profiles` row; other members' restrictions
     show read-only (live-synced). Generates a **printable allergy card** whose
@@ -234,10 +253,12 @@ signed-in users can reach it. Two modes:
     filter chips appear and the list scrolls (max-height) so a long palette doesn't
     stretch the page.
   - **Editable travel legs**: click the connector between two stops to set transport
-    mode (walk/car/train/bus/bike/other), override the auto time/distance, and add a
-    per-leg note. Overrides win over OSRM and feed the day travel total + "too tight"
-    warning. Also a tap-to-add "+ Add a place" button per day (mobile-friendly add
-    without dragging).
+    mode (walk/car/train/bus/bike/other), override the auto time/distance, add a
+    per-leg note, and set a **per-leg cost** (`stops.travel_cost`, migration `0018`).
+    Overrides win over OSRM and feed the day travel total + "too tight" warning; the
+    cost shows on the connector (💰) and **rolls into the Budget** (counted like a
+    per-stop cost, bucketed under **Transport** in the by-category view). Also a
+    tap-to-add "+ Add a place" button per day (mobile-friendly add without dragging).
   - **Stop reminders + calendar export**: each timed stop has a "remind me N before"
     selector (`stops.reminder_min`); an "📅 Add to calendar" button in the itinerary
     toolbar downloads an `.ics` of all timed stops, with a `VALARM` for ones that have
@@ -293,7 +314,8 @@ index.css                    all styles (logical props for RTL; mobile @media at
 vite-env.d.ts
 
 auth/        AuthProvider.tsx (session + passwordRecovery), Login.tsx, SetPassword.tsx
-components/  AppHeader.tsx (name/password/lang/signout), ErrorBoundary.tsx
+components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu), ErrorBoundary.tsx,
+             Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx
 i18n/        strings.ts (EN+HE dict), I18nProvider.tsx (useT), LanguageSwitcher.tsx
 theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts

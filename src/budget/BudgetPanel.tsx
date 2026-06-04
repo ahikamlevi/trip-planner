@@ -51,7 +51,10 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
 
   const placeMap = useMemo(() => new Map(places.map((p) => [p.id, p])), [places])
 
-  const stopTotal = useMemo(() => stops.reduce((sum, s) => sum + (s.cost ?? 0), 0), [stops])
+  const stopTotal = useMemo(
+    () => stops.reduce((sum, s) => sum + (s.cost ?? 0) + (s.travel_cost ?? 0), 0),
+    [stops],
+  )
   const entriesTotal = useMemo(() => entries.reduce((sum, e) => sum + Number(e.amount), 0), [entries])
   const total = stopTotal + entriesTotal
 
@@ -62,6 +65,11 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
     for (const s of stops) {
       const cat = t(`cat.${placeMap.get(s.place_id)?.category ?? 'sight'}`)
       map.set(cat, (map.get(cat) ?? 0) + (s.cost ?? 0))
+      // Travel-leg costs roll up under Transport.
+      if (s.travel_cost) {
+        const tc = t('budget.cat.Transport')
+        map.set(tc, (map.get(tc) ?? 0) + s.travel_cost)
+      }
     }
     for (const e of entries) {
       const cat = t(`budget.cat.${e.category}`)
@@ -73,7 +81,9 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
   const byDay = useMemo(
     () =>
       days.map((d) => {
-        const sc = stops.filter((s) => s.day_id === d.id).reduce((sum, s) => sum + (s.cost ?? 0), 0)
+        const sc = stops
+          .filter((s) => s.day_id === d.id)
+          .reduce((sum, s) => sum + (s.cost ?? 0) + (s.travel_cost ?? 0), 0)
         const ec = entries.filter((e) => e.day_id === d.id).reduce((sum, e) => sum + Number(e.amount), 0)
         return { day: d, total: sc + ec }
       }),

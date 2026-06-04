@@ -209,6 +209,7 @@ export interface Database {
           travel_min: number | null
           travel_dist_m: number | null
           travel_note: string | null
+          travel_cost: number | null
           created_at: string
         }
         Insert: {
@@ -224,6 +225,7 @@ export interface Database {
           travel_min?: number | null
           travel_dist_m?: number | null
           travel_note?: string | null
+          travel_cost?: number | null
           created_at?: string
         }
         Update: {
@@ -239,6 +241,7 @@ export interface Database {
           travel_min?: number | null
           travel_dist_m?: number | null
           travel_note?: string | null
+          travel_cost?: number | null
           created_at?: string
         }
         Relationships: []
