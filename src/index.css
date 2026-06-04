@@ -1951,6 +1951,29 @@ button.secondary.danger {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.75rem;
+  /* Solid background + own stacking context kept BELOW the sticky map (z-index:1),
+     so the results never bleed through / collide with the map labels while scrolling. */
+  background: var(--surface);
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* The card list owns the scroll: it caps its height instead of stretching the page
+   (and therefore can't slide up over the pinned map). */
+.discovery-results .place-list {
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* keep the scrollbar from crowding the cards */
+  padding-inline-end: 0.2rem;
+}
+
+/* Results header stays put above the scrolling list. */
+.discovery-results .wishlist-head {
+  margin: 0;
 }
 
 .discovery-row {
@@ -1977,6 +2000,9 @@ button.secondary.danger {
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 8px;
+  /* Each card sits on the page-bg so it reads as a distinct item against the
+     surface-colored results box — important for legibility on small screens. */
+  background: var(--bg);
 }
 .discovery-main {
   margin: 0;
