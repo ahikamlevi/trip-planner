@@ -1291,6 +1291,16 @@ button.secondary.danger {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Date + weather sit together on the left ("about the day"); travel/busy/clear on
+   the right ("about the plan") — keeps the weather chip from reading as travel. */
+.day-head-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .area-select {

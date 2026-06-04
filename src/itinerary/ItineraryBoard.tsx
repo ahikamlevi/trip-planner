@@ -772,21 +772,27 @@ function DayPanel({
   return (
     <div className={`day-panel ${variant}${isOver ? ' over' : ''}${inTrip ? '' : ' out-of-trip'}${isToday ? ' today' : ''}`}>
       <div className="day-head">
-        {onOpenDay ? (
-          <button className="day-open" onClick={onOpenDay} title={t('itin.openDay')}>
-            {formatDayLabel(iso, locale)}
-            {isToday && <span className="today-pill">{t('itin.today')}</span>}
-          </button>
-        ) : (
-          <strong>
-            {formatDayLabel(iso, locale)}
-            {isToday && <span className="today-pill">{t('itin.today')}</span>}
-          </strong>
-        )}
-        <span className="day-head-right">
+        <span className="day-head-left">
+          {onOpenDay ? (
+            <button className="day-open" onClick={onOpenDay} title={t('itin.openDay')}>
+              {formatDayLabel(iso, locale)}
+              {isToday && <span className="today-pill">{t('itin.today')}</span>}
+            </button>
+          ) : (
+            <strong>
+              {formatDayLabel(iso, locale)}
+              {isToday && <span className="today-pill">{t('itin.today')}</span>}
+            </strong>
+          )}
           {weather && <WeatherChip weather={weather} />}
+        </span>
+        <span className="day-head-right">
           {busy && <span className="busy-flag" title={t('itin.busyTitle')}>{t('itin.busy')}</span>}
-          {travelMin > 0 && <span className="muted small"><bdi dir="ltr">{formatTravelTotal(travelMin)}</bdi> {t('itin.travel')}</span>}
+          {travelMin > 0 && (
+            <span className="muted small" title={t('itin.travel')}>
+              🧭 <bdi dir="ltr">{formatTravelTotal(travelMin)}</bdi> {t('itin.travel')}
+            </span>
+          )}
           {onClear && (
             <button className="linklike danger" onClick={onClear} title={t('itin.clearDay')} aria-label={t('itin.clearDay')}>×</button>
           )}
