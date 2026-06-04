@@ -715,6 +715,16 @@ button.secondary.danger {
   min-width: 0;
 }
 
+/* The wishlist owns its scroll: cap the list height so it scrolls internally
+   instead of stretching the page (which would let it slide up under the pinned
+   map). The map stays visible, so tapping a place still shows its focus. */
+.wishlist .place-list {
+  max-height: min(480px, 55vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-inline-end: 0.2rem;
+}
+
 .places-detail .place-editor {
   flex: 1 1 320px;
   min-width: 0;
@@ -908,11 +918,17 @@ button.secondary.danger {
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
-  /* Pin the map while scrolling the results/wishlist below, so clicking a result
-     always shows it on a visible map. */
+  /* Pin the map while scrolling the results/wishlist below, so clicking a place
+     always shows its pin on a visible map (especially important on mobile). */
   position: sticky;
-  top: 0.5rem;
-  z-index: 1; /* above the lists below; keeps Leaflet's own stacking contained */
+  top: 0;
+  z-index: 2; /* above the lists below; keeps Leaflet's own stacking contained */
+  /* Opaque backdrop + bottom-only shadow: the toolbar/gaps are transparent, so
+     without this the list scrolling underneath bleeds through and collides with
+     the toolbar text. The shadow makes the pinned map read as a distinct panel. */
+  background: var(--surface);
+  padding-bottom: 0.5rem;
+  box-shadow: 0 8px 8px -8px rgba(0, 0, 0, 0.25);
 }
 
 .map {
