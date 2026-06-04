@@ -4,8 +4,8 @@ A collaborative day-by-day trip planner for two people (owner + partner). Built
 public-ready but scoped for two private users now. **Live and in real use.**
 
 This document is the single source of truth for picking up work in a new session.
-See also: `trip-planner-plan.md` (original build plan), `SETUP.md`, `DEPLOY.md`,
-`SMTP-SETUP.md`.
+See also: `LAUNCH-ROADMAP.md` (forward-looking public-launch plan + open items),
+`trip-planner-plan.md` (original build plan), `SETUP.md`, `DEPLOY.md`, `SMTP-SETUP.md`.
 
 ---
 
@@ -17,8 +17,17 @@ live.
 
 - **Live URL:** https://trip-planner-pearl-eight.vercel.app
 - **GitHub:** `ahikamlevi/trip-planner` (branch `main`)
-- **Hosting:** Vercel, auto-deploys on every push to `main`.
+- **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
+  (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
+- **Migrations through `0014`** must be run in Supabase; the **`discover` Edge
+  Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
+  discovery silently falls back to free Overpass/OSM.
+- Now being built toward a **public, polished product** (not just 2 users) — see
+  `LAUNCH-ROADMAP.md`. Recent work: Daylight-Teal theming, landing page, Foursquare
+  discovery (categories + free-text + cost control + caching), dietary/allergy card,
+  stop reminders + calendar export, editable travel legs, per-place colors, search-as-
+  preview, and many mobile/UX fixes.
 
 ---
 
@@ -33,13 +42,14 @@ live.
   `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
 - **Place discovery:** behind a swappable `DiscoveryProvider` adapter
   (`src/discovery/`). Primary = **Foursquare** via the `discover` Supabase **Edge
-  Function** (key server-side; richer data + ratings); **falls back to Overpass**
-  (keyless OSM) if the function errors / isn't deployed. Finds food POIs in the
-  current map view, filterable by diet (vegan/vegetarian/gluten_free/kosher/halal).
+  Function** (key server-side; ratings/price/hours); **falls back to Overpass**
+  (keyless OSM) if the function errors / isn't deployed. Category + free-text picker;
+  search returns cheap fields, premium fields fetched on demand; cached in
+  `poi_cache`. See **§4.1** for the operational details.
 - **Drag & drop:** `@dnd-kit` (core, sortable, utilities).
 - **i18n:** custom lightweight solution in `src/i18n/` (English + Hebrew, RTL).
-- **No backend code of our own** beyond SQL — everything is client + Supabase. No
-  Edge Functions deployed yet (planned for billable providers later).
+- **Backend code:** one Supabase **Edge Function** (`supabase/functions/discover/`,
+  Deno/TypeScript) for Foursquare discovery. Everything else is client + Supabase SQL.
 
 ---
 
@@ -98,8 +108,37 @@ They are mostly idempotent.
 
 **RLS model:** every row is reachable only by members of its trip
 (`is_trip_member` / `is_day_member`). `route_cache` is readable/writable by any
-authenticated user (cache only). Types hand-authored in
-`src/lib/database.types.ts` (regenerate via `supabase gen types` if desired).
+authenticated user (cache only). `poi_cache` has RLS on with **no policies** (clients
+blocked; only the Edge Function via the service role touches it). Types hand-authored
+in `src/lib/database.types.ts` (regenerate via `supabase gen types` if desired).
+
+---
+
+## 4.1 Edge Function — `discover` (Foursquare discovery) ⚠️ deploy steps
+
+Location: `supabase/functions/discover/index.ts` (Deno/TypeScript). Called from the
+client via `supabase.functions.invoke('discover', { body })` — JWT-verified, so only
+signed-in users can reach it. Two modes:
+- **Search:** `{ bounds, query, limit }` → Foursquare `places/search`, **cheap fields
+  only** (+ rating), normalized → `{ results }`. Result of one search cached in
+  `poi_cache` (key = query + viewport snapped to ~1 km + cap, 7-day TTL).
+- **Details:** `{ placeId }` → Foursquare `places/{id}` for the **premium fields**
+  (hours/price/website/phone/description). Cached per place id. The client only calls
+  this when a suggestion is clicked or added (`fetchPlaceDetails`) → controls cost.
+
+**To deploy / change it (do this when `index.ts` changes):**
+- Dashboard: Edge Functions → `discover` → paste the file's contents → **Deploy**.
+  (Or CLI: `supabase functions deploy discover`.)
+- Secret: `FOURSQUARE_API_KEY` = a Foursquare **Service API Key** (NOT the Client
+  Secret), unrestricted, set under Project Settings → Edge Functions → Secrets.
+  `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are auto-injected.
+- **After changing the function or the secret, you must redeploy.** If discovery shows
+  only OSM-style results, the function errored and fell back to Overpass — check
+  Edge Functions → `discover` → Logs (`Foursquare 401` = wrong key, `429` = no credits/
+  premium-field cost, `FOURSQUARE_API_KEY is not set` = secret missing).
+- **Cost:** Foursquare bills per premium field × result; that's why the bulk search is
+  kept cheap and details are on-demand + cached. Billing must be enabled on the
+  Foursquare org for any calls to succeed (free credits require a card on file).
 
 ---
 
@@ -247,14 +286,20 @@ theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts
 map/         MapRenderer.ts (interface), MapView.tsx (React wrapper), index.ts (active
              provider), leaflet/LeafletRenderer.ts
-places/      PlacesWorkspace.tsx (map tab), categories.ts, search.ts (Nominatim), dietary.ts (tags)
-discovery/   DiscoveryProvider.ts (interface), overpass.ts, index.ts (active provider)
-itinerary/   ItineraryBoard.tsx (calendar + dnd, BIG file), dates.ts (Intl-based)
+places/      PlacesWorkspace.tsx (map tab; search=preview-only, editor-as-modal),
+             categories.ts (incl. PLACE_COLORS + placeColor), search.ts (Nominatim
+             search + reverseCity), dietary.ts (tags)
+discovery/   DiscoveryProvider.ts (interface + DiscoCategory/PlaceDetails), categories.ts
+             (DISCO_CATEGORIES), foursquare.ts (Edge-Function client + fetchPlaceDetails),
+             overpass.ts (fallback), index.ts (active provider = FSQ→Overpass)
+itinerary/   ItineraryBoard.tsx (calendar + dnd, BIG file), dates.ts (Intl-based), ics.ts (calendar export)
 routing/     RouteProvider.ts (interface), osrm.ts, index.ts (getRouteCached, getRoutePathCached)
 budget/      BudgetPanel.tsx, money.ts (Intl currency)
 packing/     PackingPanel.tsx
 dietary/     DietaryPanel.tsx (self-editor + members overview + printable allergy card)
 routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes)
+
+supabase/functions/discover/index.ts   Deno Edge Function (Foursquare) — see §4.1
 ```
 
 ---
@@ -268,39 +313,56 @@ routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/
   Both fine for two people; for a public launch move behind Edge Functions w/ caching.
 - **Day-map road geometry** is cached in-memory per session only (not in `route_cache`,
   which is per origin-dest pair).
-- **Bundle size warning** on build (Leaflet + dnd-kit > 500kB) — advisory only;
-  code-splitting is a future option.
+- **Discovery / Foursquare:** changing `supabase/functions/discover/index.ts` requires
+  a **redeploy** to take effect (§4.1). Costs money (premium fields × results) — keep
+  the search lightweight + details on-demand. Overpass public servers are the free
+  fallback but rate-limit/timeout (we fail over across 3 mirrors). The discovery cache
+  key snaps the viewport to ~1 km, so very different zoom/pan misses the cache; results
+  also **persist per trip in sessionStorage** so tab switches don't lose them.
+- **Bundle size warning** on build (Leaflet + dnd-kit + supabase, now ~680kB) —
+  advisory only; code-splitting is a future option.
 - **Line endings:** git warns LF→CRLF on Windows; harmless.
 - **Translations** are functional but subjective — Hebrew wording can be tweaked
   per key in `src/i18n/strings.ts`.
 
 ---
 
-## 10. Future plans (parked)
+## 10. Open items / future plans
 
-**Original Stage 7 (public polish — only if opening beyond two users):**
-- Onboarding flow, public landing page, rate limiting, autocomplete session tokens,
-  monitoring, budget alerts.
-- Generalize sharing/roles (owner vs editor) for untrusted users.
-- Move billable map/route/search calls behind Supabase Edge Functions.
+`LAUNCH-ROADMAP.md` has the full, phased public-launch program. Quick list of what's
+**still open** (everything in §6 is done):
 
-**Accessibility:**
-- Formal **WCAG 2.1 AA** conformance: full audit, screen-reader testing
-  (NVDA/VoiceOver), accessibility statement. (Foundation done; do this when the UI
-  is stable / before going public. In Israel, IS 5568 ≈ WCAG 2.0 AA applies to
-  public services, not a private 2-person app.)
+**Phase 0 polish — remaining:**
+- **Per-day weather** (Open-Meteo, keyless — no migration).
+- **Print/export a clean itinerary** (print stylesheet → PDF).
+- **"Deleted · Undo" toasts** (we use confirmations now; true undo is non-trivial with
+  instant-save + realtime — likely a deferred-delete toast).
+- **Place photos** / image uploads + trip cover *image* (needs Supabase Storage).
 
-**Feature ideas raised but not built:**
-- "Deleted · Undo" toasts (chosen confirmations instead, but undo is a nice upgrade).
-- Packing list templates; print/export a clean itinerary (PDF/offline).
-- Trip cover image/emoji; photos on places; per-day weather.
-- Area management/reordering UI (currently create + assign only).
-- Real road geometry cached in DB; multi-currency.
-- Code-splitting to shrink the bundle.
+**Discovery follow-ups:**
+- Real **Service/Health place categories** (enum migration) — pharmacy/hospital/police
+  currently save as the generic `sight` bucket.
+- **Hebrew result localization** for Foursquare (`Accept-Language` header). Category
+  chips already work in any language; free-text needs English or a real place name.
+- **"Scheduled outside opening hours" warning** on a stop (places now carry
+  `opening_hours`; pairs with the existing time-order/too-tight warnings).
+- **Zoom/pan-tolerant discovery cache** (key on map center + radius bucket).
 
-**Immediate small follow-ups available:**
-- Apply the side-by-side/sticky-map treatment to the Week view.
-- Click-to-focus refinements; Hebrew wording review.
+**Reminders / calendar:**
+- **Subscribe-URL calendar feed** (Edge Function serving a live `.ics` the phone
+  subscribes to) — instead of the current one-time download. Then **true web push**
+  (PWA + service worker + Supabase scheduler/pg_cron + VAPID; iOS needs installed PWA).
+
+**Documents:** insurance / tickets / passport-photos tab — needs Supabase Storage
+(deferred; passports are sensitive PII).
+
+**Public-launch hardening (Phase 1+):** proxy Nominatim/OSRM behind Edge Functions w/
+caching + per-user rate limiting + error monitoring (Foursquare already done); enable
+public sign-ups + onboarding + a **viewer** role; WCAG 2.1 AA audit; code-splitting to
+shrink the ~680 kB bundle.
+
+**Monetization (if pursued):** freemium subscription + **travel affiliate links**
+(hotels/activities). Margins depend on the discovery cost control already in place.
 
 ---
 
@@ -308,6 +370,13 @@ routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/
 
 1. Edit code → `npm run typecheck` (or `npx tsc -b`) and `npm run build` to verify.
 2. If schema changed, add a numbered migration in `supabase/migrations/` AND run it
-   in the Supabase SQL editor (the app won't apply it automatically).
-3. `git commit` + `git push origin main` → Vercel auto-deploys (~1 min). Hard-refresh.
-4. Update this file + `trip-planner-plan.md` status when finishing a chunk.
+   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0014`.
+3. If `supabase/functions/discover/index.ts` changed, **redeploy the Edge Function**
+   (Dashboard paste or `supabase functions deploy discover`) — pushing to git does NOT
+   deploy it (only the Vercel frontend auto-deploys).
+4. `git commit` + `git push origin main` → Vercel auto-deploys (~1 min). Hard-refresh.
+5. Update this file + `LAUNCH-ROADMAP.md` status when finishing a chunk.
+
+**Commit-message tip (Windows):** the Bash tool here is bash, not PowerShell — don't
+use `-m @'...'@` (that injects a stray `@`). Use `git commit -F <file>` with a message
+file, or a normal double-quoted `-m`.
