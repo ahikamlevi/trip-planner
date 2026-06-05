@@ -83,6 +83,9 @@ export function createLeafletRenderer(opts: MapRendererOptions): MapRenderer {
       const b = map.getBounds()
       return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }
     },
+    invalidateSize() {
+      map.invalidateSize()
+    },
     destroy() {
       map.remove()
     },

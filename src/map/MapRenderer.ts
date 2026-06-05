@@ -46,6 +46,8 @@ export interface MapRenderer {
   fitToMarkers(markers: MapMarker[]): void
   /** Current viewport bounding box, or null before the map is ready. */
   getBounds(): MapBounds | null
+  /** Re-measure the container after its size changed, so tiles re-render (no gray gaps). */
+  invalidateSize(): void
   destroy(): void
 }
 

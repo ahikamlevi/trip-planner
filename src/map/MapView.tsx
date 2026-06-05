@@ -37,9 +37,10 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
 
   // Create the map once.
   useEffect(() => {
-    if (!containerRef.current) return
+    const container = containerRef.current
+    if (!container) return
     const renderer = createMapRenderer({
-      container: containerRef.current,
+      container,
       center,
       zoom,
       onMapClick: (pos) => onMapClickRef.current?.(pos),
@@ -47,7 +48,20 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
     })
     rendererRef.current = renderer
     onReadyRef.current?.({ getBounds: () => renderer.getBounds() })
+
+    // When the container changes size (responsive reflow, a resize/expand toggle,
+    // orientation change), Leaflet must re-measure or it leaves gray tile gaps.
+    // Debounce to a single rAF so a burst of resize events does one invalidate.
+    let raf = 0
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => renderer.invalidateSize())
+    })
+    ro.observe(container)
+
     return () => {
+      ro.disconnect()
+      cancelAnimationFrame(raf)
       renderer.destroy()
       rendererRef.current = null
       didFit.current = false

@@ -92,6 +92,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   // A searched-but-not-yet-saved candidate place (preview with an "Add" button).
   const [pending, setPending] = useState<{ name: string; lat: number; lng: number; city?: string } | null>(null)
   const [dropMode, setDropMode] = useState(false)
+  const [mapExpanded, setMapExpanded] = useState(false)
   const [catFilter, setCatFilter] = useState<PlaceCategory | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
 
@@ -500,13 +501,22 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       </div>
       {discoMsg && <p className="muted small">{discoMsg}</p>}
 
-      <div className={`places-map-wrap${dropMode ? ' dropping' : ''}`}>
+      <div className="places-layout">
+      <div className={`places-map-wrap${dropMode ? ' dropping' : ''}${mapExpanded ? ' expanded' : ''}`}>
         <div className="map-toolbar">
           <button
             className={`secondary${dropMode ? ' active' : ''}`}
             onClick={() => setDropMode((d) => !d)}
           >
             {dropMode ? t('places.dropPinActive') : t('places.dropPin')}
+          </button>
+          <button
+            className="secondary map-size-btn"
+            onClick={() => setMapExpanded((v) => !v)}
+            aria-pressed={mapExpanded}
+            title={mapExpanded ? t('places.mapCompact') : t('places.mapExpand')}
+          >
+            {mapExpanded ? t('places.mapCompact') : t('places.mapExpand')}
           </button>
           <span className="muted small">
             {dropMode ? t('places.clickToPlace') : t('places.dropHint')}
@@ -533,6 +543,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
         />
       </div>
 
+      <div className="places-lists">
       {discoveries.length > 0 && (
         <div className="discovery-results">
           <div className="wishlist-head">
@@ -676,6 +687,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
               })}
             </ul>
           </div>
+      </div>
+      </div>
       </div>
 
       {editing && (

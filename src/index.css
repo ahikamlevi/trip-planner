@@ -1021,19 +1021,38 @@ button.secondary.danger {
 }
 
 /* Map */
+/* Map + lists side by side (like the itinerary day view): the map is sticky on the
+   right while the discovery results + wishlist scroll on the left. Stacks on mobile. */
+.places-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
+  gap: 1rem;
+  align-items: start;
+  margin-top: 0.4rem;
+}
+.places-lists {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .places-map-wrap {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
-  /* Pin the map while scrolling the results/wishlist below, so clicking a place
-     always shows its pin on a visible map (especially important on mobile). */
+  /* Pin the map while the results/wishlist scroll beside (or below, on mobile) it, so
+     clicking a place always shows its pin on a visible map. */
   position: sticky;
-  top: 0;
-  z-index: 2; /* above the lists below; keeps Leaflet's own stacking contained */
-  /* Opaque backdrop + bottom-only shadow: the toolbar/gaps are transparent, so
-     without this the list scrolling underneath bleeds through and collides with
-     the toolbar text. The shadow makes the pinned map read as a distinct panel. */
+  top: 0.75rem;
+  z-index: 2; /* keeps Leaflet's own stacking contained; sits above stacked lists on mobile */
+  /* Opaque backdrop + bottom shadow so that when stacked on mobile the list scrolling
+     underneath doesn't bleed through. Reads as a distinct panel. */
   background: var(--surface);
   padding-bottom: 0.5rem;
   box-shadow: 0 8px 8px -8px rgba(0, 0, 0, 0.25);
@@ -1045,6 +1064,30 @@ button.secondary.danger {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--map-bg);
+}
+
+/* Compact default for the Places map; the "Bigger map" toggle grows it on demand. */
+.places-map-wrap .map {
+  height: 380px;
+}
+.places-map-wrap.expanded .map {
+  height: min(78vh, 720px);
+}
+
+/* Narrow screens: stack to one column with the map on top (so tapping a place still
+   shows it on a visible map), lists below. */
+@media (max-width: 820px) {
+  .places-layout {
+    grid-template-columns: 1fr;
+  }
+  .places-layout .places-map-wrap {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .places-layout .places-lists {
+    grid-column: 1;
+    grid-row: 2;
+  }
 }
 
 .map-hint {
@@ -1741,7 +1784,7 @@ button.secondary.danger {
   .places-map-wrap {
     top: 0;
   }
-  .map {
+  .places-map-wrap .map {
     height: 280px;
   }
 }

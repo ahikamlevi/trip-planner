@@ -28,6 +28,11 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent session work (this is the newest layer):**
+  - **Map & Places layout**: the map is no longer a big full-width panel on top — it's now
+    **side by side** with the lists (sticky map on the right, ~380px) like the itinerary,
+    with a **"⤢ Bigger map"** toggle to grow it. Stacks (map on top) under 820px. Added
+    `invalidateSize()` to the `MapRenderer` + a `ResizeObserver` in `MapView` so tiles
+    re-render on resize.
   - **Print / export itinerary**: "🖨️ Print / PDF" button → a clean, hidden, linear
     `PrintItinerary` doc revealed by `@media print` (same pattern as the allergy card) →
     browser print dialog → Save as PDF. Per-day date/area/weather/note + stops + travel
@@ -331,11 +336,13 @@ cross-origin redirect the browser can't follow), and the function follows the re
     link. The top box stays "search a place by name" (Nominatim) — distinct from
     discovery. Map adapter has `getBounds()` + per-marker `color`; `MapView` exposes
     `MapApi`.
-    **Layout:** the map is a **sticky, opaque panel** (solid background + soft shadow
-    so the lists never bleed through / collide while scrolling); the discovery results
-    and the wishlist each sit in a **capped internal-scroll box** so they don't stretch
-    the page or slide under the pinned map — the map stays visible so tapping a place
-    always shows its focus (key on mobile).
+    **Layout (`.places-layout`):** map + lists sit **side by side** like the itinerary
+    day view — discovery results + wishlist on the left (each a **capped internal-scroll
+    box**), the **sticky map on the right** (default 380px, a **"⤢ Bigger map" toggle**
+    grows it to ~78vh). Stacks to one column under 820px with the map on top (so tapping
+    a place still shows it on a visible map — key on mobile). The map keeps an opaque bg +
+    bottom shadow for the stacked case. `MapView` runs a `ResizeObserver` → renderer
+    `invalidateSize()` so the map re-renders cleanly on resize/expand/reflow.
   - **Place list interaction:** clicking a wishlist row **selects it + focuses the
     map** (no longer opens the editor); a dedicated **✏️ Edit** button per row opens
     the editor — so on mobile the editor modal no longer covers the map on every tap.
