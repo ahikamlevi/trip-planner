@@ -857,6 +857,27 @@ button.secondary.danger {
   color: var(--text);
 }
 
+/* Paste-a-Maps-link box (sits under the name search). */
+.paste-link {
+  margin-top: 0.5rem;
+}
+
+.paste-link-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.paste-link-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.paste-link-row button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* Wishlist */
 .wishlist-head {
   display: flex;

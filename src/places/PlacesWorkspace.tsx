@@ -9,6 +9,7 @@ import { MapView, type MapApi } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
 import { CATEGORIES, categoryMeta, categoryLabel, placeColor, PLACE_COLORS } from './categories'
 import { searchPlaces, reverseCity, type SearchResult } from './search'
+import { parseMapsLink } from './mapsLink'
 import {
   discoverPlaces,
   fetchPlaceDetails,
@@ -434,6 +435,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
       <div className="places-top">
         <PlaceSearch onSelect={selectSearchResult} />
+        <PasteMapsLink onSelect={selectSearchResult} />
       </div>
 
       <div className="discovery-bar">
@@ -788,6 +790,82 @@ function PlaceSearch({
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  )
+}
+
+// Paste a Google/Apple Maps link (or raw coordinates) → drop a pin + open the editor
+// prefilled, via the same `pending` flow a search result uses. Parsing is local; short
+// links (maps.app.goo.gl) can't be expanded in the browser, so they show a hint for now
+// (a server-side resolver is the planned phase 2).
+function PasteMapsLink({
+  onSelect,
+}: {
+  onSelect: (input: { name: string; lat: number; lng: number; city?: string }) => void
+}) {
+  const { t } = useT()
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  async function submit() {
+    if (busy) return
+    const parsed = parseMapsLink(text)
+    if (parsed.kind === 'unrecognized') return setErr(t('places.pasteLinkBad'))
+    setErr(null)
+    setBusy(true)
+    try {
+      let lat: number
+      let lng: number
+      let name: string | undefined
+      if (parsed.kind === 'needs-resolver') {
+        // Short link (maps.app.goo.gl) — expand it server-side (resolve-place fn).
+        const { data, error } = await supabase.functions.invoke('resolve-place', {
+          body: { url: parsed.url },
+        })
+        if (error || typeof data?.lat !== 'number' || typeof data?.lng !== 'number') {
+          setErr(t('places.pasteLinkShort'))
+          return
+        }
+        lat = data.lat
+        lng = data.lng
+        name = data.name ?? undefined
+      } else {
+        lat = parsed.lat
+        lng = parsed.lng
+        name = parsed.name
+      }
+      const city = await reverseCity(lat, lng)
+      onSelect({ name: name ?? '', lat, lng, city })
+      setText('')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="paste-link">
+      <div className="paste-link-row">
+        <input
+          value={text}
+          placeholder={t('places.pasteLink')}
+          onChange={(e) => {
+            setText(e.target.value)
+            if (err) setErr(null)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void submit()
+          }}
+        />
+        <button className="secondary" onClick={() => void submit()} disabled={busy || !text.trim()}>
+          {t('places.pasteLinkAdd')}
+        </button>
+      </div>
+      {err ? (
+        <p className="auth-error small">{err}</p>
+      ) : (
+        <p className="muted small">{t('places.pasteLinkHelp')}</p>
       )}
     </div>
   )

@@ -1,10 +1,13 @@
 // The one place that picks the active routing provider + adds DB caching.
-// Swap `provider` to change services app-wide.
+// Uses Stadia Maps (Valhalla) when VITE_STADIA_API_KEY is set — production-licensed,
+// multi-mode — and falls back to the free public OSRM demo server otherwise, mirroring
+// how tiles (src/map/tiles.ts) and geocoding (src/places/search.ts) pick their provider.
 import { supabase } from '../lib/supabase'
 import { osrmProvider } from './osrm'
+import { stadiaProvider } from './stadia'
 import type { LatLng, RouteLeg, RouteProvider } from './RouteProvider'
 
-const provider: RouteProvider = osrmProvider
+const provider: RouteProvider = import.meta.env.VITE_STADIA_API_KEY ? stadiaProvider : osrmProvider
 const MODE = 'driving'
 
 function coordKey(p: LatLng): string {

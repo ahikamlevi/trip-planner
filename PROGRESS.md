@@ -47,17 +47,35 @@ live.
   - **Sentry** error monitoring (opt-in via `VITE_SENTRY_DSN`, errors-only).
   - **Stadia Maps** for **tiles** (`osm_bright`) + **geocoding** (search/reverse,
     Pelias autocomplete) when `VITE_STADIA_API_KEY` is set; OSM/Nominatim fallback.
+  - **Stadia Maps routing** (Valhalla) for travel times + road-shaped paths when the key
+    is set (`src/routing/stadia.ts`), OSRM kept as the keyless fallback — so tiles,
+    geocoding, AND routing now all run on Stadia in production.
+  - **Import a place from a Maps link**: a "📍 Add from link" box in the Places tab
+    parses pasted Google/Apple Maps URLs, `geo:` URIs, and raw `lat,lng`
+    (`src/places/mapsLink.ts`) → drops a pin + opens the editor prefilled. **Short
+    `maps.app.goo.gl` / `goo.gl/maps` links** are expanded by a new keyless
+    **`resolve-place` Edge Function** (`supabase/functions/resolve-place/`) — follows the
+    redirect server-side (SSRF-allowlisted to Google/Apple hosts, hop-capped), parses
+    coords+name, JWT-verified + per-user rate-limited (`resolve` bucket, reuses
+    `consume_rate_limit`). ⚠️ **Must be deployed** (see §4.2) — until then short links
+    fail gracefully with a "paste the full URL" hint.
 
 ### ⚠️ Operational state / pending for production (read this on a fresh start)
 - **Migrations `0015`–`0019` are applied** in Supabase, and the **`discover` Edge
   Function is redeployed** (current `index.ts`: Pro-tier search, on-demand details,
   per-user rate limiting, generic error bodies — no `_raw`).
-- **Local `.env` has `VITE_SENTRY_DSN` + `VITE_STADIA_API_KEY`** (git-ignored), so
-  Sentry + Stadia tiles/geocoding are live **locally**. They are **NOT yet set in
-  Vercel**, so **production still uses OSM/Nominatim and has no Sentry.** To finish:
-  add both env vars in **Vercel → Settings → Environment Variables** and redeploy.
-- **Routing** (travel times) is **still OSRM** — the one remaining map piece to move
-  to Stadia (it's behind the `RouteProvider` adapter; OSRM stays as fallback).
+- **⚠️ The new `resolve-place` Edge Function is NOT yet deployed.** Its code is in the
+  repo (`supabase/functions/resolve-place/index.ts`) but must be deployed for short
+  Maps links to expand (see §4.2). No migration/secret needed. Until deployed, pasting a
+  full Maps URL / coords works; a short `maps.app.goo.gl` link shows a graceful hint.
+- **`VITE_STADIA_API_KEY` is set in Vercel** (and locally), so Stadia tiles + geocoding
+  **+ routing** are live in production. **`VITE_SENTRY_DSN`** is in the **local `.env`
+  only** (git-ignored) — Sentry is live locally but **NOT yet set in Vercel**, so
+  **production has no Sentry.** To finish: add `VITE_SENTRY_DSN` in **Vercel → Settings →
+  Environment Variables** and redeploy.
+- **Routing** (travel times) now uses **Stadia Maps (Valhalla)** when the key is set
+  (multi-mode), behind the `RouteProvider` adapter; **OSRM stays as the keyless
+  fallback** (`src/routing/stadia.ts`, picked in `src/routing/index.ts`).
 
 ---
 
@@ -71,8 +89,11 @@ live.
   when `VITE_STADIA_API_KEY` is set, else free public **OpenStreetMap** tiles.
   **Geocoding** (place search + reverse-geocode city, `src/places/search.ts`):
   **Stadia** Pelias autocomplete when the key is set, else OSM **Nominatim** fallback.
-- **Routing/travel time:** OSRM public server (keyless), behind a swappable
-  `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
+- **Routing/travel time:** **Stadia Maps** (Valhalla `route` endpoint) when
+  `VITE_STADIA_API_KEY` is set, else the keyless **OSRM** public demo server — behind a
+  swappable `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
+  Distance/time legs + full road-shaped path (decoded from Valhalla's precision-6
+  polyline).
 - **Place discovery:** behind a swappable `DiscoveryProvider` adapter
   (`src/discovery/`). Primary = **Foursquare** via the `discover` Supabase **Edge
   Function** (key server-side; ratings/price/hours); **falls back to Overpass**
@@ -196,6 +217,36 @@ signed-in users can reach it. Two modes:
   so a hiccup never breaks discovery; the FSQ billing cap is the hard backstop. Client
   degrades gracefully: a 429 on search falls back to Overpass, on details the "Details"
   button stays retryable.
+
+---
+
+## 4.2 Edge Function — `resolve-place` (expand short Maps links) ⚠️ deploy steps
+
+Location: `supabase/functions/resolve-place/index.ts` (Deno/TypeScript). Powers the
+"📍 Add from link" box's short-link case: the client posts `{ url }` for a
+`maps.app.goo.gl` / `goo.gl/maps` link (which carries no coordinates and is an opaque
+cross-origin redirect the browser can't follow), and the function follows the redirect
+**server-side** and returns `{ lat, lng, name }`. Full/long URLs, `geo:`, and raw
+`lat,lng` are parsed client-side (`src/places/mapsLink.ts`) and never hit this function.
+
+- **Keyless** — no third-party API, no secret. `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
+  are auto-injected and used only for the rate limiter. **No new migration** (reuses
+  `consume_rate_limit` from `0019` with a new `resolve` bucket).
+- **To deploy:** Dashboard → Edge Functions → **Create function** `resolve-place` → paste
+  `index.ts` → **Deploy** (or CLI: `supabase functions deploy resolve-place`). JWT-verified
+  by default, so only signed-in users can call it.
+- **Security (SSRF):** it fetches a client-supplied URL, so it's locked down — an
+  **allowlist** of Google/Apple map hosts is checked on the start URL *and every redirect
+  hop* (`isAllowedHost`), redirects are followed manually with a **hop cap** (6), and the
+  fetched body is **never returned** to the client (only parsed lat/lng/name). It reads
+  the `Location` header per hop; if the terminal page is HTML it scans `canonical`/`og:url`
+  + raw `!3d!4d`/`@lat,lng` as a fallback.
+- **Rate limit:** `resolve` bucket, **60/hour per user**, **fails open** (it's free, the
+  limit is just abuse protection). Returns 429 when exceeded.
+- **Client degradation:** any failure (not deployed, 422 no-coords, 429) shows a friendly
+  "paste the full Maps URL or the coordinates" hint — the full-URL/coords paths still work.
+- ⚠️ **Not yet deployed** — see the operational note in §1. Verify after deploy with a real
+  `maps.app.goo.gl` link (the redirect-follow path can't be exercised without one).
 
 ---
 
@@ -393,21 +444,24 @@ theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts, sentry.ts
 map/         MapRenderer.ts (interface), MapView.tsx (React wrapper), index.ts (active
              provider), tiles.ts (Stadia/OSM tile config), leaflet/LeafletRenderer.ts
-places/      PlacesWorkspace.tsx (map tab; search=preview-only, editor-as-modal),
-             categories.ts (incl. PLACE_COLORS + placeColor), search.ts (Nominatim
-             search + reverseCity), dietary.ts (tags)
+places/      PlacesWorkspace.tsx (map tab; search=preview-only, editor-as-modal,
+             PasteMapsLink box), categories.ts (incl. PLACE_COLORS + placeColor),
+             search.ts (Stadia/Nominatim search + reverseCity), mapsLink.ts
+             (parseMapsLink — pure URL/coords parser), dietary.ts (tags)
 discovery/   DiscoveryProvider.ts (interface + DiscoCategory/PlaceDetails), categories.ts
              (DISCO_CATEGORIES), foursquare.ts (Edge-Function client + fetchPlaceDetails),
              overpass.ts (fallback), index.ts (active provider = FSQ→Overpass)
 itinerary/   ItineraryBoard.tsx (calendar + dnd, BIG file), dates.ts (Intl-based), ics.ts (calendar export)
-routing/     RouteProvider.ts (interface), osrm.ts, index.ts (getRouteCached, getRoutePathCached)
+routing/     RouteProvider.ts (interface), stadia.ts (Valhalla), osrm.ts (fallback),
+             index.ts (provider pick + getRouteCached, getRoutePathCached)
 budget/      BudgetPanel.tsx, money.ts (Intl currency)
 packing/     PackingPanel.tsx
 dietary/     DietaryPanel.tsx (self-editor + members overview + printable allergy card)
 routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes)
 weather/     openMeteo.ts (keyless per-day forecast; useTripWeather + weatherMeta)
 
-supabase/functions/discover/index.ts   Deno Edge Function (Foursquare) — see §4.1
+supabase/functions/discover/index.ts        Deno Edge Function (Foursquare) — see §4.1
+supabase/functions/resolve-place/index.ts    Deno Edge Function (expand short Maps links) — see §4.2
 ```
 
 ---
