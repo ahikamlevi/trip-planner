@@ -172,7 +172,6 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       est_cost?: number | null
       dietary_notes?: string | null
       phone?: string | null
-      is_reference?: boolean
       select?: boolean
     }) => {
       const { data, error } = await supabase
@@ -191,7 +190,6 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           est_cost: input.est_cost ?? null,
           dietary_notes: input.dietary_notes ?? null,
           phone: input.phone ?? null,
-          is_reference: input.is_reference ?? false,
           scheduled: false,
         })
         .select('*')
@@ -270,7 +268,6 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       est_cost: patch.est_cost ?? null,
       dietary_notes: patch.dietary_notes ?? null,
       phone: patch.phone ?? null,
-      is_reference: patch.is_reference ?? false,
       select: false,
     })
     setPending(null)
@@ -916,7 +913,6 @@ function PlaceEditor({
   const [city, setCity] = useState(place.city ?? '')
   const [color, setColor] = useState<string | null>(place.color)
   const [phone, setPhone] = useState(place.phone ?? '')
-  const [isReference, setIsReference] = useState(place.is_reference)
 
   return (
     <div className="place-editor">
@@ -999,14 +995,6 @@ function PlaceEditor({
         />
       </label>
 
-      <label className="checkbox-row">
-        <input type="checkbox" checked={isReference} onChange={(e) => setIsReference(e.target.checked)} />
-        <span>
-          {t('places.reference')}
-          <span className="muted small block">{t('places.referenceHint')}</span>
-        </span>
-      </label>
-
       <div className="form-row">
         <label>
           {t('places.estCost')}
@@ -1054,7 +1042,6 @@ function PlaceEditor({
               city: city.trim() || null,
               est_cost: cost.trim() === '' ? null : Number(cost),
               phone: phone.trim() || null,
-              is_reference: isReference,
             })
           }
         >

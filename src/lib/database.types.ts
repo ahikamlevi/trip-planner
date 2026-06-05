@@ -258,6 +258,12 @@ export interface Database {
         Update: { id?: string; trip_id?: string; label?: string; packed?: boolean; sort_order?: number; created_at?: string }
         Relationships: []
       }
+      day_references: {
+        Row: { id: string; day_id: string; place_id: string; created_at: string }
+        Insert: { id?: string; day_id: string; place_id: string; created_at?: string }
+        Update: { id?: string; day_id?: string; place_id?: string; created_at?: string }
+        Relationships: []
+      }
       budget_entries: {
         Row: {
           id: string
@@ -319,3 +325,4 @@ export type Day = Database['public']['Tables']['days']['Row']
 export type Stop = Database['public']['Tables']['stops']['Row']
 export type BudgetEntry = Database['public']['Tables']['budget_entries']['Row']
 export type PackingItem = Database['public']['Tables']['packing_items']['Row']
+export type DayReference = Database['public']['Tables']['day_references']['Row']

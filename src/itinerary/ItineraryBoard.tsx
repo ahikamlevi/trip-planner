@@ -25,7 +25,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
-import type { Area, BudgetEntry, Day, PackingItem, Place, PlaceCategory, Stop } from '../lib/database.types'
+import type { Area, BudgetEntry, Day, DayReference, PackingItem, Place, PlaceCategory, Stop } from '../lib/database.types'
 import { CATEGORIES, categoryMeta, placeColor } from '../places/categories'
 import { MapView } from '../map/MapView'
 import type { MapMarker } from '../map'
@@ -82,6 +82,7 @@ export function ItineraryBoard({
   const [stops, setStops] = useState<Stop[]>([])
   const [budgetEntries, setBudgetEntries] = useState<BudgetEntry[]>([])
   const [packing, setPacking] = useState<PackingItem[]>([])
+  const [dayRefs, setDayRefs] = useState<DayReference[]>([])
   // What to include in the printable itinerary (the day plan is always included).
   const [printOpts, setPrintOpts] = useState({ notes: true, budget: true, packing: true, dayCosts: true })
   const [loading, setLoading] = useState(true)
@@ -114,15 +115,21 @@ export function ItineraryBoard({
     const dayRows = daysRes.data ?? []
     const dayIds = dayRows.map((d) => d.id)
     let stopRows: Stop[] = []
+    let refRows: DayReference[] = []
     if (dayIds.length) {
-      const stopsRes = await supabase.from('stops').select('*').in('day_id', dayIds).order('sort_order')
+      const [stopsRes, refsRes] = await Promise.all([
+        supabase.from('stops').select('*').in('day_id', dayIds).order('sort_order'),
+        supabase.from('day_references').select('*').in('day_id', dayIds),
+      ])
       if (stopsRes.error) setError(stopsRes.error.message)
       else stopRows = stopsRes.data ?? []
+      refRows = refsRes.data ?? []
     }
     setDays(dayRows)
     setAreas(areasRes.data ?? [])
     setPlaces(placesRes.data ?? [])
     setStops(stopRows)
+    setDayRefs(refRows)
     setLoading(false)
   }, [tripId])
 
@@ -258,11 +265,24 @@ export function ItineraryBoard({
     setFocusStopId(s.id)
   }
 
-  // Reference places (not on any route) shown per-day with distance from the selected
-  // stop. The flag lives on the place (trip-wide); each day computes its own distances.
-  const referencePlaces = useMemo(
-    () => places.filter((p) => p.is_reference && p.lat != null && p.lng != null),
-    [places],
+  // Per-day reference places (not on the route — added/dragged per day): dayId -> places.
+  const refsByDay = useMemo(() => {
+    const m = new Map<string, Place[]>()
+    for (const r of dayRefs) {
+      const p = placeMap.get(r.place_id)
+      if (!p) continue
+      const arr = m.get(r.day_id)
+      if (arr) arr.push(p)
+      else m.set(r.day_id, [p])
+    }
+    return m
+  }, [dayRefs, placeMap])
+
+  // The current day's reference places (located ones get a distance).
+  const cursorDayId = byDate.get(cursor)?.day.id
+  const cursorRefs = useMemo(
+    () => (cursorDayId ? refsByDay.get(cursorDayId) ?? [] : []).filter((p) => p.lat != null && p.lng != null),
+    [refsByDay, cursorDayId],
   )
 
   // Anchor for the day's "Nearby" distances = the stop you've selected, else the day's
@@ -277,9 +297,9 @@ export function ItineraryBoard({
   const [refLegs, setRefLegs] = useState<Map<string, RouteLeg | null>>(new Map())
   const refFetched = useRef<Set<string>>(new Set())
   useEffect(() => {
-    if (!anchorStop || referencePlaces.length === 0) return
+    if (!anchorStop || cursorRefs.length === 0) return
     const o = { lat: anchorStop.place.lat as number, lng: anchorStop.place.lng as number }
-    const need = referencePlaces
+    const need = cursorRefs
       .map((p) => {
         const d = { lat: p.lat as number, lng: p.lng as number }
         return { key: legKey(o, d), o, d }
@@ -300,7 +320,26 @@ export function ItineraryBoard({
     return () => {
       cancelled = true
     }
-  }, [anchorStop, referencePlaces])
+  }, [anchorStop, cursorRefs])
+
+  // Add / remove a reference place for a day (plain functions like addStopToDay, so
+  // ensureDay always closes over the current `days`).
+  async function addReference(iso: string, placeId: string) {
+    const dayId = await ensureDay(iso)
+    if (!dayId) return
+    const { error } = await supabase.from('day_references').insert({ day_id: dayId, place_id: placeId })
+    // Ignore the unique-violation when it's already a reference; surface anything else.
+    if (error && error.code !== '23505') {
+      toast.error(t('common.saveFailed'))
+      return
+    }
+    await load()
+  }
+  async function removeReference(dayId: string, placeId: string) {
+    const { error } = await supabase.from('day_references').delete().eq('day_id', dayId).eq('place_id', placeId)
+    if (error) toast.error(t('common.deleteFailed'))
+    else await load()
+  }
 
   // Travel legs between consecutive located stops, fetched (cached) lazily.
   const [routeLegs, setRouteLegs] = useState<Map<string, RouteLeg | null>>(new Map())
@@ -412,7 +451,16 @@ export function ItineraryBoard({
     const { active, over } = event
     if (!over) return
     const activeId = String(active.id)
-    const dest = resolveDrop(String(over.id))
+    const overId = String(over.id)
+
+    // Drop a palette place onto a day's reference zone → add it as a reference for that
+    // day (NOT a route stop). Reference rows aren't draggable, so only `place:` matters.
+    if (overId.startsWith('dayref:') && activeId.startsWith('place:')) {
+      await addReference(overId.slice(7), activeId.slice(6))
+      return
+    }
+
+    const dest = resolveDrop(overId)
 
     if (activeId.startsWith('place:')) {
       if (dest.type !== 'date') return
@@ -689,11 +737,19 @@ export function ItineraryBoard({
                   <ItineraryDayMap
                     iso={cursor}
                     stops={byDate.get(cursor)?.stops ?? []}
-                    references={referencePlaces}
+                    references={cursorRefs}
                     focus={focusPoint}
                     selectedId={focusStopId}
                   />
-                  <NearbyPanel anchor={anchorStop} places={referencePlaces} refLegs={refLegs} />
+                  <NearbyPanel
+                    iso={cursor}
+                    anchor={anchorStop}
+                    references={cursorRefs}
+                    allPlaces={places}
+                    refLegs={refLegs}
+                    onAdd={(placeId) => addReference(cursor, placeId)}
+                    onRemove={(placeId) => cursorDayId && removeReference(cursorDayId, placeId)}
+                  />
                 </div>
               </div>
             )}
@@ -1344,22 +1400,35 @@ function haversineKm(a: LatLng, b: LatLng): number {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-// "Nearby" side note for the day view: each reference place with its routed distance/
-// time from the selected stop, a tap-to-call phone, and its notes. Sorted nearest-first.
+// Per-day "Nearby" panel: a drop zone (drag a palette place in) + an "Add reference"
+// picker, listing each reference place with the routed distance/time from the selected
+// stop, a tap-to-call phone, and notes — sorted nearest-first. Each row has a remove ×.
 function NearbyPanel({
+  iso,
   anchor,
-  places,
+  references,
+  allPlaces,
   refLegs,
+  onAdd,
+  onRemove,
 }: {
+  iso: string
   anchor: BoardStop | null
-  places: Place[]
+  references: Place[]
+  allPlaces: Place[]
   refLegs: Map<string, RouteLeg | null>
+  onAdd: (placeId: string) => void
+  onRemove: (placeId: string) => void
 }) {
   const { t } = useT()
-  if (places.length === 0) return null
+  // The drop-zone id carries the ISO date (addReference → ensureDay takes a date).
+  const { setNodeRef, isOver } = useDroppable({ id: `dayref:${iso}` })
+  const refIds = new Set(references.map((p) => p.id))
+  // Eligible to add: any located trip place not already a reference of this day.
+  const addable = allPlaces.filter((p) => p.lat != null && p.lng != null && !refIds.has(p.id))
 
   const origin = anchor ? { lat: anchor.place.lat as number, lng: anchor.place.lng as number } : null
-  const rows = places
+  const rows = references
     .map((p) => {
       const dest = { lat: p.lat as number, lng: p.lng as number }
       const km = origin ? haversineKm(origin, dest) : null
@@ -1369,12 +1438,17 @@ function NearbyPanel({
     .sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity))
 
   return (
-    <div className="nearby-panel card">
+    <div ref={setNodeRef} className={`nearby-panel card${isOver ? ' over' : ''}`}>
       <div className="wishlist-head">
         <span>{t('itin.nearbyTitle')}</span>
-        {anchor && <span className="muted small">{t('itin.nearbyFrom', { name: anchor.place.name })}</span>}
+        {anchor && references.length > 0 && (
+          <span className="muted small">{t('itin.nearbyFrom', { name: anchor.place.name })}</span>
+        )}
       </div>
-      {!anchor && <p className="muted small">{t('itin.nearbyNoAnchor')}</p>}
+
+      {references.length === 0 && <p className="muted small">{t('itin.nearbyEmpty')}</p>}
+      {references.length > 0 && !anchor && <p className="muted small">{t('itin.nearbyNoAnchor')}</p>}
+
       <ul className="place-list">
         {rows.map(({ p, km, leg }) => (
           <li key={p.id}>
@@ -1394,6 +1468,14 @@ function NearbyPanel({
                           : t('itin.noRoute')}
                 </bdi>
               </span>
+              <button
+                className="linklike danger"
+                onClick={() => onRemove(p.id)}
+                aria-label={t('itin.refRemove', { name: p.name })}
+                title={t('itin.refRemove', { name: p.name })}
+              >
+                ×
+              </button>
             </div>
             {(p.phone || p.notes) && (
               <div className="nearby-meta">
@@ -1408,6 +1490,25 @@ function NearbyPanel({
           </li>
         ))}
       </ul>
+
+      {addable.length > 0 && (
+        <select
+          className="nearby-add"
+          value=""
+          aria-label={t('itin.refAdd')}
+          onChange={(e) => {
+            if (e.target.value) onAdd(e.target.value)
+          }}
+        >
+          <option value="">{t('itin.refAdd')}</option>
+          {addable.map((p) => (
+            <option key={p.id} value={p.id}>
+              {categoryMeta(p.category).emoji} {p.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <p className="muted small">{t('itin.refDropHint')}</p>
     </div>
   )
 }

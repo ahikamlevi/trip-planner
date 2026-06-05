@@ -1747,6 +1747,14 @@ button.secondary.danger {
 .nearby-panel {
   padding: 0.6rem 0.75rem;
 }
+.nearby-panel.over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+.nearby-add {
+  width: 100%;
+  margin-top: 0.4rem;
+}
 .nearby-panel .place-list {
   margin: 0;
 }
