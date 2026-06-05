@@ -141,6 +141,7 @@ export function TripView() {
             tripId={trip.id}
             tripName={trip.name}
             currency={trip.currency}
+            notes={trip.notes}
             startDate={trip.start_date}
             endDate={trip.end_date}
           />

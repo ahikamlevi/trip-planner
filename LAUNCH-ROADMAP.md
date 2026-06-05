@@ -54,8 +54,10 @@ The visible layer. What a new user judges in the first 30 seconds.
   `ItineraryBoard.tsx`) via a print stylesheet (`@media print` in `index.css`, same
   reveal pattern as the allergy card) and opens the browser print dialog → Save as PDF.
   Per day: date + area + weather + note, then each stop (time, name, duration, cost,
-  notes, dietary) with the travel leg (mode·dist·time·cost) between stops. Costs use the
-  trip currency; pages break between days where possible.
+  notes, dietary) with the travel leg (mode·dist·time·cost) between stops. Then appended
+  sections (when non-empty): **trip notes**, a **budget summary** (total + by-category,
+  mirrors BudgetPanel), and the **packing list** (☑/☐). Costs use the trip currency;
+  pages break between days where possible.
 - ☑ **Editable travel legs** — click the connector between two stops to edit that leg:
   transport mode (walk/car/train/bus/bike/other, icon shown on the connector),
   manual time + distance overriding the auto OSRM values, and a per-leg note.

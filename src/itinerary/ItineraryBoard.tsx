@@ -25,7 +25,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
-import type { Area, Day, Place, PlaceCategory, Stop } from '../lib/database.types'
+import type { Area, BudgetEntry, Day, PackingItem, Place, PlaceCategory, Stop } from '../lib/database.types'
 import { CATEGORIES, categoryMeta, placeColor } from '../places/categories'
 import { MapView } from '../map/MapView'
 import type { MapMarker } from '../map'
@@ -63,12 +63,14 @@ export function ItineraryBoard({
   tripId,
   tripName,
   currency,
+  notes,
   startDate,
   endDate,
 }: {
   tripId: string
   tripName: string
   currency: string
+  notes: string | null
   startDate: string | null
   endDate: string | null
 }) {
@@ -78,6 +80,8 @@ export function ItineraryBoard({
   const [areas, setAreas] = useState<Area[]>([])
   const [places, setPlaces] = useState<Place[]>([])
   const [stops, setStops] = useState<Stop[]>([])
+  const [budgetEntries, setBudgetEntries] = useState<BudgetEntry[]>([])
+  const [packing, setPacking] = useState<PackingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeLabel, setActiveLabel] = useState<string | null>(null)
@@ -89,11 +93,17 @@ export function ItineraryBoard({
   const [cursor, setCursor] = useState<string>(todayInTrip ? todayIso : startDate ?? todayIso)
 
   const load = useCallback(async () => {
-    const [daysRes, areasRes, placesRes] = await Promise.all([
+    const [daysRes, areasRes, placesRes, entriesRes, packingRes] = await Promise.all([
       supabase.from('days').select('*').eq('trip_id', tripId).order('date'),
       supabase.from('areas').select('*').eq('trip_id', tripId).order('sort_order'),
       supabase.from('places').select('*').eq('trip_id', tripId),
+      supabase.from('budget_entries').select('*').eq('trip_id', tripId),
+      supabase.from('packing_items').select('*').eq('trip_id', tripId).order('sort_order'),
     ])
+    // Budget + packing feed only the print/PDF export, so a failure there must never
+    // block the itinerary itself — default to empty.
+    setBudgetEntries(entriesRes.data ?? [])
+    setPacking(packingRes.data ?? [])
     if (daysRes.error || areasRes.error || placesRes.error) {
       setError(daysRes.error?.message ?? areasRes.error?.message ?? placesRes.error?.message ?? null)
       setLoading(false)
@@ -192,6 +202,30 @@ export function ItineraryBoard({
         .sort((a, b) => a.day.date.localeCompare(b.day.date)),
     [byDate],
   )
+
+  // Budget summary for the printout (mirrors BudgetPanel): per-stop + per-leg costs by
+  // place category, travel costs under Transport, plus manual budget entries.
+  const budget = useMemo(() => {
+    const stopTotal = stops.reduce((sum, s) => sum + (s.cost ?? 0) + (s.travel_cost ?? 0), 0)
+    const entriesTotal = budgetEntries.reduce((sum, e) => sum + Number(e.amount), 0)
+    const map = new Map<string, number>()
+    for (const s of stops) {
+      if (s.cost) {
+        const cat = t(`cat.${placeMap.get(s.place_id)?.category ?? 'sight'}`)
+        map.set(cat, (map.get(cat) ?? 0) + s.cost)
+      }
+      if (s.travel_cost) {
+        const tc = t('budget.cat.Transport')
+        map.set(tc, (map.get(tc) ?? 0) + s.travel_cost)
+      }
+    }
+    for (const e of budgetEntries) {
+      const cat = t(`budget.cat.${e.category}`)
+      map.set(cat, (map.get(cat) ?? 0) + Number(e.amount))
+    }
+    const byCategory = [...map.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
+    return { total: stopTotal + entriesTotal, byCategory }
+  }, [stops, budgetEntries, placeMap, t])
 
   // Print / Save-as-PDF: a clean linear document (hidden on screen) is revealed by the
   // print stylesheet, then we open the browser's print dialog.
@@ -602,12 +636,15 @@ export function ItineraryBoard({
       <PrintItinerary
         tripName={tripName}
         currency={currency}
+        notes={notes}
         startDate={startDate}
         endDate={endDate}
         days={printDays}
         areas={areas}
         weatherByDate={weatherByDate}
         routeLegs={routeLegs}
+        budget={budget}
+        packing={packing}
         locale={locale}
       />
     </div>
@@ -619,22 +656,28 @@ export function ItineraryBoard({
 function PrintItinerary({
   tripName,
   currency,
+  notes,
   startDate,
   endDate,
   days,
   areas,
   weatherByDate,
   routeLegs,
+  budget,
+  packing,
   locale,
 }: {
   tripName: string
   currency: string
+  notes: string | null
   startDate: string | null
   endDate: string | null
   days: BoardDay[]
   areas: Area[]
   weatherByDate: Map<string, DayWeather>
   routeLegs: Map<string, RouteLeg | null>
+  budget: { total: number; byCategory: [string, number][] }
+  packing: PackingItem[]
   locale: string
 }) {
   const { t } = useT()
@@ -719,6 +762,42 @@ function PrintItinerary({
           </section>
         )
       })}
+
+      {notes && (
+        <section className="print-day print-extra">
+          <h2>{t('notes.title')}</h2>
+          <p className="print-notes-body">{notes}</p>
+        </section>
+      )}
+
+      {budget.byCategory.length > 0 && (
+        <section className="print-day print-extra">
+          <h2>
+            {t('budget.total')}: {formatMoney(budget.total, currency, locale)}
+          </h2>
+          <ul className="print-budget">
+            {budget.byCategory.map(([cat, amount]) => (
+              <li key={cat}>
+                <span>{cat}</span>
+                <span>{formatMoney(amount, currency, locale)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {packing.length > 0 && (
+        <section className="print-day print-extra">
+          <h2>{t('packing.title')}</h2>
+          <ul className="print-packing">
+            {packing.map((p) => (
+              <li key={p.id}>
+                {p.packed ? '☑' : '☐'} {p.label}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <footer className="print-foot">{t('itin.printFooter')}</footer>
     </div>

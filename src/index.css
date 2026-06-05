@@ -2652,6 +2652,34 @@ button.secondary.danger {
     color: #444;
     font-size: 9.5pt;
   }
+  /* Appended sections: trip notes, budget summary, packing list. */
+  .print-extra {
+    margin-top: 1.1rem;
+  }
+  .print-notes-body {
+    white-space: pre-wrap;
+    margin: 0.2rem 0 0;
+  }
+  .print-budget,
+  .print-packing {
+    list-style: none;
+    margin: 0.2rem 0 0;
+    padding: 0;
+  }
+  .print-budget li {
+    display: flex;
+    justify-content: space-between;
+    max-width: 20rem;
+    border-bottom: 1px dotted #bbb;
+    padding: 0.05rem 0;
+  }
+  .print-packing {
+    column-count: 2;
+    column-gap: 1.5rem;
+  }
+  .print-packing li {
+    break-inside: avoid;
+  }
   .print-foot {
     margin-top: 1rem;
     border-top: 1px solid #999;

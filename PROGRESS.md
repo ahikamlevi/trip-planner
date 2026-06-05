@@ -31,7 +31,10 @@ live.
   - **Print / export itinerary**: "🖨️ Print / PDF" button → a clean, hidden, linear
     `PrintItinerary` doc revealed by `@media print` (same pattern as the allergy card) →
     browser print dialog → Save as PDF. Per-day date/area/weather/note + stops + travel
-    legs; costs in trip currency. ItineraryBoard now takes `tripName` + `currency` props.
+    legs, then appended **trip notes**, **budget summary** (total + by-category) and
+    **packing list** sections (when non-empty); costs in trip currency. ItineraryBoard
+    now takes `tripName`/`currency`/`notes` props and load() also pulls budget_entries +
+    packing_items (best-effort; print-only, never blocks the board).
   - Place list: click a row = select + focus map; ✏️ **Edit** button opens the editor
     (no more modal covering the map on every tap).
   - **Expanded place categories** + free-text "Other" (`0015`).
@@ -507,7 +510,8 @@ supabase/functions/resolve-place/index.ts    Deno Edge Function (expand short Ma
   toolbar reveals a hidden linear read-only doc (`PrintItinerary` in `ItineraryBoard.tsx`)
   via `@media print` (same reveal pattern as the allergy card) → browser print → Save as
   PDF. Per day: date/area/weather/note + stops (time/name/duration/cost/notes/dietary) +
-  travel legs; costs in trip currency.
+  travel legs; then trip notes, budget summary + packing list sections; costs in trip
+  currency.
 - **"Deleted · Undo" toasts** (we use confirmations now; true undo is non-trivial with
   instant-save + realtime — likely a deferred-delete toast).
 - **Place photos** / image uploads + trip cover *image* (needs Supabase Storage).
