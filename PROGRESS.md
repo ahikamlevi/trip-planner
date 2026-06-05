@@ -32,9 +32,12 @@ live.
     `PrintItinerary` doc revealed by `@media print` (same pattern as the allergy card) →
     browser print dialog → Save as PDF. Per-day date/area/weather/note + stops + travel
     legs, then appended **trip notes**, **budget summary** (total + by-category) and
-    **packing list** sections (when non-empty); costs in trip currency. ItineraryBoard
-    now takes `tripName`/`currency`/`notes` props and load() also pulls budget_entries +
-    packing_items (best-effort; print-only, never blocks the board).
+    **packing list** sections; costs in trip currency. **Include/exclude toggles**
+    (Notes/Budget/Packing/Day-costs checkboxes by the Print button) control the output,
+    a **per-day cost** line can show in each day heading, and the appended sections start
+    on a **fresh page** (`break-before`). ItineraryBoard takes `tripName`/`currency`/
+    `notes` props and load() also pulls budget_entries + packing_items (best-effort;
+    print-only, never blocks the board).
   - Place list: click a row = select + focus map; ✏️ **Edit** button opens the editor
     (no more modal covering the map on every tap).
   - **Expanded place categories** + free-text "Other" (`0015`).

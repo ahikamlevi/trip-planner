@@ -2555,6 +2555,31 @@ button.secondary.danger {
   display: none;
 }
 
+/* Print include/exclude toggles, shown next to the Print button (screen only). */
+.print-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.print-opts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.print-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #555);
+  white-space: nowrap;
+}
+.print-opt input {
+  margin: 0;
+}
+
 @media print {
   body * {
     visibility: hidden;
@@ -2652,9 +2677,16 @@ button.secondary.danger {
     color: #444;
     font-size: 9.5pt;
   }
-  /* Appended sections: trip notes, budget summary, packing list. */
+  /* Appended sections: trip notes, budget summary, packing list. Start them on a
+     fresh page so they don't crowd the last day. */
+  .print-extras {
+    break-before: page;
+  }
   .print-extra {
     margin-top: 1.1rem;
+  }
+  .print-extra:first-child {
+    margin-top: 0;
   }
   .print-notes-body {
     white-space: pre-wrap;

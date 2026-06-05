@@ -82,6 +82,8 @@ export function ItineraryBoard({
   const [stops, setStops] = useState<Stop[]>([])
   const [budgetEntries, setBudgetEntries] = useState<BudgetEntry[]>([])
   const [packing, setPacking] = useState<PackingItem[]>([])
+  // What to include in the printable itinerary (the day plan is always included).
+  const [printOpts, setPrintOpts] = useState({ notes: true, budget: true, packing: true, dayCosts: true })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeLabel, setActiveLabel] = useState<string | null>(null)
@@ -548,14 +550,34 @@ export function ItineraryBoard({
               >
                 {t('itin.addToCalendar')}
               </button>
-              <button
-                className="secondary cal-export"
-                onClick={printItinerary}
-                disabled={printDays.length === 0}
-                title={t('itin.printHint')}
-              >
-                {t('itin.print')}
-              </button>
+              <span className="print-group">
+                <button
+                  className="secondary cal-export"
+                  onClick={printItinerary}
+                  disabled={printDays.length === 0}
+                  title={t('itin.printHint')}
+                >
+                  {t('itin.print')}
+                </button>
+                <span className="print-opts">
+                  <span className="muted small">{t('itin.printInclude')}</span>
+                  {([
+                    ['notes', 'itin.printNotes'],
+                    ['budget', 'itin.printBudget'],
+                    ['packing', 'itin.printPacking'],
+                    ['dayCosts', 'itin.printDayCosts'],
+                  ] as const).map(([key, label]) => (
+                    <label key={key} className="print-opt">
+                      <input
+                        type="checkbox"
+                        checked={printOpts[key]}
+                        onChange={(e) => setPrintOpts((o) => ({ ...o, [key]: e.target.checked }))}
+                      />
+                      {t(label)}
+                    </label>
+                  ))}
+                </span>
+              </span>
             </div>
 
             {view === 'month' && (
@@ -644,7 +666,9 @@ export function ItineraryBoard({
         weatherByDate={weatherByDate}
         routeLegs={routeLegs}
         budget={budget}
+        entries={budgetEntries}
         packing={packing}
+        opts={printOpts}
         locale={locale}
       />
     </div>
@@ -664,7 +688,9 @@ function PrintItinerary({
   weatherByDate,
   routeLegs,
   budget,
+  entries,
   packing,
+  opts,
   locale,
 }: {
   tripName: string
@@ -677,11 +703,17 @@ function PrintItinerary({
   weatherByDate: Map<string, DayWeather>
   routeLegs: Map<string, RouteLeg | null>
   budget: { total: number; byCategory: [string, number][] }
+  entries: BudgetEntry[]
   packing: PackingItem[]
+  opts: { notes: boolean; budget: boolean; packing: boolean; dayCosts: boolean }
   locale: string
 }) {
   const { t } = useT()
   const areaName = (id: string | null) => areas.find((a) => a.id === id)?.name ?? null
+  // A day's total cost: per-stop + per-leg costs, plus budget entries tied to that day.
+  const dayTotal = (bd: BoardDay) =>
+    bd.stops.reduce((s, x) => s + (x.cost ?? 0) + (x.travel_cost ?? 0), 0) +
+    entries.filter((e) => e.day_id === bd.day.id).reduce((s, e) => s + Number(e.amount), 0)
   const dateRange =
     startDate && endDate ? `${formatDayLabel(startDate, locale)} – ${formatDayLabel(endDate, locale)}` : null
 
@@ -720,6 +752,7 @@ function PrintItinerary({
       {days.map((bd) => {
         const an = areaName(bd.day.area_id)
         const w = weatherByDate.get(bd.day.date)
+        const dt = dayTotal(bd)
         return (
           <section className="print-day" key={bd.day.id}>
             <h2>
@@ -732,6 +765,9 @@ function PrintItinerary({
                   {w.kind === 'normal' ? '≈' : ''}
                   {w.tMax}°/{w.tMin}°
                 </span>
+              )}
+              {opts.dayCosts && dt > 0 && (
+                <span className="print-area"> · 💰 {formatMoney(dt, currency, locale)}</span>
               )}
             </h2>
             {bd.day.note && <p className="print-day-note">📝 {bd.day.note}</p>}
@@ -763,41 +799,50 @@ function PrintItinerary({
         )
       })}
 
-      {notes && (
-        <section className="print-day print-extra">
-          <h2>{t('notes.title')}</h2>
-          <p className="print-notes-body">{notes}</p>
-        </section>
-      )}
-
-      {budget.byCategory.length > 0 && (
-        <section className="print-day print-extra">
-          <h2>
-            {t('budget.total')}: {formatMoney(budget.total, currency, locale)}
-          </h2>
-          <ul className="print-budget">
-            {budget.byCategory.map(([cat, amount]) => (
-              <li key={cat}>
-                <span>{cat}</span>
-                <span>{formatMoney(amount, currency, locale)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {packing.length > 0 && (
-        <section className="print-day print-extra">
-          <h2>{t('packing.title')}</h2>
-          <ul className="print-packing">
-            {packing.map((p) => (
-              <li key={p.id}>
-                {p.packed ? '☑' : '☐'} {p.label}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {(() => {
+        const showNotes = opts.notes && !!notes
+        const showBudget = opts.budget && budget.byCategory.length > 0
+        const showPacking = opts.packing && packing.length > 0
+        if (!showNotes && !showBudget && !showPacking) return null
+        // The extras start on a fresh page so they don't crowd the last day.
+        return (
+          <div className="print-extras">
+            {showNotes && (
+              <section className="print-day print-extra">
+                <h2>{t('notes.title')}</h2>
+                <p className="print-notes-body">{notes}</p>
+              </section>
+            )}
+            {showBudget && (
+              <section className="print-day print-extra">
+                <h2>
+                  {t('budget.total')}: {formatMoney(budget.total, currency, locale)}
+                </h2>
+                <ul className="print-budget">
+                  {budget.byCategory.map(([cat, amount]) => (
+                    <li key={cat}>
+                      <span>{cat}</span>
+                      <span>{formatMoney(amount, currency, locale)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {showPacking && (
+              <section className="print-day print-extra">
+                <h2>{t('packing.title')}</h2>
+                <ul className="print-packing">
+                  {packing.map((p) => (
+                    <li key={p.id}>
+                      {p.packed ? '☑' : '☐'} {p.label}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        )
+      })()}
 
       <footer className="print-foot">{t('itin.printFooter')}</footer>
     </div>
