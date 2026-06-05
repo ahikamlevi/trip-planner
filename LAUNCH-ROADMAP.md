@@ -156,13 +156,13 @@ Make the recommendations genuinely good.
 - ☐ **PWA / installable + offline** itinerary.
 - ☐ **Lighthouse** pass (perf/SEO/best-practices/a11y all green).
 - ☐ Formal **WCAG 2.1 AA** audit + screen-reader testing + accessibility statement.
-- ☑ Expand i18n — now **12 languages** (EN/HE/ES/FR/DE/IT/PT/AR/ZH/JA/RU/HI, 358 keys
+- ☑ Expand i18n — now **18 languages** (EN/HE/ES/FR/DE/IT/PT/NL/PL/TR/RU/AR/HI/ID/VI/ZH/JA/KO, 365 keys
   each, exact key parity). RTL for Hebrew + Arabic (`RTL_LANGS`); `Intl` locale per
-  language. Non-Latin/RTL translations (ar/zh/ja/ru/hi) are machine-quality — worth a
+  language. Non-Latin/RTL/CJK translations (ar/zh/ja/ru/hi/ko/id/vi) are machine-quality — worth a
   native review; wording is a one-line tweak per key.
-- ☐ **More languages on demand** (e.g. Korean, Turkish, Polish, Dutch, Indonesian,
-  Vietnamese). Each is one `Dict` + the Lang/LANGUAGES/DICTS/LOCALES entries (and
-  RTL_LANGS if RTL). Keep the 358-key parity (the per-dict key-count check catches gaps).
+- ☐ **More languages on demand** (next-most-requested: Thai, Greek, Czech, Swedish,
+  Ukrainian, Bengali). Each is one `Dict` + the Lang/LANGUAGES/DICTS/LOCALES entries
+  (and RTL_LANGS if RTL). Keep the per-dict key-count parity (current 365).
 
 ---
 

@@ -133,9 +133,9 @@ live.
   search returns cheap fields, premium fields fetched on demand; cached in
   `poi_cache`. See **§4.1** for the operational details.
 - **Drag & drop:** `@dnd-kit` (core, sortable, utilities).
-- **i18n:** custom lightweight solution in `src/i18n/` (12 languages: English, Hebrew,
-  Spanish, French, German, Italian, Portuguese, Arabic, Chinese, Japanese, Russian,
-  Hindi; RTL for Hebrew + Arabic).
+- **i18n:** custom lightweight solution in `src/i18n/` (18 languages: English, Hebrew, Spanish,
+  French, German, Italian, Portuguese, Dutch, Polish, Turkish, Russian, Arabic, Hindi,
+  Indonesian, Vietnamese, Chinese, Japanese, Korean; RTL for Hebrew + Arabic).
 - **Backend code:** one Supabase **Edge Function** (`supabase/functions/discover/`,
   Deno/TypeScript) for Foursquare discovery. Everything else is client + Supabase SQL.
 
@@ -394,8 +394,8 @@ cross-origin redirect the browser can't follow), and the function follows the re
   - **Accessibility foundation:** focus-visible rings, reduced-motion, skip link,
     `<main>`/`<nav>` landmarks, aria-labels on icon buttons, keyboard-operable month
     cells + stop names, dnd-kit screen-reader announcements, AA contrast.
-  - **RTL + multilingual i18n (12 langs: EN, HE, ES, FR, DE, IT, PT, AR, ZH, JA, RU, HI):**
-    central dictionary `src/i18n/strings.ts` (twelve dicts with identical key sets — 358
+  - **RTL + multilingual i18n (18 langs: EN, HE, ES, FR, DE, IT, PT, NL, PL, TR, RU, AR, HI, ID, VI, ZH, JA, KO):**
+    central dictionary `src/i18n/strings.ts` (eighteen dicts with identical key sets — 358
     keys each), `I18nProvider`/`useT()`, header language switcher, persists choice, flips
     `dir`/`lang` via an `RTL_LANGS` set (he+ar=rtl; rest=ltr), default Hebrew. `Intl`
     locale per lang via a `LOCALES` map (he-IL, es-ES, fr-FR, de-DE, it-IT, pt-PT, ar,
@@ -495,7 +495,7 @@ auth/        AuthProvider.tsx (session + passwordRecovery), Login.tsx, SetPasswo
 components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu), ErrorBoundary.tsx,
              Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx,
              Toast.tsx (ToastProvider + useToast — app-wide notifications/Undo)
-i18n/        strings.ts (12 lang dicts), I18nProvider.tsx (useT), LanguageSwitcher.tsx
+i18n/        strings.ts (18 lang dicts), I18nProvider.tsx (useT), LanguageSwitcher.tsx
 theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts, sentry.ts
 map/         MapRenderer.ts (interface), MapView.tsx (React wrapper), index.ts (active
