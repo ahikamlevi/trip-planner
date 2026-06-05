@@ -216,17 +216,21 @@ export function ItineraryBoard({
       }
     }
     if (need.length === 0) return
-    need.forEach((n) => fetchedRef.current.add(n.key))
     let cancelled = false
     void (async () => {
       const results = await Promise.all(need.map(async (n) => [n.key, await getRouteCached(n.o, n.d)] as const))
-      if (!cancelled) {
-        setRouteLegs((prev) => {
-          const m = new Map(prev)
-          for (const [key, leg] of results) m.set(key, leg)
-          return m
-        })
-      }
+      if (cancelled) return
+      setRouteLegs((prev) => {
+        const m = new Map(prev)
+        for (const [key, leg] of results) m.set(key, leg)
+        return m
+      })
+      // Mark as fetched only AFTER the results are stored. Marking before the fetch
+      // meant that if byDate changed again mid-flight (e.g. adding a stop fires an
+      // explicit reload plus a debounced realtime reload), this run was cancelled but
+      // its keys stayed "fetched" — so the new leg's time/distance never loaded until
+      // the board remounted (a tab switch). Marking here keeps it self-healing.
+      for (const [key] of results) fetchedRef.current.add(key)
     })()
     return () => {
       cancelled = true
@@ -1005,14 +1009,16 @@ function modeIcon(mode?: string | null): string {
 }
 
 function legText(leg: Leg, t: (k: string, v?: Record<string, string | number>) => string): string {
-  if (leg.locMissing) return t('itin.locationMissing')
+  // Cost is independent of routing — always append it, even when the time/route is
+  // missing or still loading, or a saved leg cost looks like it didn't save.
+  const price = leg.cost != null && leg.cost > 0 ? ` · 💰 ${leg.cost}` : ''
+  if (leg.locMissing) return `${t('itin.locationMissing')}${price}`
   if (leg.mins == null) {
-    if (leg.loading) return '…'
-    if (leg.noRoute) return t('itin.noRoute')
-    return '—'
+    if (leg.loading) return `…${price}`
+    if (leg.noRoute) return `${t('itin.noRoute')}${price}`
+    return `—${price}`
   }
   const dist = leg.meters != null ? `${formatKm(leg.meters)} · ` : ''
-  const price = leg.cost != null && leg.cost > 0 ? ` · 💰 ${leg.cost}` : ''
   return `${dist}${leg.mins} min${price}`
 }
 
