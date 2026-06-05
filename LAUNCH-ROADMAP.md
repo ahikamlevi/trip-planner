@@ -120,7 +120,12 @@ not direct `*.supabase.co` calls.
 ## Phase 2 — Accounts & onboarding
 Turn "manually-created accounts" into self-serve.
 
-- ☐ **Enable public sign-ups** + email verification.
+- ◐ **Enable public sign-ups** + email verification — **sign-up UI done** (`Login.tsx`
+  "Create account" mode: email+password, min 8, shows a "verify your email" notice when
+  confirmation is on). **Remaining (operational/Supabase):** flip **Authentication →
+  Sign In/Up → Allow new users to sign up** ON, turn on **Confirm email**, set the
+  sign-up/confirmation email templates, and add abuse controls (CAPTCHA, throttling)
+  before truly opening. Until the toggle is on, the form returns "Signups not allowed".
 - ☐ **Onboarding flow** (create first trip, sample data, guided tips).
 - ☐ **Generalized roles:** owner / editor / **viewer** (read-only share links).
 - ☐ Polished password reset + account settings + delete-account (GDPR).

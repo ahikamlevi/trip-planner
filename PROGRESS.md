@@ -287,6 +287,10 @@ cross-origin redirect the browser can't follow), and the function follows the re
 - **Methods:** magic link **and** email+password (both on the login screen).
 - **Sign-ups are DISABLED** in Supabase. Accounts are created by hand
   (Authentication → Users → Add user). This keeps the app private to the two of us.
+  NOTE: a **"Create account" sign-up UI now exists** in `Login.tsx` (email+password,
+  min 8 chars, with a "verify your email" notice). It stays inert until you flip
+  **Authentication → Allow new users to sign up** ON (the form just returns "Signups not
+  allowed" otherwise) — so the app is still private until you decide to open it.
 - In-app **set/change password** (header "Password" button), **forgot password**
   link, and a **password-recovery screen** (handles Supabase `PASSWORD_RECOVERY`).
 - **Email delivery:** Resend custom SMTP (the built-in Supabase sender is rate-
