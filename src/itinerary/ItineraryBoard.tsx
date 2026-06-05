@@ -46,6 +46,7 @@ import {
   weekdayHeaders,
 } from './dates'
 import { buildICS, downloadICS, type IcsEvent } from './ics'
+import { formatMoney } from '../budget/money'
 import { useTripWeather, weatherMeta, normalEmoji, type DayWeather } from '../weather/openMeteo'
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -60,10 +61,14 @@ interface BoardDay {
 
 export function ItineraryBoard({
   tripId,
+  tripName,
+  currency,
   startDate,
   endDate,
 }: {
   tripId: string
+  tripName: string
+  currency: string
   startDate: string | null
   endDate: string | null
 }) {
@@ -176,6 +181,23 @@ export function ItineraryBoard({
   function exportCalendar() {
     if (timedEvents.length === 0) return
     downloadICS('trip-itinerary.ics', buildICS(timedEvents, t('itin.calName')))
+  }
+
+  // Days to print: every day that has stops or a note, in date order. (Empty days are
+  // skipped so the printout stays a clean plan, not a blank calendar.)
+  const printDays = useMemo(
+    () =>
+      [...byDate.values()]
+        .filter((bd) => bd.stops.length > 0 || bd.day.note)
+        .sort((a, b) => a.day.date.localeCompare(b.day.date)),
+    [byDate],
+  )
+
+  // Print / Save-as-PDF: a clean linear document (hidden on screen) is revealed by the
+  // print stylesheet, then we open the browser's print dialog.
+  function printItinerary() {
+    if (printDays.length === 0) return
+    window.print()
   }
 
   // Places stay in the palette permanently (reusable). Count how many times each
@@ -492,6 +514,14 @@ export function ItineraryBoard({
               >
                 {t('itin.addToCalendar')}
               </button>
+              <button
+                className="secondary cal-export"
+                onClick={printItinerary}
+                disabled={printDays.length === 0}
+                title={t('itin.printHint')}
+              >
+                {t('itin.print')}
+              </button>
             </div>
 
             {view === 'month' && (
@@ -568,6 +598,129 @@ export function ItineraryBoard({
 
         <DragOverlay>{activeLabel ? <div className="drag-overlay">{activeLabel}</div> : null}</DragOverlay>
       </DndContext>
+
+      <PrintItinerary
+        tripName={tripName}
+        currency={currency}
+        startDate={startDate}
+        endDate={endDate}
+        days={printDays}
+        areas={areas}
+        weatherByDate={weatherByDate}
+        routeLegs={routeLegs}
+        locale={locale}
+      />
+    </div>
+  )
+}
+
+// A clean, linear, read-only version of the itinerary for print / Save-as-PDF. Hidden
+// on screen (the print stylesheet reveals it), so it never affects the live board.
+function PrintItinerary({
+  tripName,
+  currency,
+  startDate,
+  endDate,
+  days,
+  areas,
+  weatherByDate,
+  routeLegs,
+  locale,
+}: {
+  tripName: string
+  currency: string
+  startDate: string | null
+  endDate: string | null
+  days: BoardDay[]
+  areas: Area[]
+  weatherByDate: Map<string, DayWeather>
+  routeLegs: Map<string, RouteLeg | null>
+  locale: string
+}) {
+  const { t } = useT()
+  const areaName = (id: string | null) => areas.find((a) => a.id === id)?.name ?? null
+  const dateRange =
+    startDate && endDate ? `${formatDayLabel(startDate, locale)} – ${formatDayLabel(endDate, locale)}` : null
+
+  // A compact travel line between two consecutive stops (mode · distance · time · cost).
+  function legLine(prev: BoardStop, cur: BoardStop): string | null {
+    const located =
+      prev.place.lat != null && prev.place.lng != null && cur.place.lat != null && cur.place.lng != null
+    let autoMins: number | null = null
+    let autoMeters: number | null = null
+    if (located) {
+      const leg = routeLegs.get(
+        legKey({ lat: prev.place.lat!, lng: prev.place.lng! }, { lat: cur.place.lat!, lng: cur.place.lng! }),
+      )
+      if (leg) {
+        autoMins = Math.round(leg.durationSeconds / 60)
+        autoMeters = leg.distanceMeters
+      }
+    }
+    const mins = cur.travel_min ?? autoMins
+    const meters = cur.travel_dist_m ?? autoMeters
+    const parts: string[] = [modeIcon(cur.travel_mode)]
+    if (meters != null) parts.push(formatKm(meters))
+    if (mins != null) parts.push(`${mins} min`)
+    if (cur.travel_cost != null && cur.travel_cost > 0) parts.push(`💰 ${formatMoney(cur.travel_cost, currency, locale)}`)
+    if (cur.travel_note) parts.push(`📝 ${cur.travel_note}`)
+    return parts.length > 1 ? parts.join(' · ') : null
+  }
+
+  return (
+    <div className="print-itinerary" aria-hidden="true">
+      <header className="print-head">
+        <h1>{tripName}</h1>
+        {dateRange && <p>{dateRange}</p>}
+      </header>
+
+      {days.map((bd) => {
+        const an = areaName(bd.day.area_id)
+        const w = weatherByDate.get(bd.day.date)
+        return (
+          <section className="print-day" key={bd.day.id}>
+            <h2>
+              {formatDayLabel(bd.day.date, locale)}
+              {an && <span className="print-area"> · {an}</span>}
+              {w && (
+                <span className="print-weather">
+                  {' · '}
+                  {w.kind === 'normal' ? normalEmoji(w.precipMm ?? 0) : weatherMeta(w.code ?? 0).emoji}{' '}
+                  {w.kind === 'normal' ? '≈' : ''}
+                  {w.tMax}°/{w.tMin}°
+                </span>
+              )}
+            </h2>
+            {bd.day.note && <p className="print-day-note">📝 {bd.day.note}</p>}
+            <ol className="print-stops">
+              {bd.stops.map((s, i) => {
+                const meta = categoryMeta(s.place.category)
+                const line = i > 0 ? legLine(bd.stops[i - 1], s) : null
+                const metaBits: string[] = []
+                if (s.duration_min != null) metaBits.push(`⏱ ${s.duration_min} min`)
+                if (s.cost != null) metaBits.push(`💰 ${formatMoney(s.cost, currency, locale)}`)
+                if (s.place.city) metaBits.push(s.place.city)
+                return (
+                  <li className="print-stop" key={s.id}>
+                    {line && <div className="print-leg">↓ {line}</div>}
+                    <div className="print-stop-head">
+                      <span className="print-time">{s.arrival_time ? s.arrival_time.slice(0, 5) : '—'}</span>
+                      <span className="print-name">
+                        {meta.emoji} {s.place.name}
+                      </span>
+                    </div>
+                    {metaBits.length > 0 && <div className="print-stop-meta">{metaBits.join(' · ')}</div>}
+                    {s.place.notes && <div className="print-stop-notes">{s.place.notes}</div>}
+                    {s.place.dietary_notes && <div className="print-stop-notes">🍽 {s.place.dietary_notes}</div>}
+                  </li>
+                )
+              })}
+            </ol>
+          </section>
+        )
+      })}
+
+      <footer className="print-foot">{t('itin.printFooter')}</footer>
     </div>
   )
 }

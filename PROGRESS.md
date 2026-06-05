@@ -28,6 +28,10 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent session work (this is the newest layer):**
+  - **Print / export itinerary**: "🖨️ Print / PDF" button → a clean, hidden, linear
+    `PrintItinerary` doc revealed by `@media print` (same pattern as the allergy card) →
+    browser print dialog → Save as PDF. Per-day date/area/weather/note + stops + travel
+    legs; costs in trip currency. ItineraryBoard now takes `tripName` + `currency` props.
   - Place list: click a row = select + focus map; ✏️ **Edit** button opens the editor
     (no more modal covering the map on every tap).
   - **Expanded place categories** + free-text "Other" (`0015`).
@@ -499,7 +503,11 @@ supabase/functions/resolve-place/index.ts    Deno Edge Function (expand short Ma
 - ~~Per-day weather~~ — DONE (Open-Meteo, keyless; high/low + emoji on day panels &
   month cells, per-day location. **Forecast** within ~16 days + **climate normal**
   ("typical this time of year", 10-yr archive avg) for planning further out; `src/weather/`).
-- **Print/export a clean itinerary** (print stylesheet → PDF).
+- ~~Print/export a clean itinerary~~ — DONE: "🖨️ Print / PDF" button in the itinerary
+  toolbar reveals a hidden linear read-only doc (`PrintItinerary` in `ItineraryBoard.tsx`)
+  via `@media print` (same reveal pattern as the allergy card) → browser print → Save as
+  PDF. Per day: date/area/weather/note + stops (time/name/duration/cost/notes/dietary) +
+  travel legs; costs in trip currency.
 - **"Deleted · Undo" toasts** (we use confirmations now; true undo is non-trivial with
   instant-save + realtime — likely a deferred-delete toast).
 - **Place photos** / image uploads + trip cover *image* (needs Supabase Storage).

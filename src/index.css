@@ -2550,6 +2550,11 @@ button.secondary.danger {
 }
 
 /* When printing, show only the allergy card. */
+/* Printable itinerary — hidden on screen; the print stylesheet below reveals it. */
+.print-itinerary {
+  display: none;
+}
+
 @media print {
   body * {
     visibility: hidden;
@@ -2562,5 +2567,99 @@ button.secondary.danger {
     position: absolute;
     inset: 0;
     margin: 0;
+  }
+
+  /* Reveal the clean itinerary document and lay it out for paper. Pin top + sides but
+     NOT bottom, so a multi-day (multi-page) itinerary flows and paginates instead of
+     being clipped to one page. */
+  .print-itinerary {
+    display: block;
+    visibility: visible;
+    position: absolute;
+    top: 0;
+    inset-inline: 0;
+    margin: 0;
+    color: #000;
+    background: #fff;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+  .print-itinerary * {
+    visibility: visible;
+  }
+  .print-head {
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .print-head h1 {
+    margin: 0;
+    font-size: 20pt;
+  }
+  .print-head p {
+    margin: 0.2rem 0 0;
+    color: #333;
+  }
+  .print-day {
+    break-inside: avoid;
+    margin-bottom: 0.9rem;
+  }
+  .print-day h2 {
+    font-size: 13pt;
+    margin: 0 0 0.3rem;
+    padding-bottom: 0.1rem;
+    border-bottom: 1px solid #999;
+  }
+  .print-area,
+  .print-weather {
+    font-size: 10pt;
+    font-weight: normal;
+    color: #555;
+  }
+  .print-day-note {
+    font-style: italic;
+    margin: 0.2rem 0;
+  }
+  .print-stops {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .print-stop {
+    break-inside: avoid;
+    margin-bottom: 0.35rem;
+  }
+  .print-leg {
+    margin: 0.1rem 0 0.2rem 1.4rem;
+    color: #555;
+    font-size: 9.5pt;
+  }
+  .print-stop-head {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .print-time {
+    font-weight: bold;
+    min-width: 3.4rem;
+  }
+  .print-name {
+    font-weight: 600;
+  }
+  .print-stop-meta,
+  .print-stop-notes {
+    margin-inline-start: 3.9rem;
+    color: #444;
+    font-size: 9.5pt;
+  }
+  .print-foot {
+    margin-top: 1rem;
+    border-top: 1px solid #999;
+    padding-top: 0.3rem;
+    font-size: 8.5pt;
+    color: #777;
+  }
+  @page {
+    margin: 1.5cm;
   }
 }

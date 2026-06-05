@@ -49,7 +49,13 @@ The visible layer. What a new user judges in the first 30 seconds.
   **climate normal** ("typical for this time of year", 10-yr archive average) for
   planning further out — shown with a `≈`/italic so it's not mistaken for a forecast.
   `src/weather/openMeteo.ts` (`useTripWeather`); grouped by location, cached, best-effort.
-- ☐ **Export / print** a clean itinerary (print stylesheet → PDF).
+- ☑ **Export / print** a clean itinerary — a "🖨️ Print / PDF" button in the itinerary
+  toolbar reveals a hidden, linear, read-only document (`PrintItinerary` in
+  `ItineraryBoard.tsx`) via a print stylesheet (`@media print` in `index.css`, same
+  reveal pattern as the allergy card) and opens the browser print dialog → Save as PDF.
+  Per day: date + area + weather + note, then each stop (time, name, duration, cost,
+  notes, dietary) with the travel leg (mode·dist·time·cost) between stops. Costs use the
+  trip currency; pages break between days where possible.
 - ☑ **Editable travel legs** — click the connector between two stops to edit that leg:
   transport mode (walk/car/train/bus/bike/other, icon shown on the connector),
   manual time + distance overriding the auto OSRM values, and a per-leg note.

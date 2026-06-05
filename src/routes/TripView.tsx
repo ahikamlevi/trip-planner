@@ -137,7 +137,13 @@ export function TripView() {
 
         {tab === 'places' && <PlacesWorkspace tripId={trip.id} />}
         {tab === 'itinerary' && (
-          <ItineraryBoard tripId={trip.id} startDate={trip.start_date} endDate={trip.end_date} />
+          <ItineraryBoard
+            tripId={trip.id}
+            tripName={trip.name}
+            currency={trip.currency}
+            startDate={trip.start_date}
+            endDate={trip.end_date}
+          />
         )}
         {tab === 'budget' && <BudgetPanel tripId={trip.id} currency={trip.currency} />}
         {tab === 'packing' && <PackingPanel tripId={trip.id} />}
