@@ -149,8 +149,9 @@ Make the recommendations genuinely good.
 - ☐ **PWA / installable + offline** itinerary.
 - ☐ **Lighthouse** pass (perf/SEO/best-practices/a11y all green).
 - ☐ Formal **WCAG 2.1 AA** audit + screen-reader testing + accessibility statement.
-- ◐ Expand i18n — **Spanish (es) added** (EN/HE/ES, 358 keys each). More languages as
-  demand appears (the dictionary + switcher scale to any number).
+- ◐ Expand i18n — now **7 languages** (EN/HE/ES/FR/DE/IT/PT, 358 keys each, exact key
+  parity). RTL only for Hebrew; `Intl` locale per language. Next likely: Arabic (RTL —
+  add `ar` to the dir check), then CJK (zh/ja) + Russian/Hindi as demand appears.
 
 ---
 

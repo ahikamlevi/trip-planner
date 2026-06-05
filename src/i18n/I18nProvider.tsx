@@ -12,14 +12,27 @@ interface I18nState {
 
 const I18nContext = createContext<I18nState | undefined>(undefined)
 
+const SUPPORTED: Lang[] = ['he', 'en', 'es', 'fr', 'de', 'it', 'pt']
+
 function initialLang(): Lang {
   try {
-    const stored = localStorage.getItem('lang')
-    if (stored === 'en' || stored === 'he' || stored === 'es') return stored
+    const stored = localStorage.getItem('lang') as Lang | null
+    if (stored && SUPPORTED.includes(stored)) return stored
   } catch {
     /* ignore */
   }
   return 'he'
+}
+
+// BCP-47 locale for Intl (dates, currency). Default region per language.
+const LOCALES: Record<Lang, string> = {
+  he: 'he-IL',
+  en: 'en',
+  es: 'es-ES',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  it: 'it-IT',
+  pt: 'pt-PT',
 }
 
 function applyDocumentLang(lang: Lang) {
@@ -56,7 +69,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [lang],
   )
 
-  const locale = lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : 'en'
+  const locale = LOCALES[lang] ?? 'en'
 
   return <I18nContext.Provider value={{ lang, setLang, t, locale }}>{children}</I18nContext.Provider>
 }
