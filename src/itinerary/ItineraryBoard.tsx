@@ -580,6 +580,29 @@ export function ItineraryBoard({
     else load()
   }
 
+  // Move a day (and all its stops, since they reference day_id) to a different
+  // calendar date. Fixes the "I built routes under the wrong date" case. If a day
+  // already exists on the target date, surface a clear error instead of silently
+  // merging (uniqueness isn't enforced in SQL, but two days for the same date would
+  // confuse byDate and the views).
+  async function changeDayDate(fromIso: string, toIso: string) {
+    if (toIso === fromIso) return
+    const src = days.find((d) => d.date === fromIso)
+    if (!src) return
+    if (days.some((d) => d.date === toIso)) {
+      toast.error(t('itin.dateChangeCollision', { date: toIso }))
+      return
+    }
+    const { error } = await supabase.from('days').update({ date: toIso }).eq('id', src.id)
+    if (error) toast.error(t('common.saveFailed'))
+    else {
+      await load()
+      // Follow the day to its new date so the user lands on the same content.
+      setCursor(toIso)
+      toast.success(t('common.saved'))
+    }
+  }
+
   // --- navigation ----------------------------------------------------------
   function shift(dir: number) {
     if (view === 'day') setCursor(addDays(cursor, dir))
@@ -701,6 +724,7 @@ export function ItineraryBoard({
                     onAreaChange={(areaId) => setDayArea(iso, areaId)}
                     onNoteChange={(note) => setDayNote(iso, note)}
                     onClear={byDate.get(iso) ? () => clearDay(byDate.get(iso)!) : undefined}
+                    onChangeDate={byDate.get(iso) ? (newIso) => changeDayDate(iso, newIso) : undefined}
                     onOpenDay={() => {
                       setCursor(iso)
                       setView('day')
@@ -727,6 +751,7 @@ export function ItineraryBoard({
                   onAreaChange={(areaId) => setDayArea(cursor, areaId)}
                   onNoteChange={(note) => setDayNote(cursor, note)}
                   onClear={byDate.get(cursor) ? () => clearDay(byDate.get(cursor)!) : undefined}
+                  onChangeDate={byDate.get(cursor) ? (newIso) => changeDayDate(cursor, newIso) : undefined}
                   onFocusStop={focusStop}
                   routeLegs={routeLegs}
                   places={places}
@@ -1083,6 +1108,7 @@ function DayPanel({
   onAreaChange,
   onNoteChange,
   onClear,
+  onChangeDate,
   onOpenDay,
   onFocusStop,
   onStopChange,
@@ -1100,6 +1126,7 @@ function DayPanel({
   onAreaChange: (areaId: string | null) => void
   onNoteChange: (note: string) => void
   onClear?: () => void
+  onChangeDate?: (newIso: string) => void
   onOpenDay?: () => void
   onFocusStop?: (s: BoardStop) => void
   onStopChange: () => void
@@ -1194,6 +1221,9 @@ function DayPanel({
               🧭 <bdi dir="ltr">{formatTravelTotal(travelMin)}</bdi> {t('itin.travel')}
             </span>
           )}
+          {onChangeDate && boardDay && (
+            <ChangeDayDate iso={iso} onChange={onChangeDate} />
+          )}
           {onClear && (
             <button className="linklike danger" onClick={onClear} title={t('itin.clearDay')} aria-label={t('itin.clearDay')}>×</button>
           )}
@@ -1281,6 +1311,45 @@ function AddStopPicker({ places, onPick }: { places: Place[]; onPick: (placeId: 
         </ul>
       )}
     </div>
+  )
+}
+
+// Small inline date picker on a day header: a 📅 button reveals a native date input.
+// Lets the user move a whole day (and its stops) to a different calendar date — fixing
+// the "I built routes under the wrong date" case without forcing them to re-drag every
+// stop. The picker auto-closes after a change or on outside click.
+function ChangeDayDate({ iso, onChange }: { iso: string; onChange: (newIso: string) => void }) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [open])
+  return (
+    <span className="day-date-change">
+      <button
+        type="button"
+        className="linklike"
+        title={t('itin.changeDate')}
+        aria-label={t('itin.changeDate')}
+        onClick={() => setOpen((v) => !v)}
+      >
+        📅
+      </button>
+      {open && (
+        <input
+          ref={inputRef}
+          type="date"
+          defaultValue={iso}
+          onBlur={() => setOpen(false)}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v && v !== iso) onChange(v)
+            setOpen(false)
+          }}
+        />
+      )}
+    </span>
   )
 }
 

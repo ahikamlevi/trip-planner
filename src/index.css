@@ -1629,6 +1629,16 @@ button.secondary.danger {
   gap: 0.5rem;
 }
 
+.day-date-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.day-date-change input[type='date'] {
+  padding: 0.2rem 0.3rem;
+  font-size: 0.8rem;
+}
+
 .busy-flag {
   font-size: 0.72rem;
   color: var(--warn);
