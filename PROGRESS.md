@@ -24,10 +24,40 @@ live.
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
   discovery silently falls back to free Overpass/OSM.
 - Now being built toward a **public, polished product** (not just 2 users) — see
-  `LAUNCH-ROADMAP.md`. Recent work: Daylight-Teal theming, landing page, Foursquare
-  discovery (categories + free-text + cost control + caching), dietary/allergy card,
-  stop reminders + calendar export, editable travel legs, per-place colors, search-as-
-  preview, and many mobile/UX fixes.
+  `LAUNCH-ROADMAP.md`. Earlier work: Daylight-Teal theming, landing page, Foursquare
+  discovery, dietary/allergy card, stop reminders + calendar export, editable travel
+  legs, per-place colors, and many mobile/UX fixes.
+- **Recent session work (this is the newest layer):**
+  - Place list: click a row = select + focus map; ✏️ **Edit** button opens the editor
+    (no more modal covering the map on every tap).
+  - **Expanded place categories** + free-text "Other" (`0015`).
+  - **⚙️ gear menus** — trip Edit/Delete + account (Change password / Sign out).
+  - **Member email** shown in the roster (`0016`); **trip-owner-check** RLS (`0017`).
+  - **Discovery overhaul:** search stays on Foursquare's free **Pro tier** (no rating);
+    premium details fetched **only on an explicit "ℹ️ Details" tap** (cached); "+ Add"
+    folds rating/price/phone/website/description into the place **notes**. Sticky map is
+    an opaque panel; results + wishlist are capped scroll boxes. **XSS fix** (escaped
+    map tooltips) + edge-function error-leak fix.
+  - **Per-leg travel cost** (`0018`) → counts in the Budget under Transport.
+  - **Per-user rate limiter** for `discover` (`0019`) — 60 searches/hr, 100 details/day.
+  - **Per-day weather** (Open-Meteo, keyless): forecast (~16d) + **climate normal**
+    ("typical for this time of year") for planning further out.
+  - **Toast system** (`src/components/Toast.tsx`) adopted across all panels — save
+    confirmations, friendly errors, Packing **Undo**.
+  - **Sentry** error monitoring (opt-in via `VITE_SENTRY_DSN`, errors-only).
+  - **Stadia Maps** for **tiles** (`osm_bright`) + **geocoding** (search/reverse,
+    Pelias autocomplete) when `VITE_STADIA_API_KEY` is set; OSM/Nominatim fallback.
+
+### ⚠️ Operational state / pending for production (read this on a fresh start)
+- **Migrations `0015`–`0019` are applied** in Supabase, and the **`discover` Edge
+  Function is redeployed** (current `index.ts`: Pro-tier search, on-demand details,
+  per-user rate limiting, generic error bodies — no `_raw`).
+- **Local `.env` has `VITE_SENTRY_DSN` + `VITE_STADIA_API_KEY`** (git-ignored), so
+  Sentry + Stadia tiles/geocoding are live **locally**. They are **NOT yet set in
+  Vercel**, so **production still uses OSM/Nominatim and has no Sentry.** To finish:
+  add both env vars in **Vercel → Settings → Environment Variables** and redeploy.
+- **Routing** (travel times) is **still OSRM** — the one remaining map piece to move
+  to Stadia (it's behind the `RouteProvider` adapter; OSRM stays as fallback).
 
 ---
 
@@ -36,10 +66,11 @@ live.
 - **Frontend:** React 18 + TypeScript + Vite. Plain CSS in `src/index.css` (no
   Tailwind/UI lib). Routing via `react-router-dom`.
 - **Backend:** Supabase — Postgres, Auth, Row Level Security, Realtime.
-- **Map:** Leaflet behind a swappable `MapRenderer` adapter (`src/map/`). **Tiles** are
-  configurable (`src/map/tiles.ts`): **Stadia Maps** (production-licensed, theme-matched
-  light/dark) when `VITE_STADIA_API_KEY` is set, else the free public **OpenStreetMap**
-  tiles. Place search via OSM Nominatim (`src/places/search.ts`).
+- **Map:** Leaflet behind a swappable `MapRenderer` adapter (`src/map/`). **Tiles**
+  (`src/map/tiles.ts`): **Stadia Maps** `osm_bright` (always the bright classic style)
+  when `VITE_STADIA_API_KEY` is set, else free public **OpenStreetMap** tiles.
+  **Geocoding** (place search + reverse-geocode city, `src/places/search.ts`):
+  **Stadia** Pelias autocomplete when the key is set, else OSM **Nominatim** fallback.
 - **Routing/travel time:** OSRM public server (keyless), behind a swappable
   `RouteProvider` adapter (`src/routing/`), results cached in `route_cache`.
 - **Place discovery:** behind a swappable `DiscoveryProvider` adapter
