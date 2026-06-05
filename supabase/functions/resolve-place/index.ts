@@ -84,6 +84,7 @@ function isAllowedHost(host: string): boolean {
   const h = host.toLowerCase()
   if (h === 'goo.gl' || h.endsWith('.goo.gl')) return true // incl. maps.app.goo.gl
   if (h === 'apple.com' || h.endsWith('.apple.com')) return true // maps.apple.com
+  if (h === 'maps.apple' || h.endsWith('.maps.apple')) return true // Apple's short domain
   // google.com / www.google.com / maps.google.com / consent.google.com / google.co.uk …
   return /(^|\.)google(\.[a-z]{2,3}){1,2}$/.test(h)
 }
@@ -131,6 +132,8 @@ function extractFromUrl(href: string): { lat: number; lng: number; name?: string
     (at && parseLatLng(`${at[1]},${at[2]}`)) ||
     parseLatLng(params.get('ll')) ||
     parseLatLng(params.get('sll')) ||
+    parseLatLng(params.get('coordinate')) ||
+    parseLatLng(params.get('center')) ||
     parseLatLng(params.get('q')) ||
     parseLatLng(params.get('query')) ||
     parseLatLng(params.get('daddr'))

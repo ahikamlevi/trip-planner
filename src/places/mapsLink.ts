@@ -38,6 +38,15 @@ function decodeName(raw: string | null | undefined): string | undefined {
 // must be expanded server-side. (maps.app.goo.gl is itself under goo.gl, but match both.)
 const isShortHost = (host: string) => /(^|\.)goo\.gl$/i.test(host) || /(^|\.)maps\.app\.goo\.gl$/i.test(host)
 
+// A known Google/Apple maps host. If such a link carries no coordinates we hand it to
+// the server-side resolver (e.g. Apple "maps.apple/p/…" short links, Apple "?address=")
+// rather than failing outright.
+const isMapsHost = (host: string) =>
+  isShortHost(host) ||
+  /(^|\.)google(\.[a-z]{2,3}){1,2}$/i.test(host) ||
+  host === 'maps.apple' ||
+  /(^|\.)apple\.com$/i.test(host)
+
 export function parseMapsLink(input: string): ParsedMapsLink {
   const text = input.trim()
   if (!text) return { kind: 'unrecognized' }
@@ -94,14 +103,16 @@ export function parseMapsLink(input: string): ParsedMapsLink {
     parseLatLng(params.get('ll')) ||
     parseLatLng(params.get('sll')) ||
     parseLatLng(params.get('coordinate')) ||
+    parseLatLng(params.get('center')) ||
     parseLatLng(params.get('q')) ||
     parseLatLng(params.get('query')) ||
     parseLatLng(params.get('daddr'))
 
   if (coords) return { kind: 'place', ...coords, name }
 
-  // A recognised maps host but no coordinates (e.g. Apple "?address=") — let the
-  // resolver try if it's a short host; otherwise we genuinely can't read it.
+  // A recognised maps host but no coordinates (e.g. an Apple "maps.apple/p/…" short link
+  // or "?address=") — hand it to the server-side resolver. Anything else we can't read.
+  if (isMapsHost(host)) return { kind: 'needs-resolver', url: url.href }
   return { kind: 'unrecognized' }
 }
 
