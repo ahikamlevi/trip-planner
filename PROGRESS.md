@@ -130,7 +130,7 @@ live.
   search returns cheap fields, premium fields fetched on demand; cached in
   `poi_cache`. See **§4.1** for the operational details.
 - **Drag & drop:** `@dnd-kit` (core, sortable, utilities).
-- **i18n:** custom lightweight solution in `src/i18n/` (English + Hebrew, RTL).
+- **i18n:** custom lightweight solution in `src/i18n/` (English, Hebrew, Spanish; RTL for Hebrew).
 - **Backend code:** one Supabase **Edge Function** (`supabase/functions/discover/`,
   Deno/TypeScript) for Foursquare discovery. Everything else is client + Supabase SQL.
 
@@ -385,10 +385,11 @@ cross-origin redirect the browser can't follow), and the function follows the re
   - **Accessibility foundation:** focus-visible rings, reduced-motion, skip link,
     `<main>`/`<nav>` landmarks, aria-labels on icon buttons, keyboard-operable month
     cells + stop names, dnd-kit screen-reader announcements, AA contrast.
-  - **RTL + bilingual i18n (English + Hebrew):** central dictionary
-    `src/i18n/strings.ts`, `I18nProvider`/`useT()`, header language switcher,
-    persists choice, flips `dir`/`lang` (he=rtl, en=ltr), default Hebrew. Dates and
-    currency are locale-aware via `Intl`.
+  - **RTL + multilingual i18n (English, Hebrew, Spanish):** central dictionary
+    `src/i18n/strings.ts` (three dicts with identical key sets — 358 keys each),
+    `I18nProvider`/`useT()`, header language switcher, persists choice, flips `dir`/`lang`
+    (he=rtl; en/es=ltr), default Hebrew. Locale for `Intl` (dates/currency): he→`he-IL`,
+    es→`es-ES`, else `en`. Missing keys fall back to English.
   - **Itinerary places palette**: when there are >6 places, a search box + category
     filter chips appear and the list scrolls (max-height) so a long palette doesn't
     stretch the page.
@@ -466,7 +467,7 @@ cross-origin redirect the browser can't follow), and the function follows the re
    swap one line to change provider. Billable providers (Google/Mapbox) would move
    behind a Supabase Edge Function so the key stays server-side.
 6. **Private auth:** magic link + password, sign-ups disabled, manual accounts.
-7. **Hebrew default + bilingual switcher;** all strings in `src/i18n/strings.ts`.
+7. **Hebrew default + multilingual switcher (EN/HE/ES);** all strings in `src/i18n/strings.ts`.
 
 ---
 
@@ -482,7 +483,7 @@ auth/        AuthProvider.tsx (session + passwordRecovery), Login.tsx, SetPasswo
 components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu), ErrorBoundary.tsx,
              Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx,
              Toast.tsx (ToastProvider + useToast — app-wide notifications/Undo)
-i18n/        strings.ts (EN+HE dict), I18nProvider.tsx (useT), LanguageSwitcher.tsx
+i18n/        strings.ts (EN/HE/ES dicts), I18nProvider.tsx (useT), LanguageSwitcher.tsx
 theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)
 lib/         supabase.ts, database.types.ts (hand-authored), useTripRealtime.ts, sentry.ts
 map/         MapRenderer.ts (interface), MapView.tsx (React wrapper), index.ts (active

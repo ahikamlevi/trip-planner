@@ -15,7 +15,7 @@ const I18nContext = createContext<I18nState | undefined>(undefined)
 function initialLang(): Lang {
   try {
     const stored = localStorage.getItem('lang')
-    if (stored === 'en' || stored === 'he') return stored
+    if (stored === 'en' || stored === 'he' || stored === 'es') return stored
   } catch {
     /* ignore */
   }
@@ -56,7 +56,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [lang],
   )
 
-  const locale = lang === 'he' ? 'he-IL' : 'en'
+  const locale = lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : 'en'
 
   return <I18nContext.Provider value={{ lang, setLang, t, locale }}>{children}</I18nContext.Provider>
 }

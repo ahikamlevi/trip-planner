@@ -149,7 +149,8 @@ Make the recommendations genuinely good.
 - ☐ **PWA / installable + offline** itinerary.
 - ☐ **Lighthouse** pass (perf/SEO/best-practices/a11y all green).
 - ☐ Formal **WCAG 2.1 AA** audit + screen-reader testing + accessibility statement.
-- ☐ Expand i18n beyond EN/HE as demand appears.
+- ◐ Expand i18n — **Spanish (es) added** (EN/HE/ES, 358 keys each). More languages as
+  demand appears (the dictionary + switcher scale to any number).
 
 ---
 
