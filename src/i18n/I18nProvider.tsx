@@ -12,7 +12,7 @@ interface I18nState {
 
 const I18nContext = createContext<I18nState | undefined>(undefined)
 
-const SUPPORTED: Lang[] = ['he', 'en', 'es', 'fr', 'de', 'it', 'pt']
+const SUPPORTED: Lang[] = ['he', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ar', 'zh', 'ja', 'ru', 'hi']
 
 function initialLang(): Lang {
   try {
@@ -33,11 +33,18 @@ const LOCALES: Record<Lang, string> = {
   de: 'de-DE',
   it: 'it-IT',
   pt: 'pt-PT',
+  ar: 'ar',
+  zh: 'zh-CN',
+  ja: 'ja-JP',
+  ru: 'ru-RU',
+  hi: 'hi-IN',
 }
+
+const RTL_LANGS: Lang[] = ['he', 'ar']
 
 function applyDocumentLang(lang: Lang) {
   document.documentElement.lang = lang
-  document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr'
+  document.documentElement.dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr'
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
