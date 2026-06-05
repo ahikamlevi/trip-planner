@@ -20,7 +20,8 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0019`** must be run in Supabase; the **`discover` Edge
+- **Migrations through `0020`** must be run in Supabase (⚠️ **`0020` is new this session —
+  not yet applied**: reference places + phone won't work until it's run); the **`discover` Edge
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
   discovery silently falls back to free Overpass/OSM.
 - Now being built toward a **public, polished product** (not just 2 users) — see
@@ -28,6 +29,13 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent session work (this is the newest layer):**
+  - **Reference places** (`0020`): mark any place as a **📌 reference** (not on a route —
+    hospital/police/pharmacy/hotel…) in the place editor, which also gained a **phone**
+    field. Each itinerary **day view** shows a **"📌 Nearby" panel**: routed drive
+    distance/time from the **selected stop** (anchor) to each reference place
+    (`getRouteCached`, cached), a tap-to-call phone, and notes — plus distinct **red pins**
+    on the day map. `places.is_reference` + `places.phone` columns; `ItineraryBoard` adds
+    `referencePlaces`/`anchorStop`/`refLegs` + `NearbyPanel`.
   - **Map & Places layout**: the map is no longer a big full-width panel on top — it's now
     **side by side** with the lists (sticky map on the right, ~380px) like the itinerary,
     with a **"⤢ Bigger map"** toggle to grow it. Stacks (map on top) under 820px. Added
@@ -170,6 +178,7 @@ They are mostly idempotent.
 | `0017_trip_owner_check.sql` | adds `WITH CHECK (owner_id = auth.uid())` to the `trips` UPDATE policy so an owner can't reassign `owner_id` and orphan the trip (security hardening) |
 | `0018_stop_travel_cost.sql` | `stops.travel_cost` (price of the travel leg into a stop; edited in the leg editor, counted in the budget under Transport) |
 | `0019_rate_limit.sql` | `api_rate_limit` table + `consume_rate_limit(_user,_bucket,_limit,_window_seconds)` SECURITY DEFINER fn (fixed-window per-user limiter for the `discover` function; client EXECUTE revoked; self-pruning, no pg_cron) |
+| `0020_place_reference.sql` | `places.is_reference` (bool — show a place's distance per itinerary day without adding it to a route) + `places.phone` (tap-to-call in the day "Nearby" panel) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -177,7 +186,7 @@ They are mostly idempotent.
 - `trip_members` (trip_id, user_id, role: owner|editor)
 - `areas` (trip_id, name, sort_order)
 - `days` (trip_id, date, area_id, note)
-- `places` (trip_id, name, lat, lng, category[food|cafe|bar|sight|museum|outdoors|beach|hotel|shopping|transport|pharmacy|hospital|police|other], category_other[free-text label when category=other], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, scheduled[UNUSED now])
+- `places` (trip_id, name, lat, lng, category[food|cafe|bar|sight|museum|outdoors|beach|hotel|shopping|transport|pharmacy|hospital|police|other], category_other[free-text label when category=other], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, phone, is_reference[show distance per day without routing], scheduled[UNUSED now])
 - `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost, reminder_min, travel_mode, travel_min, travel_dist_m, travel_note, travel_cost)
 - `route_cache` (origin, dest, mode, distance, duration, fetched_at)
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
@@ -559,7 +568,7 @@ shrink the ~680 kB bundle.
 
 1. Edit code → `npm run typecheck` (or `npx tsc -b`) and `npm run build` to verify.
 2. If schema changed, add a numbered migration in `supabase/migrations/` AND run it
-   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0014`.
+   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0020`.
 3. If `supabase/functions/discover/index.ts` changed, **redeploy the Edge Function**
    (Dashboard paste or `supabase functions deploy discover`) — pushing to git does NOT
    deploy it (only the Vercel frontend auto-deploys).

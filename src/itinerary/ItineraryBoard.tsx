@@ -258,6 +258,50 @@ export function ItineraryBoard({
     setFocusStopId(s.id)
   }
 
+  // Reference places (not on any route) shown per-day with distance from the selected
+  // stop. The flag lives on the place (trip-wide); each day computes its own distances.
+  const referencePlaces = useMemo(
+    () => places.filter((p) => p.is_reference && p.lat != null && p.lng != null),
+    [places],
+  )
+
+  // Anchor for the day's "Nearby" distances = the stop you've selected, else the day's
+  // first located stop.
+  const anchorStop = useMemo(() => {
+    const located = (byDate.get(cursor)?.stops ?? []).filter((s) => s.place.lat != null && s.place.lng != null)
+    return located.find((s) => s.id === focusStopId) ?? located[0] ?? null
+  }, [byDate, cursor, focusStopId])
+
+  // Routed legs from the anchor stop to each reference place (cached in route_cache).
+  // Mark fetched only AFTER storing (same self-healing pattern as the route-leg effect).
+  const [refLegs, setRefLegs] = useState<Map<string, RouteLeg | null>>(new Map())
+  const refFetched = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!anchorStop || referencePlaces.length === 0) return
+    const o = { lat: anchorStop.place.lat as number, lng: anchorStop.place.lng as number }
+    const need = referencePlaces
+      .map((p) => {
+        const d = { lat: p.lat as number, lng: p.lng as number }
+        return { key: legKey(o, d), o, d }
+      })
+      .filter((n) => !refFetched.current.has(n.key))
+    if (need.length === 0) return
+    let cancelled = false
+    void (async () => {
+      const results = await Promise.all(need.map(async (n) => [n.key, await getRouteCached(n.o, n.d)] as const))
+      if (cancelled) return
+      setRefLegs((prev) => {
+        const m = new Map(prev)
+        for (const [k, leg] of results) m.set(k, leg)
+        return m
+      })
+      for (const [k] of results) refFetched.current.add(k)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [anchorStop, referencePlaces])
+
   // Travel legs between consecutive located stops, fetched (cached) lazily.
   const [routeLegs, setRouteLegs] = useState<Map<string, RouteLeg | null>>(new Map())
   const fetchedRef = useRef<Set<string>>(new Set())
@@ -641,12 +685,16 @@ export function ItineraryBoard({
                   onAddStop={(placeId) => addStopToDay(cursor, placeId)}
                   onStopChange={load}
                 />
-                <ItineraryDayMap
-                  iso={cursor}
-                  stops={byDate.get(cursor)?.stops ?? []}
-                  focus={focusPoint}
-                  selectedId={focusStopId}
-                />
+                <div className="day-side">
+                  <ItineraryDayMap
+                    iso={cursor}
+                    stops={byDate.get(cursor)?.stops ?? []}
+                    references={referencePlaces}
+                    focus={focusPoint}
+                    selectedId={focusStopId}
+                  />
+                  <NearbyPanel anchor={anchorStop} places={referencePlaces} refLegs={refLegs} />
+                </div>
               </div>
             )}
           </div>
@@ -1197,14 +1245,22 @@ function DayNoteEditor({ initial, onCommit }: { initial: string; onCommit: (note
   )
 }
 
+const REFERENCE_COLOR = '#dc2626' // red — reference places (hospital/police/…) stand out
+
+function escapeHtmlItin(s: string): string {
+  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
+}
+
 function ItineraryDayMap({
   iso,
   stops,
+  references,
   focus,
   selectedId,
 }: {
   iso: string
   stops: BoardStop[]
+  references: Place[]
   focus?: LatLng | null
   selectedId?: string | null
 }) {
@@ -1239,6 +1295,20 @@ function ItineraryDayMap({
     label: `${i + 1}. ${s.place.name}`,
     selected: s.id === selectedId,
   }))
+  // Reference places (not on the route) shown as distinct red pins for context.
+  for (const p of references) {
+    if (p.lat == null || p.lng == null) continue
+    markers.push({
+      id: `ref:${p.id}`,
+      position: { lat: p.lat, lng: p.lng },
+      category: p.category,
+      color: REFERENCE_COLOR,
+      label: p.name,
+      popup: `<div class="map-popup"><strong>${categoryMeta(p.category).emoji} ${escapeHtmlItin(p.name)}</strong>${
+        p.phone ? `<div>📞 ${escapeHtmlItin(p.phone)}</div>` : ''
+      }</div>`,
+    })
+  }
 
   return (
     <div className="itinerary-map">
@@ -1260,6 +1330,86 @@ function ItineraryDayMap({
 
 function formatKm(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`
+}
+
+// Straight-line distance (km) — used to sort reference places and as a fallback label
+// while the routed leg is still loading.
+function haversineKm(a: LatLng, b: LatLng): number {
+  const R = 6371
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const la1 = (a.lat * Math.PI) / 180
+  const la2 = (b.lat * Math.PI) / 180
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+// "Nearby" side note for the day view: each reference place with its routed distance/
+// time from the selected stop, a tap-to-call phone, and its notes. Sorted nearest-first.
+function NearbyPanel({
+  anchor,
+  places,
+  refLegs,
+}: {
+  anchor: BoardStop | null
+  places: Place[]
+  refLegs: Map<string, RouteLeg | null>
+}) {
+  const { t } = useT()
+  if (places.length === 0) return null
+
+  const origin = anchor ? { lat: anchor.place.lat as number, lng: anchor.place.lng as number } : null
+  const rows = places
+    .map((p) => {
+      const dest = { lat: p.lat as number, lng: p.lng as number }
+      const km = origin ? haversineKm(origin, dest) : null
+      const leg = origin ? refLegs.get(legKey(origin, dest)) : null
+      return { p, km, leg }
+    })
+    .sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity))
+
+  return (
+    <div className="nearby-panel card">
+      <div className="wishlist-head">
+        <span>{t('itin.nearbyTitle')}</span>
+        {anchor && <span className="muted small">{t('itin.nearbyFrom', { name: anchor.place.name })}</span>}
+      </div>
+      {!anchor && <p className="muted small">{t('itin.nearbyNoAnchor')}</p>}
+      <ul className="place-list">
+        {rows.map(({ p, km, leg }) => (
+          <li key={p.id}>
+            <div className="nearby-row">
+              <span className="place-emoji">{categoryMeta(p.category).emoji}</span>
+              <span className="nearby-name">{p.name}</span>
+              <span className="nearby-dist">
+                <bdi dir="ltr">
+                  {!anchor
+                    ? '—'
+                    : leg === undefined
+                      ? '…'
+                      : leg
+                        ? `🚗 ${Math.round(leg.durationSeconds / 60)} min · ${formatKm(leg.distanceMeters)}`
+                        : km != null
+                          ? `~${km.toFixed(1)} km`
+                          : t('itin.noRoute')}
+                </bdi>
+              </span>
+            </div>
+            {(p.phone || p.notes) && (
+              <div className="nearby-meta">
+                {p.phone && (
+                  <a className="nearby-phone" href={`tel:${p.phone.replace(/\s+/g, '')}`}>
+                    📞 {p.phone}
+                  </a>
+                )}
+                {p.notes && <span className="muted small">{p.notes}</span>}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 // "HH:MM[:SS]" -> minutes since midnight, or null if unset/invalid.

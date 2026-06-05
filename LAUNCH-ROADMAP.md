@@ -215,6 +215,9 @@ phases are cross-referenced, not duplicated.
   builds on the existing budget model; keyless.
 - ☐ **Route optimization** — nearest-neighbor reorder of a day's stops over the OSRM
   legs already fetched; one-tap "apply". Keyless, high wow-factor.
+- ☑ **Reference places** (`0020`) — mark a place (hospital/police/pharmacy/hotel) as a
+  📌 reference; the itinerary day view shows routed distance/time from the selected stop
+  to each, a tap-to-call phone, and red pins on the day map. `places.is_reference`/`phone`.
 - ☐ **Group voting / ❤️ on wishlist places** — cheap collaboration win, reuses realtime.
 - ☐ **Packing templates + drag-reorder/categories** (`sort_order` already in schema).
 - ☐ **Per-place / per-stop comments** (attributed, realtime).

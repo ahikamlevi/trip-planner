@@ -171,6 +171,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       color?: string | null
       est_cost?: number | null
       dietary_notes?: string | null
+      phone?: string | null
+      is_reference?: boolean
       select?: boolean
     }) => {
       const { data, error } = await supabase
@@ -188,6 +190,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
           color: input.color ?? null,
           est_cost: input.est_cost ?? null,
           dietary_notes: input.dietary_notes ?? null,
+          phone: input.phone ?? null,
+          is_reference: input.is_reference ?? false,
           scheduled: false,
         })
         .select('*')
@@ -265,6 +269,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       color: patch.color ?? null,
       est_cost: patch.est_cost ?? null,
       dietary_notes: patch.dietary_notes ?? null,
+      phone: patch.phone ?? null,
+      is_reference: patch.is_reference ?? false,
       select: false,
     })
     setPending(null)
@@ -730,6 +736,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
                 city: pending.city ?? null,
                 est_cost: null,
                 scheduled: false,
+                is_reference: false,
+                phone: null,
                 created_at: '',
               }}
               onSave={addPending}
@@ -907,6 +915,8 @@ function PlaceEditor({
   const [cost, setCost] = useState(place.est_cost?.toString() ?? '')
   const [city, setCity] = useState(place.city ?? '')
   const [color, setColor] = useState<string | null>(place.color)
+  const [phone, setPhone] = useState(place.phone ?? '')
+  const [isReference, setIsReference] = useState(place.is_reference)
 
   return (
     <div className="place-editor">
@@ -979,6 +989,24 @@ function PlaceEditor({
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={t('places.cityHint')} />
       </label>
 
+      <label>
+        {t('places.phone')}
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder={t('places.phoneHint')}
+        />
+      </label>
+
+      <label className="checkbox-row">
+        <input type="checkbox" checked={isReference} onChange={(e) => setIsReference(e.target.checked)} />
+        <span>
+          {t('places.reference')}
+          <span className="muted small block">{t('places.referenceHint')}</span>
+        </span>
+      </label>
+
       <div className="form-row">
         <label>
           {t('places.estCost')}
@@ -1025,6 +1053,8 @@ function PlaceEditor({
               color,
               city: city.trim() || null,
               est_cost: cost.trim() === '' ? null : Number(cost),
+              phone: phone.trim() || null,
+              is_reference: isReference,
             })
           }
         >

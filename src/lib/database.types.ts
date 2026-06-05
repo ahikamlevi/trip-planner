@@ -113,6 +113,8 @@ export interface Database {
           city: string | null
           est_cost: number | null
           scheduled: boolean
+          is_reference: boolean
+          phone: string | null
           created_at: string
         }
         Insert: {
@@ -131,6 +133,8 @@ export interface Database {
           city?: string | null
           est_cost?: number | null
           scheduled?: boolean
+          is_reference?: boolean
+          phone?: string | null
           created_at?: string
         }
         Update: {
@@ -149,6 +153,8 @@ export interface Database {
           city?: string | null
           est_cost?: number | null
           scheduled?: boolean
+          is_reference?: boolean
+          phone?: string | null
           created_at?: string
         }
         Relationships: []

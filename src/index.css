@@ -989,6 +989,22 @@ button.secondary.danger {
   width: 100%;
 }
 
+/* The "reference place" checkbox sits inline (label + hint) rather than stacked. */
+.place-editor .checkbox-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.place-editor .checkbox-row input {
+  width: auto;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+.block {
+  display: block;
+}
+
 .place-editor textarea {
   padding: 0.55rem 0.65rem;
   background: var(--surface);
@@ -1718,6 +1734,47 @@ button.secondary.danger {
   .cal-day .itinerary-map {
     position: static;
   }
+}
+
+/* Day view right column: the map plus the "Nearby" reference-places note. */
+.day-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.nearby-panel {
+  padding: 0.6rem 0.75rem;
+}
+.nearby-panel .place-list {
+  margin: 0;
+}
+.nearby-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.nearby-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.nearby-dist {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.nearby-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.75rem;
+  margin-inline-start: 1.6rem;
+  margin-top: 0.15rem;
+}
+.nearby-phone {
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 /* Leaflet popup on dark theme */
