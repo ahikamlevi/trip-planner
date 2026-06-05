@@ -180,9 +180,20 @@ async function expand(startUrl: string): Promise<{ url: string; body?: string } 
     })
     const loc = res.headers.get('location')
     if (res.status >= 300 && res.status < 400 && loc) {
-      current = new URL(loc, current).href // resolve relative redirects
-      // cancel the (empty) redirect body
-      await res.body?.cancel()
+      const next = new URL(loc, current).href // resolve relative redirects
+      await res.body?.cancel() // cancel the (empty) redirect body
+      let nu: URL
+      try {
+        nu = new URL(next)
+      } catch {
+        return null
+      }
+      if (!isAllowedHost(nu.hostname)) return null
+      // The short link's redirect Location usually already carries the coordinates
+      // (e.g. /maps/place/…/data=…!3d<lat>!4d<lng>) — if so we're done, and we avoid
+      // fetching Google's heavy (and bot-walled) maps page entirely.
+      if (extractFromUrl(next)) return { url: next }
+      current = next
       continue
     }
     // Terminal response — read the body only from an allowlisted host (it is), capped.
