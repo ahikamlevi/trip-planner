@@ -120,6 +120,8 @@ const en: Dict = {
   'trip.create': 'Create trip',
   'trip.creating': 'Creating…',
   'trip.namePlaceholder': 'Japan 2026',
+  'trip.shiftDaysConfirm': 'Shift all {count} days by {delta} to match the new start date?\n\nCancel keeps the days where they are.',
+  'trip.shiftDaysFailed': 'Couldn’t shift the days — try again.',
 
   // Roles
   'role.owner': 'owner',
@@ -519,6 +521,8 @@ const he: Dict = {
   'trip.create': 'יצירת טיול',
   'trip.creating': 'יוצר…',
   'trip.namePlaceholder': 'יפן 2026',
+  'trip.shiftDaysConfirm': 'להזיז את כל {count} הימים ב-{delta} כדי להתאים לתאריך ההתחלה החדש?\n\nביטול ישאיר את הימים במקומם.',
+  'trip.shiftDaysFailed': 'לא הצלחנו להזיז את הימים — נסה שוב.',
 
   'role.owner': 'בעלים',
   'role.editor': 'עורך',
@@ -912,6 +916,8 @@ const es: Dict = {
   'trip.create': 'Crear viaje',
   'trip.creating': 'Creando…',
   'trip.namePlaceholder': 'Japón 2026',
+  'trip.shiftDaysConfirm': '¿Desplazar los {count} días en {delta} para coincidir con la nueva fecha de inicio?\n\nCancelar deja los días donde están.',
+  'trip.shiftDaysFailed': 'No se pudieron desplazar los días — inténtalo de nuevo.',
 
   // Roles
   'role.owner': 'propietario',
@@ -1315,6 +1321,8 @@ const fr: Dict = {
   'trip.create': 'Créer le voyage',
   'trip.creating': 'Création…',
   'trip.namePlaceholder': 'Japon 2026',
+  'trip.shiftDaysConfirm': 'Décaler les {count} jours de {delta} pour correspondre à la nouvelle date de début ?\n\nAnnuler laisse les jours en place.',
+  'trip.shiftDaysFailed': 'Impossible de décaler les jours — réessayez.',
 
   // Roles
   'role.owner': 'propriétaire',
@@ -1718,6 +1726,8 @@ const de: Dict = {
   'trip.create': 'Reise erstellen',
   'trip.creating': 'Wird erstellt…',
   'trip.namePlaceholder': 'Japan 2026',
+  'trip.shiftDaysConfirm': 'Alle {count} Tage um {delta} verschieben, damit sie zum neuen Startdatum passen?\n\nAbbrechen lässt die Tage, wo sie sind.',
+  'trip.shiftDaysFailed': 'Konnte die Tage nicht verschieben — bitte erneut versuchen.',
 
   // Roles
   'role.owner': 'Inhaber',
@@ -2121,6 +2131,8 @@ const it: Dict = {
   'trip.create': 'Crea viaggio',
   'trip.creating': 'Creazione…',
   'trip.namePlaceholder': 'Giappone 2026',
+  'trip.shiftDaysConfirm': 'Spostare tutti i {count} giorni di {delta} per allinearli alla nuova data di inizio?\n\nAnnulla lascia i giorni dove sono.',
+  'trip.shiftDaysFailed': 'Impossibile spostare i giorni — riprova.',
 
   // Roles
   'role.owner': 'proprietario',
@@ -2524,6 +2536,8 @@ const pt: Dict = {
   'trip.create': 'Criar viagem',
   'trip.creating': 'A criar…',
   'trip.namePlaceholder': 'Japão 2026',
+  'trip.shiftDaysConfirm': 'Deslocar todos os {count} dias em {delta} para corresponder à nova data de início?\n\nCancelar mantém os dias onde estão.',
+  'trip.shiftDaysFailed': 'Não foi possível deslocar os dias — tente novamente.',
 
   // Roles
   'role.owner': 'proprietário',
@@ -2927,6 +2941,8 @@ const ar: Dict = {
   'trip.create': 'إنشاء رحلة',
   'trip.creating': 'جارٍ الإنشاء…',
   'trip.namePlaceholder': 'اليابان 2026',
+  'trip.shiftDaysConfirm': 'هل تريد إزاحة جميع الأيام البالغ عددها {count} بمقدار {delta} لتتطابق مع تاريخ البدء الجديد؟\n\nالإلغاء يبقي الأيام في مكانها.',
+  'trip.shiftDaysFailed': 'تعذّر إزاحة الأيام — حاول مرة أخرى.',
 
   // Roles
   'role.owner': 'المالك',
@@ -3330,6 +3346,8 @@ const zh: Dict = {
   'trip.create': '创建行程',
   'trip.creating': '正在创建…',
   'trip.namePlaceholder': '日本 2026',
+  'trip.shiftDaysConfirm': '要将所有 {count} 天移动 {delta} 天以匹配新的开始日期吗？\n\n取消则保留各天原位。',
+  'trip.shiftDaysFailed': '无法移动这些天 — 请重试。',
 
   // Roles
   'role.owner': '拥有者',
@@ -3733,6 +3751,8 @@ const ja: Dict = {
   'trip.create': '旅行を作成',
   'trip.creating': '作成中…',
   'trip.namePlaceholder': '日本 2026',
+  'trip.shiftDaysConfirm': '新しい開始日に合わせて、{count}日すべてを{delta}日ずらしますか？\n\nキャンセルすると各日はそのままになります。',
+  'trip.shiftDaysFailed': '日付の移動に失敗しました — もう一度お試しください。',
 
   // Roles
   'role.owner': 'オーナー',
@@ -4136,6 +4156,8 @@ const ru: Dict = {
   'trip.create': 'Создать поездку',
   'trip.creating': 'Создание…',
   'trip.namePlaceholder': 'Япония 2026',
+  'trip.shiftDaysConfirm': 'Сдвинуть все {count} дн. на {delta}, чтобы совпасть с новой датой начала?\n\nОтмена оставит дни на местах.',
+  'trip.shiftDaysFailed': 'Не удалось сдвинуть дни — попробуйте ещё раз.',
 
   // Roles
   'role.owner': 'владелец',
@@ -4539,6 +4561,8 @@ const hi: Dict = {
   'trip.create': 'यात्रा बनाएँ',
   'trip.creating': 'बन रही है…',
   'trip.namePlaceholder': 'जापान 2026',
+  'trip.shiftDaysConfirm': 'क्या नई शुरूआत तिथि से मेल खाने के लिए सभी {count} दिनों को {delta} से शिफ़्ट करें?\n\nरद्द करने पर दिन यथावत रहेंगे।',
+  'trip.shiftDaysFailed': 'दिन शिफ़्ट नहीं हो सके — कृपया फिर से प्रयास करें।',
 
   // Roles
   'role.owner': 'स्वामी',

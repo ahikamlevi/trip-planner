@@ -306,6 +306,10 @@ export interface Database {
         Args: { _trip_id: string; _email: string }
         Returns: string
       }
+      shift_trip_days: {
+        Args: { _trip_id: string; _delta_days: number }
+        Returns: number
+      }
     }
     Enums: {
       place_category: PlaceCategory

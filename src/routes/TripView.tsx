@@ -10,7 +10,7 @@ import { BudgetPanel } from '../budget/BudgetPanel'
 import { PackingPanel } from '../packing/PackingPanel'
 import { DietaryPanel } from '../dietary/DietaryPanel'
 import { CURRENCIES } from '../budget/money'
-import { today } from '../itinerary/dates'
+import { daysBetween, today } from '../itinerary/dates'
 import { useT } from '../i18n/I18nProvider'
 import { useToast } from '../components/Toast'
 import { supabase } from '../lib/supabase'
@@ -289,6 +289,31 @@ function TripHeader({
   async function save(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
+
+    // If the start date changed and the trip already has days, offer to shift the whole
+    // plan by the delta so existing routes/stops/notes move with the anchor — the
+    // common case is "I cloned a template / I set the trip on the wrong dates."
+    // When there was no previous start_date, anchor to the earliest existing day so
+    // the user's plan becomes Day 1 = new start, etc.
+    let shiftDelta = 0
+    if (start && start !== (trip.start_date ?? '')) {
+      const { data: dayRows } = await supabase
+        .from('days')
+        .select('date')
+        .eq('trip_id', trip.id)
+        .order('date')
+      if (dayRows && dayRows.length > 0) {
+        const anchor = trip.start_date ?? dayRows[0].date
+        const delta = daysBetween(anchor, start)
+        if (delta !== 0) {
+          const deltaLabel = delta > 0 ? `+${delta}` : String(delta)
+          if (confirm(t('trip.shiftDaysConfirm', { count: dayRows.length, delta: deltaLabel }))) {
+            shiftDelta = delta
+          }
+        }
+      }
+    }
+
     const { error } = await supabase
       .from('trips')
       .update({
@@ -300,11 +325,21 @@ function TripHeader({
         cover_emoji: emoji,
       })
       .eq('id', trip.id)
-    setSaving(false)
     if (error) {
+      setSaving(false)
       toast.error(t('common.saveFailed'))
       return
     }
+
+    if (shiftDelta !== 0) {
+      const { error: shiftErr } = await supabase.rpc('shift_trip_days', {
+        _trip_id: trip.id,
+        _delta_days: shiftDelta,
+      })
+      if (shiftErr) toast.error(t('trip.shiftDaysFailed'))
+    }
+
+    setSaving(false)
     setEditing(false)
     onChange()
     toast.success(t('common.saved'))

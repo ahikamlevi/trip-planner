@@ -8,6 +8,15 @@ export function addDays(isoDate: string, n: number): string {
   return dt.toISOString().slice(0, 10)
 }
 
+// Whole-day difference b - a (positive if b is after a). UTC arithmetic avoids the
+// DST off-by-one you'd get with local Dates.
+export function daysBetween(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number)
+  const [by, bm, bd] = b.split('-').map(Number)
+  const ms = Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)
+  return Math.round(ms / 86_400_000)
+}
+
 export function dateRange(start: string, end: string): string[] {
   if (!start || !end || end < start) return []
   const out: string[] = []

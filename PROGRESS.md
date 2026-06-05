@@ -20,7 +20,10 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0021`** must be run in Supabase (⚠️ **`0020`+`0021` are new this
+- **Migrations through `0022`** must be run in Supabase (⚠️ **`0022` is new this session —
+  not yet applied**: the trip-editor "shift all days when start date changes" prompt
+  silently won't shift until `shift_trip_days` exists). Previously:
+  ⚠️ **`0020`+`0021` are new this
   session — not yet applied**: per-day reference places + phone won't work until run;
   `0021` is self-sufficient — it also ensures `places.phone`); the **`discover` Edge
   Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
@@ -193,6 +196,7 @@ They are mostly idempotent.
 | `0019_rate_limit.sql` | `api_rate_limit` table + `consume_rate_limit(_user,_bucket,_limit,_window_seconds)` SECURITY DEFINER fn (fixed-window per-user limiter for the `discover` function; client EXECUTE revoked; self-pruning, no pg_cron) |
 | `0020_place_reference.sql` | `places.phone` (tap-to-call in the day "Nearby" panel) + `places.is_reference` (a global flag — **superseded by `0021`; column now unused**) |
 | `0021_day_references.sql` | `day_references` table (per-day reference places — a place tracked for distance on a specific day without being on its route) + RLS via `is_day_member` + realtime; also idempotently ensures `places.phone` |
+| `0022_shift_trip_days.sql` | `shift_trip_days(_trip_id,_delta_days)` SECURITY DEFINER RPC (atomic `update days set date = date + N` — used by the trip editor when the start date moves, e.g. anchoring a cloned template to the user's real dates) |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -594,7 +598,7 @@ shrink the ~680 kB bundle.
 
 1. Edit code → `npm run typecheck` (or `npx tsc -b`) and `npm run build` to verify.
 2. If schema changed, add a numbered migration in `supabase/migrations/` AND run it
-   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0021`.
+   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0022`.
 3. If `supabase/functions/discover/index.ts` changed, **redeploy the Edge Function**
    (Dashboard paste or `supabase functions deploy discover`) — pushing to git does NOT
    deploy it (only the Vercel frontend auto-deploys).
