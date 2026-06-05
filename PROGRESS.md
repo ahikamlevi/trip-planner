@@ -143,7 +143,12 @@ npm install
 npm run dev          # http://localhost:5173 (port pinned, strictPort)
 npm run build        # tsc -b && vite build
 npm run typecheck    # tsc -b --noEmit
+npm test             # vitest run (unit tests; npm run test:watch to watch)
 ```
+
+Tests use **Vitest** (`vitest.config` lives in `vite.config.ts`, `environment: 'node'`).
+Unit tests sit next to the code as `*.test.ts` — currently `src/places/mapsLink.test.ts`
+(the Maps-link parser). Add jsdom + React Testing Library later for component tests.
 
 Requires a `.env` (git-ignored) at repo root:
 ```

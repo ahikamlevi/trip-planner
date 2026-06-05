@@ -181,7 +181,11 @@ phases are cross-referenced, not duplicated.
   RLS correct, SECURITY DEFINER funcs sound, popups/JSX escaped, `npm audit` prod-clean.
 
 ### Engineering health (audit)
-- ☐ **Add a test harness** — Vitest + RTL for units (start with pure logic:
+- ◐ **Add a test harness** — **Vitest set up** (`npm test`, config in `vite.config.ts`,
+  Node env); first suite is `src/places/mapsLink.test.ts` (10 cases over the Maps-link
+  parser). **Remaining:** jsdom + React Testing Library for component tests; more
+  pure-logic suites (routing decode, dates, money). Originally:
+  Vitest + RTL for units (start with pure logic:
   `dates.ts`, `ics.ts`, `money.ts`, the itinerary "too-tight/busy-day" math), one
   Playwright happy-path e2e. *Zero tests today — biggest single gap.*
 - ☐ **Add ESLint + Prettier** (and `eslint-plugin-react-hooks`) — 6 files already
