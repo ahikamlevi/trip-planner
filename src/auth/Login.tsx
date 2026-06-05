@@ -73,6 +73,17 @@ export function Login() {
     if (!data.session) setStatus('verify')
   }
 
+  async function oauth(provider: 'google' | 'facebook') {
+    setError(null)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    })
+    // On success the browser redirects to the provider; on failure (e.g. provider not
+    // enabled in Supabase) we surface the message instead of a silent no-op.
+    if (error) setError(error.message)
+  }
+
   async function sendMagicLink(e: FormEvent) {
     e.preventDefault()
     setStatus('working')
@@ -168,6 +179,18 @@ export function Login() {
               onClick={() => switchMode(mode === 'signup' ? 'password' : 'signup')}
             >
               {mode === 'signup' ? t('auth.haveAccount') : t('auth.noAccount')}
+            </button>
+          </div>
+
+          <div className="auth-divider">
+            <span>{t('auth.orContinue')}</span>
+          </div>
+          <div className="auth-oauth">
+            <button type="button" className="oauth-btn" onClick={() => void oauth('google')}>
+              <span aria-hidden="true">G</span> {t('auth.continueGoogle')}
+            </button>
+            <button type="button" className="oauth-btn" onClick={() => void oauth('facebook')}>
+              <span aria-hidden="true">f</span> {t('auth.continueFacebook')}
             </button>
           </div>
         </form>

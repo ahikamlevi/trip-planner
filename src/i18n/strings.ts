@@ -53,6 +53,9 @@ const en: Dict = {
   'auth.passwordsDontMatch': 'Passwords don’t match.',
   'auth.setYourPassword': 'Set your password',
   'auth.passwordHelp': 'Lets you sign in with email + password.',
+  'auth.orContinue': 'or',
+  'auth.continueGoogle': 'Continue with Google',
+  'auth.continueFacebook': 'Continue with Facebook',
 
   // Common
   'common.save': 'Save',
@@ -450,6 +453,9 @@ const he: Dict = {
   'auth.passwordsDontMatch': 'הסיסמאות אינן תואמות.',
   'auth.setYourPassword': 'הגדרת סיסמה',
   'auth.passwordHelp': 'מאפשר התחברות עם אימייל וסיסמה.',
+  'auth.orContinue': 'או',
+  'auth.continueGoogle': 'המשך עם Google',
+  'auth.continueFacebook': 'המשך עם Facebook',
 
   'common.save': 'שמירה',
   'common.cancel': 'ביטול',
@@ -835,6 +841,9 @@ const es: Dict = {
   'auth.passwordsDontMatch': 'Las contraseñas no coinciden.',
   'auth.setYourPassword': 'Establece tu contraseña',
   'auth.passwordHelp': 'Te permite iniciar sesión con correo y contraseña.',
+  'auth.orContinue': 'o',
+  'auth.continueGoogle': 'Continuar con Google',
+  'auth.continueFacebook': 'Continuar con Facebook',
 
   // Common
   'common.save': 'Guardar',
@@ -1233,6 +1242,9 @@ const fr: Dict = {
   'auth.passwordsDontMatch': 'Les mots de passe ne correspondent pas.',
   'auth.setYourPassword': 'Définissez votre mot de passe',
   'auth.passwordHelp': 'Permet de vous connecter avec e-mail + mot de passe.',
+  'auth.orContinue': 'ou',
+  'auth.continueGoogle': 'Continuer avec Google',
+  'auth.continueFacebook': 'Continuer avec Facebook',
 
   // Common
   'common.save': 'Enregistrer',
@@ -1631,6 +1643,9 @@ const de: Dict = {
   'auth.passwordsDontMatch': 'Die Passwörter stimmen nicht überein.',
   'auth.setYourPassword': 'Lege dein Passwort fest',
   'auth.passwordHelp': 'Ermöglicht die Anmeldung mit E-Mail + Passwort.',
+  'auth.orContinue': 'oder',
+  'auth.continueGoogle': 'Mit Google fortfahren',
+  'auth.continueFacebook': 'Mit Facebook fortfahren',
 
   // Common
   'common.save': 'Speichern',
@@ -2029,6 +2044,9 @@ const it: Dict = {
   'auth.passwordsDontMatch': 'Le password non coincidono.',
   'auth.setYourPassword': 'Imposta la tua password',
   'auth.passwordHelp': 'Ti permette di accedere con e-mail + password.',
+  'auth.orContinue': 'oppure',
+  'auth.continueGoogle': 'Continua con Google',
+  'auth.continueFacebook': 'Continua con Facebook',
 
   // Common
   'common.save': 'Salva',
@@ -2427,6 +2445,9 @@ const pt: Dict = {
   'auth.passwordsDontMatch': 'As palavras-passe não coincidem.',
   'auth.setYourPassword': 'Defina a sua palavra-passe',
   'auth.passwordHelp': 'Permite entrar com e-mail + palavra-passe.',
+  'auth.orContinue': 'ou',
+  'auth.continueGoogle': 'Continuar com o Google',
+  'auth.continueFacebook': 'Continuar com o Facebook',
 
   // Common
   'common.save': 'Guardar',
@@ -2825,6 +2846,9 @@ const ar: Dict = {
   'auth.passwordsDontMatch': 'كلمتا المرور غير متطابقتين.',
   'auth.setYourPassword': 'عيّن كلمة مرورك',
   'auth.passwordHelp': 'تتيح لك تسجيل الدخول بالبريد وكلمة المرور.',
+  'auth.orContinue': 'أو',
+  'auth.continueGoogle': 'المتابعة باستخدام Google',
+  'auth.continueFacebook': 'المتابعة باستخدام Facebook',
 
   // Common
   'common.save': 'حفظ',
@@ -3223,6 +3247,9 @@ const zh: Dict = {
   'auth.passwordsDontMatch': '两次输入的密码不一致。',
   'auth.setYourPassword': '设置你的密码',
   'auth.passwordHelp': '让你可以用邮箱+密码登录。',
+  'auth.orContinue': '或',
+  'auth.continueGoogle': '使用 Google 继续',
+  'auth.continueFacebook': '使用 Facebook 继续',
 
   // Common
   'common.save': '保存',
@@ -3621,6 +3648,9 @@ const ja: Dict = {
   'auth.passwordsDontMatch': 'パスワードが一致しません。',
   'auth.setYourPassword': 'パスワードを設定してください',
   'auth.passwordHelp': 'メール＋パスワードでログインできるようになります。',
+  'auth.orContinue': 'または',
+  'auth.continueGoogle': 'Google で続行',
+  'auth.continueFacebook': 'Facebook で続行',
 
   // Common
   'common.save': '保存',
@@ -4019,6 +4049,9 @@ const ru: Dict = {
   'auth.passwordsDontMatch': 'Пароли не совпадают.',
   'auth.setYourPassword': 'Задайте пароль',
   'auth.passwordHelp': 'Позволяет входить по эл. почте и паролю.',
+  'auth.orContinue': 'или',
+  'auth.continueGoogle': 'Продолжить с Google',
+  'auth.continueFacebook': 'Продолжить с Facebook',
 
   // Common
   'common.save': 'Сохранить',
@@ -4417,6 +4450,9 @@ const hi: Dict = {
   'auth.passwordsDontMatch': 'पासवर्ड मेल नहीं खाते।',
   'auth.setYourPassword': 'अपना पासवर्ड सेट करें',
   'auth.passwordHelp': 'ईमेल + पासवर्ड से साइन इन करने देता है।',
+  'auth.orContinue': 'या',
+  'auth.continueGoogle': 'Google से जारी रखें',
+  'auth.continueFacebook': 'Facebook से जारी रखें',
 
   // Common
   'common.save': 'सहेजें',

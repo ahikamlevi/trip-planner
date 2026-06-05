@@ -126,6 +126,13 @@ Turn "manually-created accounts" into self-serve.
   Sign In/Up → Allow new users to sign up** ON, turn on **Confirm email**, set the
   sign-up/confirmation email templates, and add abuse controls (CAPTCHA, throttling)
   before truly opening. Until the toggle is on, the form returns "Signups not allowed".
+- ◐ **Social login (Google + Facebook)** — **UI done** (`Login.tsx`: "Continue with
+  Google/Facebook" buttons calling `supabase.auth.signInWithOAuth`; strings in all 12
+  langs). **Remaining (operational):** in each provider console create an OAuth app and
+  set the redirect URI to `https://<project>.supabase.co/auth/v1/callback`; then enable
+  Google + Facebook in **Supabase → Authentication → Providers** with the client ID/secret.
+  Until enabled, the buttons return a "provider not enabled" error. (Apple is the same
+  pattern — easy to add later; iOS users often expect it.)
 - ☐ **Onboarding flow** (create first trip, sample data, guided tips).
 - ☐ **Generalized roles:** owner / editor / **viewer** (read-only share links).
 - ☐ Polished password reset + account settings + delete-account (GDPR).
@@ -153,6 +160,9 @@ Make the recommendations genuinely good.
   each, exact key parity). RTL for Hebrew + Arabic (`RTL_LANGS`); `Intl` locale per
   language. Non-Latin/RTL translations (ar/zh/ja/ru/hi) are machine-quality — worth a
   native review; wording is a one-line tweak per key.
+- ☐ **More languages on demand** (e.g. Korean, Turkish, Polish, Dutch, Indonesian,
+  Vietnamese). Each is one `Dict` + the Lang/LANGUAGES/DICTS/LOCALES entries (and
+  RTL_LANGS if RTL). Keep the 358-key parity (the per-dict key-count check catches gaps).
 
 ---
 

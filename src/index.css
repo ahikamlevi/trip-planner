@@ -225,6 +225,42 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+/* Social sign-in */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.9rem 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.auth-oauth {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.oauth-btn span {
+  font-weight: 700;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
