@@ -169,7 +169,7 @@ phases are cross-referenced, not duplicated.
   Function (Phase 1 proxy work).
 - ☐ **Tighten `invite_member_by_email`** (email-enumeration: distinct
   `no_account`/`already_member`) once public sign-ups open.
-- ☐ **Raise password min length** (currently 6) for public launch.
+- ☑ **Raise password min length** — now 8 (`SetPassword.tsx`); was 6.
 - ☐ **RLS isolation test** — a two-user / pgTAP test proving user B can't read
   user A's data, run in CI. (Also under Engineering health.)
 - Verified-clean: no `service_role` in client, secrets clean, `poi_cache`/`profiles`
@@ -258,8 +258,12 @@ phases are cross-referenced, not duplicated.
 - ◐ **Error monitoring (Sentry)** — React app DONE (`src/lib/sentry.ts`, opt-in via
   `VITE_SENTRY_DSN`). Remaining: set the DSN in Vercel, source-map upload, and
   instrument the Edge Function.
-- ☐ **Security headers + CSP in `vercel.json`** (HSTS, X-Content-Type-Options,
-  X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP report-only first).
+- ◐ **Security headers + CSP in `vercel.json`** — DONE for the safe headers (HSTS,
+  X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy,
+  Permissions-Policy) + a **report-only CSP** baseline matching the app's real sources
+  (Supabase/Stadia/OSRM/Nominatim/Open-Meteo/Overpass/Sentry). **Remaining:** verify no
+  violations in production, then promote `Content-Security-Policy-Report-Only` →
+  `Content-Security-Policy` (enforcing). If hosting moves to Cloudflare, port to `_headers`.
 - ☐ **PWA + offline** (`vite-plugin-pwa`) — app shell + current-trip + tiles cached;
   disproportionately valuable for travel (signal loss abroad). (Phase 4.)
 - ✅ **Managed maps/geo provider** — DONE. All three Stadia-backed when

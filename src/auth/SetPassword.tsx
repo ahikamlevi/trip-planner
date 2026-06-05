@@ -12,7 +12,7 @@ export function SetPasswordForm({ onDone }: { onDone: () => void }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (pw.length < 6) return setError(t('auth.passwordTooShort'))
+    if (pw.length < 8) return setError(t('auth.passwordTooShort'))
     if (pw !== confirm) return setError(t('auth.passwordsDontMatch'))
     setStatus('working')
     setError(null)
