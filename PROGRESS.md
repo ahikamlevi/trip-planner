@@ -78,7 +78,10 @@ live.
     geocoding, AND routing now all run on Stadia in production.
   - **Import a place from a Maps link**: a "📍 Add from link" box in the Places tab
     parses pasted Google/Apple Maps URLs, `geo:` URIs, and raw `lat,lng`
-    (`src/places/mapsLink.ts`) → drops a pin + opens the editor prefilled. **Short
+    (`src/places/mapsLink.ts`) → drops a pin + opens the editor prefilled. A **📋 Paste
+    button** reads the clipboard directly (`navigator.clipboard.readText`) so iOS users
+    can paste without the long-press menu (Safari often won't show it on inputs); inputs
+    also re-enable `user-select`/`-webkit-touch-callout` defensively. **Short
     `maps.app.goo.gl` / `goo.gl/maps` links** are expanded by a new keyless
     **`resolve-place` Edge Function** (`supabase/functions/resolve-place/`) — follows the
     redirect server-side (SSRF-allowlisted to Google/Apple hosts, hop-capped), parses

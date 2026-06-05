@@ -826,10 +826,14 @@ function PasteMapsLink({
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // The Clipboard read API needs a secure context; show the Paste button only when
+  // available (it isn't on some browsers / http). Reliable on iOS Safari over HTTPS.
+  const canReadClipboard = typeof navigator !== 'undefined' && !!navigator.clipboard?.readText
 
-  async function submit() {
+  // Parse a pasted value and (for short links) resolve it server-side, then add it.
+  async function process(value: string) {
     if (busy) return
-    const parsed = parseMapsLink(text)
+    const parsed = parseMapsLink(value)
     if (parsed.kind === 'unrecognized') return setErr(t('places.pasteLinkBad'))
     setErr(null)
     setBusy(true)
@@ -862,6 +866,19 @@ function PasteMapsLink({
     }
   }
 
+  // Read the clipboard directly — works around iOS Safari's long-press "Paste" menu not
+  // appearing on inputs. One tap (iOS shows its own paste-permission prompt).
+  async function pasteFromClipboard() {
+    try {
+      const clip = (await navigator.clipboard.readText())?.trim()
+      if (!clip) return setErr(t('places.pasteLinkClipEmpty'))
+      setText(clip)
+      await process(clip)
+    } catch {
+      setErr(t('places.pasteLinkClipFail'))
+    }
+  }
+
   return (
     <div className="paste-link">
       <div className="paste-link-row">
@@ -873,10 +890,20 @@ function PasteMapsLink({
             if (err) setErr(null)
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') void submit()
+            if (e.key === 'Enter') void process(text)
           }}
         />
-        <button className="secondary" onClick={() => void submit()} disabled={busy || !text.trim()}>
+        {canReadClipboard && (
+          <button
+            className="secondary"
+            onClick={() => void pasteFromClipboard()}
+            disabled={busy}
+            title={t('places.pasteBtn')}
+          >
+            {t('places.pasteBtn')}
+          </button>
+        )}
+        <button className="secondary" onClick={() => void process(text)} disabled={busy || !text.trim()}>
           {t('places.pasteLinkAdd')}
         </button>
       </div>

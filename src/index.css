@@ -158,6 +158,17 @@ input {
   font-size: 1rem;
 }
 
+/* Keep the native text menu (Paste / Select) working on form fields — iOS Safari can
+   otherwise suppress the long-press menu if selection/callout is disabled anywhere up
+   the tree. Explicitly opt inputs back in. */
+input,
+textarea,
+select {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 input:focus {
   outline: none;
   border-color: var(--accent);
