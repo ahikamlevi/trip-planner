@@ -14,11 +14,11 @@ export interface TileConfig {
 export function activeTileLayer(): TileConfig {
   const key = import.meta.env.VITE_STADIA_API_KEY
   if (key) {
-    // Match the app theme: Stadia ships a clean light + dark style.
-    const dark = document.documentElement.getAttribute('data-theme') === 'dark'
-    const style = dark ? 'alidade_smooth_dark' : 'alidade_smooth'
+    // Always the bright classic-OSM style (white land, blue water), regardless of the
+    // app's light/dark theme — keeps it familiar and avoids re-downloading tiles on
+    // theme switches.
     return {
-      url: `https://tiles.stadiamaps.com/tiles/${style}/{z}/{x}/{y}.png?api_key=${key}`,
+      url: `https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png?api_key=${key}`,
       attribution:
         '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> ' +
         '&copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> ' +
