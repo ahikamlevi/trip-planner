@@ -2189,6 +2189,36 @@ button.secondary.danger {
   color: var(--text);
 }
 
+.diet-companions {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin: 0.5rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.diet-companion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: var(--surface-2, var(--bg));
+}
+
+.diet-companion-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.diet-companion-name {
+  flex: 1;
+  font-weight: 600;
+}
+
 .diet-card-block {
   border-top: 1px solid var(--border);
   padding-top: 1rem;

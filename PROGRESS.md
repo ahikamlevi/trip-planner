@@ -20,10 +20,9 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0021` are applied** in Supabase. **⚠️ `0022` (the new
-  `shift_trip_days` RPC) is the only one still pending** — until it runs, the trip-
-  editor "shift all days when start date changes" prompt silently does nothing. SQL is
-  in [supabase/migrations/0022_shift_trip_days.sql](supabase/migrations/0022_shift_trip_days.sql).
+- **All migrations through `0022` are applied** in Supabase (incl. the
+  `shift_trip_days` RPC) — the trip-editor "shift all days when start date changes"
+  prompt now works.
 - The **`discover`** and **`resolve-place`** Edge Functions are deployed. Discovery
   uses Foursquare (Pro-tier search + on-demand premium details + per-user rate limits);
   short Maps-link expansion (`maps.app.goo.gl`) uses `resolve-place`. Both fail soft to
@@ -33,6 +32,16 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Allergies for non-account travelers + readable card languages** (`0023`, applied) —
+    allergens were stored only on `profiles`, so a child/companion without an
+    app account had nowhere to record one. New `trip_companions` table (per-trip people:
+    name + allergen/diet tags + note, any member can add/edit/remove) → an "Other
+    travelers" section in the Dietary tab, **merged with account members on the printable
+    allergy card**. Also: the card's language picker now labels each option in the user's
+    own UI language via `Intl.DisplayNames` + the endonym (e.g. "Thai — ไทย") so you can
+    actually find the destination language; the header switcher keeps endonyms. New i18n
+    keys (`diet.companions/companionsHint/addPerson/personName/removePerson`) added to
+    en+he; other 22 langs fall back to English until translated.
   - **i18n expanded to 24 languages, 365 keys each, exact key parity** —
     EN/HE/ES/FR/DE/IT/PT/NL/SV/PL/CS/TR/EL/RU/UK/AR/HI/BN/TH/ID/VI/ZH/JA/KO. RTL for HE+AR
     (`RTL_LANGS` in `I18nProvider`). `LOCALES` map gives each its `Intl` locale (e.g.
@@ -40,7 +49,7 @@ live.
     (+ `RTL_LANGS` if RTL). Translations for Latin-script EU langs are A-grade; CJK/RTL/
     long-tail (ar/zh/ja/ru/hi/ko/id/vi/th/el/uk/bn) are best-effort, native review
     recommended for visible bullets before public push in those markets.
-  - **Shift trip days when start_date moves** (`0022`, **NOT YET APPLIED**) — trip-editor
+  - **Shift trip days when start_date moves** (`0022`, applied) — trip-editor
     detects start-date change, fetches existing days, prompts "Shift all N days by ±M?",
     and calls `shift_trip_days(_trip_id, _delta_days)` (SECURITY DEFINER, atomic
     `update days set date = date + N`). Anchors a cloned template to user's real dates,
@@ -98,16 +107,15 @@ live.
   ✏️ Edit button on wishlist (click row = select+focus only).
 
 ### ⚠️ Operational state / pending for production (read this on a fresh start)
-- **Supabase migrations `0001`–`0021` are applied.** ⚠️ **`0022` (`shift_trip_days`)
-  is NOT yet applied** — without it the "Shift all days" prompt in the trip editor
-  silently no-ops. Run [supabase/migrations/0022_shift_trip_days.sql](supabase/migrations/0022_shift_trip_days.sql) in the SQL editor.
+- **All Supabase migrations `0001`–`0023` are applied.** The Dietary tab's "Other
+  travelers" (companions, `0023`) and the "Shift all days" prompt (`shift_trip_days`,
+  `0022`) both work.
 - **`discover` and `resolve-place` Edge Functions are both deployed.** Foursquare
   discovery + short-Maps-link resolution are live.
 - **`VITE_STADIA_API_KEY` is set in Vercel** → Stadia tiles + geocoding + routing all
   live in production (with keyless OSM/Nominatim/OSRM fallbacks if the key ever clears).
-- **`VITE_SENTRY_DSN` is in the local `.env` only** (git-ignored) — Sentry is live
-  locally but **production has no Sentry**. To finish: add the DSN in **Vercel →
-  Settings → Environment Variables** and redeploy.
+- **`VITE_SENTRY_DSN` is set in Vercel** → Sentry error monitoring is live in
+  production (and locally).
 - **Public sign-ups + social login are coded but inert.** The `Login.tsx` "Create
   account" form returns "Signups not allowed" until you flip **Supabase → Authentication
   → Allow new users to sign up** ON (and ideally turn on **Confirm email** + a CAPTCHA).
@@ -215,6 +223,7 @@ They are mostly idempotent.
 | `0020_place_reference.sql` | `places.phone` (tap-to-call in the day "Nearby" panel) + `places.is_reference` (a global flag — **superseded by `0021`; column now unused**) |
 | `0021_day_references.sql` | `day_references` table (per-day reference places — a place tracked for distance on a specific day without being on its route) + RLS via `is_day_member` + realtime; also idempotently ensures `places.phone` |
 | `0022_shift_trip_days.sql` | `shift_trip_days(_trip_id,_delta_days)` SECURITY DEFINER RPC (atomic `update days set date = date + N` — used by the trip editor when the start date moves, e.g. anchoring a cloned template to the user's real dates) |
+| `0023_trip_companions.sql` | `trip_companions` table (per-trip people **without an app account** — children/companions — with `name`, `dietary_restrictions[]`, `dietary_note`; any member rw via `is_trip_member`; realtime) so their allergies appear on the allergy card |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -228,6 +237,7 @@ They are mostly idempotent.
 - `budget_entries` (trip_id, area_id?, day_id?, category, amount, currency, note)
 - `packing_items` (trip_id, label, packed, sort_order)
 - `day_references` (day_id, place_id) — per-day reference places (distance shown without routing); RLS via `is_day_member`
+- `trip_companions` (trip_id, name, dietary_restrictions[], dietary_note, created_by) — people on the trip without an app account (children/companions); allergies shown on the card; RLS via `is_trip_member`
 - `poi_cache` (cache_key, results jsonb, fetched_at) — discovery cache, Edge-Function only
 
 **RLS model:** every row is reachable only by members of its trip
@@ -306,8 +316,8 @@ cross-origin redirect the browser can't follow), and the function follows the re
   limit is just abuse protection). Returns 429 when exceeded.
 - **Client degradation:** any failure (not deployed, 422 no-coords, 429) shows a friendly
   "paste the full Maps URL or the coordinates" hint — the full-URL/coords paths still work.
-- ⚠️ **Not yet deployed** — see the operational note in §1. Verify after deploy with a real
-  `maps.app.goo.gl` link (the redirect-follow path can't be exercised without one).
+- ✅ **Deployed.** Worth a one-time smoke test with a real `maps.app.goo.gl` link (the
+  redirect-follow path can't be exercised without one).
 
 ---
 
@@ -402,9 +412,14 @@ cross-origin redirect the browser can't follow), and the function follows the re
     Adding via drop-a-pin still opens the editor to name the new place.
   - **Dietary & allergies** (Dietary tab): each member sets their own restrictions
     (tag chips + free note) on their `profiles` row; other members' restrictions
-    show read-only (live-synced). Generates a **printable allergy card** whose
-    language is independent of the UI (defaults to the *other* app language so you
-    can hand locals a card they read). Food places gain a `dietary_notes` field.
+    show read-only (live-synced). **"Other travelers"** section (`trip_companions`,
+    `0023`) records allergies for people **without an app account** (children, a partner
+    who doesn't use the app) — any member can add/edit/remove name + the same chips/note.
+    Generates a **printable allergy card** (members **+ companions**) whose language is
+    independent of the UI (defaults to the *other* app language so you can hand locals a
+    card they read); the card's language picker labels each option in the user's own
+    language via `Intl.DisplayNames` + endonym (e.g. "Thai — ไทย"). Food places gain a
+    `dietary_notes` field.
   - **Mobile pass:** responsive layout; touch drag uses press-and-hold
     (MouseSensor + TouchSensor) so swipes still scroll.
   - **Day view layout:** stops + map **side by side** with a **sticky** map; trip
@@ -616,7 +631,7 @@ shrink the ~680 kB bundle.
 
 1. Edit code → `npm run typecheck` (or `npx tsc -b`) and `npm run build` to verify.
 2. If schema changed, add a numbered migration in `supabase/migrations/` AND run it
-   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0022`.
+   in the Supabase SQL editor (the app won't apply it automatically). Latest = `0023`.
 3. If `supabase/functions/discover/index.ts` changed, **redeploy the Edge Function**
    (Dashboard paste or `supabase functions deploy discover`) — pushing to git does NOT
    deploy it (only the Vercel frontend auto-deploys).

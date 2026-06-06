@@ -264,6 +264,36 @@ export interface Database {
         Update: { id?: string; day_id?: string; place_id?: string; created_at?: string }
         Relationships: []
       }
+      trip_companions: {
+        Row: {
+          id: string
+          trip_id: string
+          name: string
+          dietary_restrictions: string[]
+          dietary_note: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          trip_id: string
+          name: string
+          dietary_restrictions?: string[]
+          dietary_note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          trip_id?: string
+          name?: string
+          dietary_restrictions?: string[]
+          dietary_note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       budget_entries: {
         Row: {
           id: string
