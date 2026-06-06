@@ -32,6 +32,13 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Discovery viewport guard:** Foursquare "Search this area" now refuses a zoomed-out
+    view — if the larger viewport dimension exceeds `MAX_DISCOVERY_SPAN_KM` (50 km), it
+    shows `disco.zoomIn` ("zoom in to a focused area") and makes **no paid call** instead
+    of querying a country-scale box (wasteful + returns a sparse capped scatter). Span via
+    `boundsSpanKm` in `PlacesWorkspace.tsx`; the guard sits at the top of `runDiscovery`
+    so both "Search this area" and "Match my restrictions" are covered. `disco.none` no
+    longer says "zoom out" (would contradict the guard).
   - **Onboarding / guide / tips (Phase 0 launch polish):** (1) reusable **`EmptyTip`**
     (`components/EmptyTip.tsx`) — an inline "what to do here" hint shown when a tab is
     empty; wired into **Places** (no places), **Itinerary** (no stops scheduled —
@@ -43,10 +50,11 @@ live.
     Find-nearby/Budget/Packing/Dietary/Share). `.modal` got `max-height`+scroll so the
     long guide fits. New i18n keys (`tip.*`, `help.*`, `dash.welcome*`) in en+he; other 22
     langs fall back to English.
-  - **Cost-trimming pass (Stadia/Foursquare):** (1) **place search now fires on submit**
-    (Enter or 🔍 button) instead of a 400 ms debounced autocomplete — geocoding is billed
-    per request, so this cuts Stadia geocoding calls to one per intentional search
-    (`PlaceSearch` in `PlacesWorkspace.tsx`). (2) **Discovery categories trimmed to
+  - **Cost-trimming pass (Stadia/Foursquare):** (1) **place search debounce raised
+    400 ms → 600 ms** (`PlaceSearch` in `PlacesWorkspace.tsx`) to cut billed Stadia
+    geocoding calls while keeping the as-you-type autocomplete. (We briefly tried
+    fire-on-Enter-only but reverted — the autocomplete UX was better.) (2) **Discovery
+    categories trimmed to
     food / hotel / pharmacy / hospital / police** (`DISCO_CATEGORIES` in
     `discovery/categories.ts`) — cafés, bars, attractions, museums, outdoors, beaches,
     shopping, and the free-text "other" search were removed to reduce paid Foursquare

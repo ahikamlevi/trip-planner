@@ -871,16 +871,6 @@ button.secondary.danger {
   position: relative;
 }
 
-.place-search-row {
-  display: flex;
-  gap: 0.4rem;
-  align-items: stretch;
-}
-
-.place-search-row input {
-  flex: 1;
-}
-
 .search-results {
   list-style: none;
   margin: 0.4rem 0 0;

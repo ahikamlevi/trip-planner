@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import type { Place, PlaceCategory } from '../lib/database.types'
 import { MapView, type MapApi } from '../map/MapView'
-import type { LatLng, MapMarker } from '../map/index'
+import type { LatLng, MapBounds, MapMarker } from '../map/index'
 import { CATEGORIES, categoryMeta, categoryLabel, placeColor, PLACE_COLORS } from './categories'
 import { searchPlaces, reverseCity, type SearchResult } from './search'
 import { parseMapsLink } from './mapsLink'
@@ -34,6 +34,19 @@ const SUGGESTION_COLOR = '#22c55e'
 
 const DEFAULT_CENTER: LatLng = { lat: 20, lng: 0 }
 const DEFAULT_ZOOM = 2
+
+// Discovery is a per-viewport search. A zoomed-out map covers a huge area, which wastes a
+// paid Foursquare call and returns a sparse, useless scatter (results are capped). Require
+// the view to be focused: the larger viewport dimension must be under this many km.
+const MAX_DISCOVERY_SPAN_KM = 50
+
+// Larger of the viewport's width/height in km (rough equirectangular approximation).
+function boundsSpanKm(b: MapBounds): number {
+  const latKm = (b.north - b.south) * 110.574
+  const midLat = (((b.north + b.south) / 2) * Math.PI) / 180
+  const lngKm = (b.east - b.west) * 111.32 * Math.cos(midLat)
+  return Math.max(Math.abs(latKm), Math.abs(lngKm))
+}
 
 // Persist discovery state per trip so suggestions survive a tab switch / reload
 // (the Map tab unmounts when you switch tabs). Session-scoped — cleared with the tab.
@@ -212,6 +225,13 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
     async (catK: string, useDiets: DietFilter[], freeVal = '') => {
       const bounds = mapApiRef.current?.getBounds()
       if (!bounds) return
+      // Block searches over too large an area — zoom in to a focused view first (saves a
+      // paid Foursquare call that would only return a sparse, capped scatter anyway).
+      if (boundsSpanKm(bounds) > MAX_DISCOVERY_SPAN_KM) {
+        setDiscoveries([])
+        setDiscoMsg(t('disco.zoomIn'))
+        return
+      }
       const category = discoCategory(catK)
       if (category.key === 'other' && !freeVal.trim()) return
       setDiscoBusy(true)
@@ -734,58 +754,40 @@ function PlaceSearch({
   const [results, setResults] = useState<SearchResult[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const controllerRef = useRef<AbortController | null>(null)
 
-  // Geocoding is billed per request, so we only search when the user submits (Enter or the
-  // 🔍 button) — not on every keystroke as a debounced autocomplete used to.
-  const runSearch = useCallback(async () => {
-    const q = query.trim()
-    if (q.length < 3) {
+  // Debounced autocomplete: search 600 ms after the user stops typing (raised from 400 ms
+  // to cut billed Stadia geocoding calls). The timer is cleared on each keystroke, so only
+  // a genuine pause fires a request; the previous one is aborted.
+  useEffect(() => {
+    if (query.trim().length < 3) {
       setResults([])
       return
     }
-    controllerRef.current?.abort()
     const controller = new AbortController()
-    controllerRef.current = controller
-    setBusy(true)
-    setErr(null)
-    try {
-      setResults(await searchPlaces(q, controller.signal))
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') setErr(t('places.searchFailed'))
-    } finally {
-      setBusy(false)
+    const timer = setTimeout(async () => {
+      setBusy(true)
+      setErr(null)
+      try {
+        setResults(await searchPlaces(query, controller.signal))
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') setErr(t('places.searchFailed'))
+      } finally {
+        setBusy(false)
+      }
+    }, 600)
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
     }
   }, [query, t])
 
   return (
     <div className="place-search">
-      <div className="place-search-row">
-        <input
-          value={query}
-          placeholder={t('places.search')}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            if (e.target.value.trim().length === 0) setResults([])
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              void runSearch()
-            }
-          }}
-        />
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => void runSearch()}
-          disabled={busy || query.trim().length < 3}
-          aria-label={t('places.search')}
-          title={t('places.search')}
-        >
-          🔍
-        </button>
-      </div>
+      <input
+        value={query}
+        placeholder={t('places.search')}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       {busy && <p className="muted small">{t('places.searching')}</p>}
       {err && <p className="auth-error small">{err}</p>}
       {results.length > 0 && (
