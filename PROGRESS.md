@@ -20,94 +20,111 @@ live.
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
 - Both accounts (owner + partner) confirmed working and sharing.
-- **Migrations through `0022`** must be run in Supabase (⚠️ **`0022` is new this session —
-  not yet applied**: the trip-editor "shift all days when start date changes" prompt
-  silently won't shift until `shift_trip_days` exists). Previously:
-  ⚠️ **`0020`+`0021` are new this
-  session — not yet applied**: per-day reference places + phone won't work until run;
-  `0021` is self-sufficient — it also ensures `places.phone`); the **`discover` Edge
-  Function** must be deployed with `FOURSQUARE_API_KEY` set (see §4.1) — otherwise
-  discovery silently falls back to free Overpass/OSM.
+- **Migrations through `0021` are applied** in Supabase. **⚠️ `0022` (the new
+  `shift_trip_days` RPC) is the only one still pending** — until it runs, the trip-
+  editor "shift all days when start date changes" prompt silently does nothing. SQL is
+  in [supabase/migrations/0022_shift_trip_days.sql](supabase/migrations/0022_shift_trip_days.sql).
+- The **`discover`** and **`resolve-place`** Edge Functions are deployed. Discovery
+  uses Foursquare (Pro-tier search + on-demand premium details + per-user rate limits);
+  short Maps-link expansion (`maps.app.goo.gl`) uses `resolve-place`. Both fail soft to
+  the free fallback when needed (see §4.1, §4.2).
 - Now being built toward a **public, polished product** (not just 2 users) — see
   `LAUNCH-ROADMAP.md`. Earlier work: Daylight-Teal theming, landing page, Foursquare
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
-- **Recent session work (this is the newest layer):**
-  - **Per-day reference places** (`0021`, `day_references` table): in the **day view**, a
-    **"📌 Nearby" panel** lets you **drag a place from the palette** in (drop zone) or pick
-    via **"+ Add reference"**, per day. Each row shows the **routed drive distance/time
-    from the selected stop** (anchor; `getRouteCached`, cached), a **tap-to-call phone**
-    (`places.phone`, `0020`/`0021`), notes, and a remove ×; that day's references also show
-    as **red pins** on the day map. `ItineraryBoard` adds `dayRefs`/`refsByDay`/`cursorRefs`/
-    `anchorStop`/`refLegs` + `addReference`/`removeReference` (drop handled in `onDragEnd`)
-    + `NearbyPanel`. (Replaces the global `places.is_reference` flag, now unused; the place
-    editor keeps the phone field.)
-  - **Map & Places layout**: the map is no longer a big full-width panel on top — it's now
-    **side by side** with the lists (sticky map on the right, ~380px) like the itinerary,
-    with a **"⤢ Bigger map"** toggle to grow it. Stacks (map on top) under 820px. Added
-    `invalidateSize()` to the `MapRenderer` + a `ResizeObserver` in `MapView` so tiles
-    re-render on resize.
-  - **Print / export itinerary**: "🖨️ Print / PDF" button → a clean, hidden, linear
-    `PrintItinerary` doc revealed by `@media print` (same pattern as the allergy card) →
-    browser print dialog → Save as PDF. Per-day date/area/weather/note + stops + travel
-    legs, then appended **trip notes**, **budget summary** (total + by-category) and
-    **packing list** sections; costs in trip currency. **Include/exclude toggles**
-    (Notes/Budget/Packing/Day-costs checkboxes by the Print button) control the output,
-    a **per-day cost** line can show in each day heading, and the appended sections start
-    on a **fresh page** (`break-before`). ItineraryBoard takes `tripName`/`currency`/
-    `notes` props and load() also pulls budget_entries + packing_items (best-effort;
-    print-only, never blocks the board).
-  - Place list: click a row = select + focus map; ✏️ **Edit** button opens the editor
-    (no more modal covering the map on every tap).
-  - **Expanded place categories** + free-text "Other" (`0015`).
-  - **⚙️ gear menus** — trip Edit/Delete + account (Change password / Sign out).
-  - **Member email** shown in the roster (`0016`); **trip-owner-check** RLS (`0017`).
-  - **Discovery overhaul:** search stays on Foursquare's free **Pro tier** (no rating);
-    premium details fetched **only on an explicit "ℹ️ Details" tap** (cached); "+ Add"
-    folds rating/price/phone/website/description into the place **notes**. Sticky map is
-    an opaque panel; results + wishlist are capped scroll boxes. **XSS fix** (escaped
-    map tooltips) + edge-function error-leak fix.
-  - **Per-leg travel cost** (`0018`) → counts in the Budget under Transport.
-  - **Per-user rate limiter** for `discover` (`0019`) — 60 searches/hr, 100 details/day.
-  - **Per-day weather** (Open-Meteo, keyless): forecast (~16d) + **climate normal**
-    ("typical for this time of year") for planning further out.
-  - **Toast system** (`src/components/Toast.tsx`) adopted across all panels — save
-    confirmations, friendly errors, Packing **Undo**.
-  - **Sentry** error monitoring (opt-in via `VITE_SENTRY_DSN`, errors-only).
-  - **Stadia Maps** for **tiles** (`osm_bright`) + **geocoding** (search/reverse,
-    Pelias autocomplete) when `VITE_STADIA_API_KEY` is set; OSM/Nominatim fallback.
-  - **Stadia Maps routing** (Valhalla) for travel times + road-shaped paths when the key
-    is set (`src/routing/stadia.ts`), OSRM kept as the keyless fallback — so tiles,
-    geocoding, AND routing now all run on Stadia in production.
-  - **Import a place from a Maps link**: a "📍 Add from link" box in the Places tab
-    parses pasted Google/Apple Maps URLs, `geo:` URIs, and raw `lat,lng`
-    (`src/places/mapsLink.ts`) → drops a pin + opens the editor prefilled. A **📋 Paste
-    button** reads the clipboard directly (`navigator.clipboard.readText`) so iOS users
-    can paste without the long-press menu (Safari often won't show it on inputs); inputs
-    also re-enable `user-select`/`-webkit-touch-callout` defensively. **Short
-    `maps.app.goo.gl` / `goo.gl/maps` links** are expanded by a new keyless
-    **`resolve-place` Edge Function** (`supabase/functions/resolve-place/`) — follows the
-    redirect server-side (SSRF-allowlisted to Google/Apple hosts, hop-capped), parses
-    coords+name, JWT-verified + per-user rate-limited (`resolve` bucket, reuses
-    `consume_rate_limit`). ⚠️ **Must be deployed** (see §4.2) — until then short links
-    fail gracefully with a "paste the full URL" hint.
+- **Recent work — current arc** (most recent at top):
+  - **i18n expanded to 24 languages, 365 keys each, exact key parity** —
+    EN/HE/ES/FR/DE/IT/PT/NL/SV/PL/CS/TR/EL/RU/UK/AR/HI/BN/TH/ID/VI/ZH/JA/KO. RTL for HE+AR
+    (`RTL_LANGS` in `I18nProvider`). `LOCALES` map gives each its `Intl` locale (e.g.
+    es-ES, ko-KR, bn-BD). Adding more = 1 `Dict` + 4 small list edits + a `LOCALES` entry
+    (+ `RTL_LANGS` if RTL). Translations for Latin-script EU langs are A-grade; CJK/RTL/
+    long-tail (ar/zh/ja/ru/hi/ko/id/vi/th/el/uk/bn) are best-effort, native review
+    recommended for visible bullets before public push in those markets.
+  - **Shift trip days when start_date moves** (`0022`, **NOT YET APPLIED**) — trip-editor
+    detects start-date change, fetches existing days, prompts "Shift all N days by ±M?",
+    and calls `shift_trip_days(_trip_id, _delta_days)` (SECURITY DEFINER, atomic
+    `update days set date = date + N`). Anchors a cloned template to user's real dates,
+    or fixes a freshly-created trip with default-today days. `daysBetween()` helper in
+    `itinerary/dates.ts`; signed delta (`+7` / `-3`) in the prompt.
+  - **Change a day's calendar date in place** — 📅 button on each day header opens an
+    inline date picker; moves the day row (stops follow via FK). Rejects (toast) if a day
+    already exists on the target date — explicit "stay with reject" decision.
+  - **Itinerary leg fixes:** (1) leg-cost was invisible while the route time was loading
+    (`legText` early-return now appends cost regardless of route state); (2) route legs
+    didn't refresh after adding a stop until a tab switch (the fetch effect marked keys
+    as "fetched" before storing — flipped to after, self-healing).
+  - **Auth UI for public launch** — `Login.tsx` now has a "Create account" sign-up mode
+    (email+password ≥ 8, "verify your email" notice when confirmation is on) and
+    **Continue with Google / Continue with Facebook** buttons via `signInWithOAuth`.
+    All inert until Supabase Auth toggles + OAuth client IDs are configured (see §8).
+  - **Hardening:** `vercel.json` ships HSTS, `X-Content-Type-Options: nosniff`,
+    `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, plus a **report-
+    only CSP** matching the app's real sources. Password min raised 6 → 8.
+  - **Vitest set up** — `npm test` / `npm run test:watch`, config inside `vite.config.ts`
+    (Node env). First suite `src/places/mapsLink.test.ts` (10 cases for the Maps-link
+    parser). Add jsdom + RTL for component tests later.
+  - **Per-day reference places** (`0021`, `day_references` table) — day view's
+    "📌 Nearby" panel: drag a palette place in (drop zone) or "+ Add reference"; each row
+    shows routed drive distance/time from the **selected stop** (anchor), tap-to-call
+    phone, notes, remove ×; that day's refs render as **red pins** on the day map.
+  - **Map & Places layout** — side-by-side grid (lists left, sticky map right, ~380px)
+    with **⤢ Bigger map** toggle; stacks (map on top) under 820px. Added
+    `MapRenderer.invalidateSize()` + `ResizeObserver` in `MapView` so tiles re-render
+    cleanly on resize.
+  - **Print / export itinerary** — "🖨️ Print / PDF" button reveals a hidden, linear
+    `PrintItinerary` doc via `@media print` (same reveal pattern as the allergy card).
+    Per-day date/area/weather/note + stops + travel legs, then appended **trip notes**,
+    **budget summary** (total + by-category) and **packing list**. Include/exclude
+    toggles per section; per-day cost line; appended sections start on a fresh page.
+  - **Import a place from a Maps link** — "📍 Add from link" box parses pasted Google/
+    Apple Maps URLs, `geo:` URIs, and raw `lat,lng` (`src/places/mapsLink.ts`) → drops a
+    pin + opens the editor prefilled. **Short links** (`maps.app.goo.gl` / `goo.gl/maps`
+    / `maps.apple/p/…`) expanded by the keyless **`resolve-place` Edge Function**
+    (SSRF-allowlisted, hop-capped, JWT-verified, per-user rate-limited via `resolve`
+    bucket). Apple `/p/…` shortlinks may still fail because Apple resolves them in-app
+    rather than via HTTP redirect — the fallback hint surfaces the full-URL path.
+  - **Stadia Maps everywhere** — tiles (`osm_bright`), geocoding (Pelias), AND routing
+    (Valhalla, `src/routing/stadia.ts`) when `VITE_STADIA_API_KEY` is set. OSRM / OSM /
+    Nominatim stay as keyless fallbacks. So all three production map services run on
+    Stadia today.
+- **Earlier layers** (still relevant, condensed): trip cover emoji (`0010`), per-place
+  color + city (`0011`), stop reminders + `.ics` (`0012`), editable travel legs (`0013`,
+  `0018` per-leg cost), `poi_cache` (`0014`), expanded categories + Other (`0015`),
+  profiles.email (`0016`), trip-owner-update check (`0017`), `consume_rate_limit`
+  (`0019`, 60 search/hr + 100 details/day on `discover`), places.phone (`0020`),
+  Foursquare Pro-tier search + on-demand premium details, per-day weather (Open-Meteo
+  forecast ~16d + 10-yr climate-normal fallback), toast system across all panels, Sentry
+  (errors-only, opt-in via `VITE_SENTRY_DSN`), ⚙️ gear menus (trip Edit/Delete, account),
+  ✏️ Edit button on wishlist (click row = select+focus only).
 
 ### ⚠️ Operational state / pending for production (read this on a fresh start)
-- **Migrations `0015`–`0019` are applied** in Supabase, and the **`discover` Edge
-  Function is redeployed** (current `index.ts`: Pro-tier search, on-demand details,
-  per-user rate limiting, generic error bodies — no `_raw`).
-- **⚠️ The new `resolve-place` Edge Function is NOT yet deployed.** Its code is in the
-  repo (`supabase/functions/resolve-place/index.ts`) but must be deployed for short
-  Maps links to expand (see §4.2). No migration/secret needed. Until deployed, pasting a
-  full Maps URL / coords works; a short `maps.app.goo.gl` link shows a graceful hint.
-- **`VITE_STADIA_API_KEY` is set in Vercel** (and locally), so Stadia tiles + geocoding
-  **+ routing** are live in production. **`VITE_SENTRY_DSN`** is in the **local `.env`
-  only** (git-ignored) — Sentry is live locally but **NOT yet set in Vercel**, so
-  **production has no Sentry.** To finish: add `VITE_SENTRY_DSN` in **Vercel → Settings →
-  Environment Variables** and redeploy.
-- **Routing** (travel times) now uses **Stadia Maps (Valhalla)** when the key is set
-  (multi-mode), behind the `RouteProvider` adapter; **OSRM stays as the keyless
-  fallback** (`src/routing/stadia.ts`, picked in `src/routing/index.ts`).
+- **Supabase migrations `0001`–`0021` are applied.** ⚠️ **`0022` (`shift_trip_days`)
+  is NOT yet applied** — without it the "Shift all days" prompt in the trip editor
+  silently no-ops. Run [supabase/migrations/0022_shift_trip_days.sql](supabase/migrations/0022_shift_trip_days.sql) in the SQL editor.
+- **`discover` and `resolve-place` Edge Functions are both deployed.** Foursquare
+  discovery + short-Maps-link resolution are live.
+- **`VITE_STADIA_API_KEY` is set in Vercel** → Stadia tiles + geocoding + routing all
+  live in production (with keyless OSM/Nominatim/OSRM fallbacks if the key ever clears).
+- **`VITE_SENTRY_DSN` is in the local `.env` only** (git-ignored) — Sentry is live
+  locally but **production has no Sentry**. To finish: add the DSN in **Vercel →
+  Settings → Environment Variables** and redeploy.
+- **Public sign-ups + social login are coded but inert.** The `Login.tsx` "Create
+  account" form returns "Signups not allowed" until you flip **Supabase → Authentication
+  → Allow new users to sign up** ON (and ideally turn on **Confirm email** + a CAPTCHA).
+  The **Continue with Google / Facebook** buttons return "provider not enabled" until
+  you create OAuth apps in each provider's console (redirect URI =
+  `https://<project>.supabase.co/auth/v1/callback`) and enable + paste Client ID/Secret
+  in **Supabase → Authentication → Providers**. Google OAuth consent screen needs the
+  minimum 3 fields (app name + support email + developer contact) in Testing mode.
+- **CSP is report-only** in `vercel.json`. After watching for violations in production,
+  promote `Content-Security-Policy-Report-Only` → `Content-Security-Policy` (enforcing).
+- **Foursquare billing cap not set yet** — recommended ~5-min job in the FSQ console.
+  The hard backstop against a runaway bill even if every other control fails.
+
+### Operational ops not blocking the app, but worth doing pre-launch
+- Move `discover`'s cache key further (zoom/pan-tolerant) if discovery cost ever grows.
+- Add CAPTCHA (Cloudflare Turnstile / hCaptcha) before opening sign-ups publicly.
+- Apple sign-in is a one-line addition (`provider: 'apple'`) if iOS users expect it.
 
 ---
 
