@@ -15,7 +15,8 @@ Core v1 (Stages 1–6) **plus** a large set of polish/extra features are complet
 deployed, and verified in production. Both users can log in and edit a shared trip
 live.
 
-- **Live URL:** https://trip-planner-pearl-eight.vercel.app
+- **Live URL:** https://trippio.app (custom domain on Vercel; the
+  `trip-planner-pearl-eight.vercel.app` URL still works as the underlying deployment).
 - **GitHub:** `ahikamlevi/trip-planner` (branch `main`)
 - **Hosting:** Vercel (frontend, auto-deploys on push to `main`) + Supabase
   (Postgres/Auth/Realtime + the `discover` Edge Function).
@@ -32,6 +33,14 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Code-splitting (Vercel bandwidth + load speed):** `App.tsx` now lazy-loads
+    `Dashboard`/`TripView`/`Legal` via `React.lazy` + `<Suspense>`, and `vite.config.ts`
+    splits `leaflet`/`@dnd-kit`/`@supabase`/`@sentry` into their own chunks. Net: the
+    public **landing page no longer downloads Leaflet + dnd-kit + TripView (~134 kB gzip
+    saved on first visit)** — they load only when a signed-in user opens a trip; vendor
+    chunks now cache independently across deploys. The old single ~355 kB-gzip bundle and
+    the >500 kB chunk-size warning are gone. (`window.location.origin` redirects + i18n
+    still eager.)
   - **Publish-prep: account deletion + legal page:** (1) **Account deletion** — migration
     `0024` adds `delete_account()` (SECURITY DEFINER, `delete from auth.users where
     id = auth.uid()`; EXECUTE → `authenticated` only); FK cascades erase the user's profile,
@@ -167,14 +176,13 @@ live.
   live in production (with keyless OSM/Nominatim/OSRM fallbacks if the key ever clears).
 - **`VITE_SENTRY_DSN` is set in Vercel** → Sentry error monitoring is live in
   production (and locally).
-- **Public sign-ups + social login are coded but inert.** The `Login.tsx` "Create
-  account" form returns "Signups not allowed" until you flip **Supabase → Authentication
-  → Allow new users to sign up** ON (and ideally turn on **Confirm email** + a CAPTCHA).
-  The **Continue with Google / Facebook** buttons return "provider not enabled" until
-  you create OAuth apps in each provider's console (redirect URI =
-  `https://<project>.supabase.co/auth/v1/callback`) and enable + paste Client ID/Secret
-  in **Supabase → Authentication → Providers**. Google OAuth consent screen needs the
-  minimum 3 fields (app name + support email + developer contact) in Testing mode.
+- **Public email sign-up is LIVE.** ✅ "Allow new users to sign up" + "Confirm email" are
+  ON in Supabase, and confirmation/reset mail is delivered via **Resend on the verified
+  `trippio.app` domain** (custom SMTP sender `noreply@trippio.app`; the old
+  `onboarding@resend.dev` test sender is retired). Verified working with a real non-owner
+  signup. **Social login was dropped** (email-only launch) — Google/Facebook buttons
+  removed from `Login.tsx`. **No CAPTCHA yet** — if you enable it in Supabase later it will
+  break signup/reset until the Turnstile/hCaptcha widget is wired into the forms (parked).
 - **CSP is report-only** in `vercel.json`. After watching for violations in production,
   promote `Content-Security-Policy-Report-Only` → `Content-Security-Policy` (enforcing).
 - **Foursquare billing cap not set yet** — recommended ~5-min job in the FSQ console.
@@ -627,8 +635,11 @@ supabase/functions/resolve-place/index.ts    Deno Edge Function (expand short Ma
   fallback but rate-limit/timeout (we fail over across 3 mirrors). The discovery cache
   key snaps the viewport to ~1 km, so very different zoom/pan misses the cache; results
   also **persist per trip in sessionStorage** so tab switches don't lose them.
-- **Bundle size warning** on build (Leaflet + dnd-kit + supabase, now ~680kB) —
-  advisory only; code-splitting is a future option.
+- **Bundle is code-split** (since the code-splitting pass): lazy routes + per-vendor
+  chunks (leaflet/dndkit/supabase/sentry), so the landing page skips the map/itinerary
+  libs and the >500 kB chunk warning is gone. Further wins available if needed:
+  lazy-loading non-default i18n languages (the 24-lang dictionary is still eager) and
+  splitting the per-tab panels inside `TripView`.
 - **Line endings:** git warns LF→CRLF on Windows; harmless.
 - **Translations** are functional but subjective — Hebrew wording can be tweaked
   per key in `src/i18n/strings.ts`.
