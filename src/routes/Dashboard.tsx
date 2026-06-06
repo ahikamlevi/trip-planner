@@ -59,10 +59,16 @@ export function Dashboard() {
         {rows === null && !error && <TripListSkeleton />}
 
         {rows !== null && owned.length === 0 && shared.length === 0 && (
-          <div className="empty-state">
+          <div className="empty-state welcome">
             <span className="empty-emoji" aria-hidden="true">🧳</span>
-            <p className="empty-title">{t('dash.noTrips')}</p>
+            <p className="empty-title">{t('dash.welcomeTitle')}</p>
             <p className="muted">{t('dash.createFirst')}</p>
+            <ol className="welcome-steps">
+              <li><span aria-hidden="true">📍</span> {t('dash.step1')}</li>
+              <li><span aria-hidden="true">🗓️</span> {t('dash.step2')}</li>
+              <li><span aria-hidden="true">💰</span> {t('dash.step3')}</li>
+              <li><span aria-hidden="true">👥</span> {t('dash.step4')}</li>
+            </ol>
             {!creating && <button onClick={() => setCreating(true)}>{t('dash.newTrip')}</button>}
           </div>
         )}

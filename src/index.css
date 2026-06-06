@@ -276,6 +276,8 @@ button:disabled {
 .modal {
   width: 100%;
   max-width: 360px;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -2430,6 +2432,73 @@ button.secondary.danger {
 }
 .empty-state button {
   margin-top: 1rem;
+}
+
+/* First-trip welcome: how-it-works steps under the dashboard empty state. */
+.welcome-steps {
+  list-style: none;
+  margin: 1rem auto 0;
+  padding: 0;
+  max-width: 24rem;
+  text-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.welcome-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+/* Inline "what to do here" tip inside an empty panel (subtler than .empty-state). */
+.empty-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.empty-tip-emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.empty-tip-title {
+  font-weight: 600;
+  margin: 0 0 0.15rem;
+}
+.empty-tip-text {
+  min-width: 0;
+}
+
+/* How-it-works guide modal. */
+.help-modal {
+  max-width: 34rem;
+}
+.help-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.help-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.help-emoji {
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+.help-item-title {
+  font-weight: 600;
+  margin: 0 0 0.1rem;
 }
 
 /* Loading skeletons */

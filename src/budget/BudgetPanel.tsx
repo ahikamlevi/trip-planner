@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
+import { EmptyTip } from '../components/EmptyTip'
 import type { BudgetEntry, Day, Place, Stop } from '../lib/database.types'
 import { CATEGORIES } from '../places/categories'
 import { formatDayLabel } from '../itinerary/dates'
@@ -135,6 +136,10 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
           })}
         </span>
       </div>
+
+      {total === 0 && (
+        <EmptyTip emoji="💰" title={t('tip.budget.title')} body={t('tip.budget.body')} />
+      )}
 
       <div className="budget-cols">
         <section className="card">

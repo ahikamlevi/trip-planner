@@ -32,6 +32,17 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Onboarding / guide / tips (Phase 0 launch polish):** (1) reusable **`EmptyTip`**
+    (`components/EmptyTip.tsx`) — an inline "what to do here" hint shown when a tab is
+    empty; wired into **Places** (no places), **Itinerary** (no stops scheduled —
+    `stops.length === 0`, tip atop `.cal-area`), **Budget** (total === 0), and **Packing**
+    (no items). Disappears once content exists. (2) Richer **first-trip welcome** on the
+    dashboard empty state — a 4-step how-it-works list (`dash.welcomeTitle`/`step1..4`,
+    `.welcome-steps`). (3) **"💡 How it works" guide modal** (`components/HelpGuide.tsx`)
+    opened from the AppHeader ⚙️ account menu — 7 data-driven sections (Places/Itinerary/
+    Find-nearby/Budget/Packing/Dietary/Share). `.modal` got `max-height`+scroll so the
+    long guide fits. New i18n keys (`tip.*`, `help.*`, `dash.welcome*`) in en+he; other 22
+    langs fall back to English.
   - **Cost-trimming pass (Stadia/Foursquare):** (1) **place search now fires on submit**
     (Enter or 🔍 button) instead of a 400 ms debounced autocomplete — geocoding is billed
     per request, so this cuts Stadia geocoding calls to one per intentional search
@@ -539,8 +550,9 @@ index.css                    all styles (logical props for RTL; mobile @media at
 vite-env.d.ts
 
 auth/        AuthProvider.tsx (session + passwordRecovery), Login.tsx, SetPassword.tsx
-components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu), ErrorBoundary.tsx,
-             Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx,
+components/  AppHeader.tsx (name/lang/theme + ⚙️ account menu w/ "How it works"),
+             ErrorBoundary.tsx, Menu.tsx (reusable ⚙️ dropdown), EmojiPicker.tsx,
+             EmptyTip.tsx (inline empty-state hint), HelpGuide.tsx (how-it-works modal),
              Toast.tsx (ToastProvider + useToast — app-wide notifications/Undo)
 i18n/        strings.ts (24 lang dicts), I18nProvider.tsx (useT), LanguageSwitcher.tsx
 theme/       ThemeProvider.tsx (useTheme; light/dark, sets data-theme on <html>)

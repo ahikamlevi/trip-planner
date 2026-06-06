@@ -24,6 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
+import { EmptyTip } from '../components/EmptyTip'
 import { useT } from '../i18n/I18nProvider'
 import type { Area, BudgetEntry, Day, DayReference, PackingItem, Place, PlaceCategory, Stop } from '../lib/database.types'
 import { CATEGORIES, categoryMeta, placeColor } from '../places/categories'
@@ -639,6 +640,9 @@ export function ItineraryBoard({
           <PlacesPalette places={places} counts={scheduleCounts} />
 
           <div className="cal-area">
+            {stops.length === 0 && (
+              <EmptyTip emoji="🗓️" title={t('tip.itinerary.title')} body={t('tip.itinerary.body')} />
+            )}
             <AreasBar areas={areas} onAdd={addArea} />
 
             <div className="cal-toolbar">

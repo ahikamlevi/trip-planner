@@ -7,6 +7,7 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
 import { useTheme } from '../theme/ThemeProvider'
 import { supabase } from '../lib/supabase'
 import { Menu } from './Menu'
+import { HelpGuide } from './HelpGuide'
 
 export function AppHeader() {
   const { t } = useT()
@@ -16,6 +17,7 @@ export function AppHeader() {
   const [name, setName] = useState('')
   const [editing, setEditing] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -73,6 +75,14 @@ export function AppHeader() {
                 type="button"
                 className="menu-item"
                 role="menuitem"
+                onClick={() => { close(); setShowHelp(true) }}
+              >
+                💡 {t('help.menuItem')}
+              </button>
+              <button
+                type="button"
+                className="menu-item"
+                role="menuitem"
                 onClick={() => { close(); setShowPassword(true) }}
               >
                 🔑 {t('auth.changePassword')}
@@ -102,6 +112,8 @@ export function AppHeader() {
           </div>
         </div>
       )}
+
+      {showHelp && <HelpGuide onClose={() => setShowHelp(false)} />}
     </header>
   )
 }

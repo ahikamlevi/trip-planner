@@ -10,6 +10,7 @@ import type { LatLng, MapMarker } from '../map/index'
 import { CATEGORIES, categoryMeta, categoryLabel, placeColor, PLACE_COLORS } from './categories'
 import { searchPlaces, reverseCity, type SearchResult } from './search'
 import { parseMapsLink } from './mapsLink'
+import { EmptyTip } from '../components/EmptyTip'
 import {
   discoverPlaces,
   fetchPlaceDetails,
@@ -625,7 +626,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
             {places === null && <p className="muted">{t('common.loading')}</p>}
             {places !== null && places.length === 0 && (
-              <p className="muted small">{t('places.emptyHint')}</p>
+              <EmptyTip emoji="📍" title={t('tip.places.title')} body={t('tip.places.body')} />
             )}
             {places !== null && places.length > 0 && filteredPlaces.length === 0 && (
               <p className="muted small">{t('places.noneMatch')}</p>

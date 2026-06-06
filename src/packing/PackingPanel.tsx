@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
+import { EmptyTip } from '../components/EmptyTip'
 import type { PackingItem } from '../lib/database.types'
 
 export function PackingPanel({ tripId }: { tripId: string }) {
@@ -80,7 +81,7 @@ export function PackingPanel({ tripId }: { tripId: string }) {
 
       {items === null && <p className="muted small">{t('common.loading')}</p>}
       {items !== null && items.length === 0 && (
-        <p className="muted small">{t('packing.empty')}</p>
+        <EmptyTip emoji="🎒" title={t('tip.packing.title')} body={t('tip.packing.body')} />
       )}
 
       <ul className="packing-list">
