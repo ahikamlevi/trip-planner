@@ -15,6 +15,7 @@ const I18nContext = createContext<I18nState | undefined>(undefined)
 const SUPPORTED: Lang[] = [
   'he', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ar', 'zh', 'ja', 'ru', 'hi',
   'ko', 'tr', 'pl', 'nl', 'id', 'vi',
+  'th', 'el', 'cs', 'sv', 'uk', 'bn',
 ]
 
 function initialLang(): Lang {
@@ -47,6 +48,12 @@ const LOCALES: Record<Lang, string> = {
   nl: 'nl-NL',
   id: 'id-ID',
   vi: 'vi-VN',
+  th: 'th-TH',
+  el: 'el-GR',
+  cs: 'cs-CZ',
+  sv: 'sv-SE',
+  uk: 'uk-UA',
+  bn: 'bn-BD',
 }
 
 const RTL_LANGS: Lang[] = ['he', 'ar']
