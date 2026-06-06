@@ -92,7 +92,6 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   // A searched-but-not-yet-saved candidate place (preview with an "Add" button).
   const [pending, setPending] = useState<{ name: string; lat: number; lng: number; city?: string } | null>(null)
   const [dropMode, setDropMode] = useState(false)
-  const [mapExpanded, setMapExpanded] = useState(false)
   const [catFilter, setCatFilter] = useState<PlaceCategory | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
 
@@ -101,9 +100,7 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   const restored = useMemo(() => loadDiscoState(tripId), [tripId])
   const [catKey, setCatKey] = useState(restored?.catKey ?? 'food')
   const [diets, setDiets] = useState<DietFilter[]>(restored?.diets ?? [])
-  const [freeText, setFreeText] = useState('')
   const isFood = discoCategory(catKey).placeCategory === 'food'
-  const isOther = catKey === 'other'
   const [discoveries, setDiscoveries] = useState<DiscoveryResult[]>(restored?.discoveries ?? [])
   const [discoSelId, setDiscoSelId] = useState<string | null>(null)
   // Premium details are fetched only on explicit request (the "Details" button), one
@@ -472,22 +469,8 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
             ))}
           </div>
         )}
-        {isOther && (
-          <input
-            className="disco-freetext"
-            value={freeText}
-            placeholder={t('disco.otherPlaceholder')}
-            onChange={(e) => setFreeText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void runDiscovery(catKey, diets, freeText)
-            }}
-          />
-        )}
         <div className="discovery-actions">
-          <button
-            onClick={() => void runDiscovery(catKey, diets, freeText)}
-            disabled={discoBusy || (isOther && !freeText.trim())}
-          >
+          <button onClick={() => void runDiscovery(catKey, diets)} disabled={discoBusy}>
             {discoBusy ? t('disco.searching') : t('disco.searchArea')}
           </button>
           {isFood && myDietFilters.length > 0 && (
@@ -505,21 +488,13 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
       {discoMsg && <p className="muted small">{discoMsg}</p>}
 
       <div className="places-layout">
-      <div className={`places-map-wrap${dropMode ? ' dropping' : ''}${mapExpanded ? ' expanded' : ''}`}>
+      <div className={`places-map-wrap${dropMode ? ' dropping' : ''}`}>
         <div className="map-toolbar">
           <button
             className={`secondary${dropMode ? ' active' : ''}`}
             onClick={() => setDropMode((d) => !d)}
           >
             {dropMode ? t('places.dropPinActive') : t('places.dropPin')}
-          </button>
-          <button
-            className="secondary map-size-btn"
-            onClick={() => setMapExpanded((v) => !v)}
-            aria-pressed={mapExpanded}
-            title={mapExpanded ? t('places.mapCompact') : t('places.mapExpand')}
-          >
-            {mapExpanded ? t('places.mapCompact') : t('places.mapExpand')}
           </button>
           <span className="muted small">
             {dropMode ? t('places.clickToPlace') : t('places.dropHint')}
@@ -758,37 +733,58 @@ function PlaceSearch({
   const [results, setResults] = useState<SearchResult[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const controllerRef = useRef<AbortController | null>(null)
 
-  useEffect(() => {
-    if (query.trim().length < 3) {
+  // Geocoding is billed per request, so we only search when the user submits (Enter or the
+  // 🔍 button) — not on every keystroke as a debounced autocomplete used to.
+  const runSearch = useCallback(async () => {
+    const q = query.trim()
+    if (q.length < 3) {
       setResults([])
       return
     }
+    controllerRef.current?.abort()
     const controller = new AbortController()
-    const timer = setTimeout(async () => {
-      setBusy(true)
-      setErr(null)
-      try {
-        setResults(await searchPlaces(query, controller.signal))
-      } catch (e) {
-        if ((e as Error).name !== 'AbortError') setErr(t('places.searchFailed'))
-      } finally {
-        setBusy(false)
-      }
-    }, 400)
-    return () => {
-      controller.abort()
-      clearTimeout(timer)
+    controllerRef.current = controller
+    setBusy(true)
+    setErr(null)
+    try {
+      setResults(await searchPlaces(q, controller.signal))
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') setErr(t('places.searchFailed'))
+    } finally {
+      setBusy(false)
     }
   }, [query, t])
 
   return (
     <div className="place-search">
-      <input
-        value={query}
-        placeholder={t('places.search')}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="place-search-row">
+        <input
+          value={query}
+          placeholder={t('places.search')}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            if (e.target.value.trim().length === 0) setResults([])
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void runSearch()
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => void runSearch()}
+          disabled={busy || query.trim().length < 3}
+          aria-label={t('places.search')}
+          title={t('places.search')}
+        >
+          🔍
+        </button>
+      </div>
       {busy && <p className="muted small">{t('places.searching')}</p>}
       {err && <p className="auth-error small">{err}</p>}
       {results.length > 0 && (

@@ -32,6 +32,18 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Cost-trimming pass (Stadia/Foursquare):** (1) **place search now fires on submit**
+    (Enter or 🔍 button) instead of a 400 ms debounced autocomplete — geocoding is billed
+    per request, so this cuts Stadia geocoding calls to one per intentional search
+    (`PlaceSearch` in `PlacesWorkspace.tsx`). (2) **Discovery categories trimmed to
+    food / hotel / pharmacy / hospital / police** (`DISCO_CATEGORIES` in
+    `discovery/categories.ts`) — cafés, bars, attractions, museums, outdoors, beaches,
+    shopping, and the free-text "other" search were removed to reduce paid Foursquare
+    calls (the `other` free-text UI + its dead state/CSS were removed too). (3) **"⤢ Bigger map" toggle
+    removed** — the Places map is a fixed 380 px (per request "the small map is enough");
+    `MapView`'s `ResizeObserver`/`invalidateSize` stays (it's correctness for mobile
+    stacking/orientation, not the toggle). Stadia usage was already trivially low (one
+    bursty dev session ≈ 6 k credits, well within free tier) — these are pre-emptive.
   - **Allergies for non-account travelers + readable card languages** (`0023`, applied) —
     allergens were stored only on `profiles`, so a child/companion without an
     app account had nowhere to record one. New `trip_companions` table (per-trip people:
@@ -375,11 +387,12 @@ cross-origin redirect the browser can't follow), and the function follows the re
     on any trip-table change. Edits appear for both users without refresh.
   - **Shared packing checklist** (Packing tab, live-synced).
   - **Place discovery** (Map & places tab): "Find nearby" bar with a **category
-    picker** (Food · Cafés · Bars · Attractions · Museums · Outdoors · Beaches ·
-    Hotels · Shopping · Pharmacy · Hospital · Police · **🔎 free-text**). **Food**
-    additionally shows **diet chips** (vegan/veg/gluten-free/kosher/halal) + a
-    "Match my restrictions" button; **Other** reveals a free-text box (type anything
-    — viewpoint, ATM…). "Search this area" queries the current map viewport.
+    picker** — **trimmed for cost to Food · Hotels · Pharmacy · Hospital · Police**
+    (cafés/bars/attractions/museums/outdoors/beaches/shopping and the free-text "other"
+    search were removed; the unused `disco.cat.*`/`disco.otherPlaceholder` i18n keys are
+    left dead). **Food** additionally shows **diet chips** (vegan/veg/gluten-free/kosher/
+    halal) + a "Match my restrictions" button. "Search this area" queries the current map
+    viewport.
     Suggestions persist per trip (sessionStorage); clicking a result zooms in (never
     out) and highlights its pin.
     Primary provider = **Foursquare** (Edge Function), falling back to **Overpass**.
@@ -396,16 +409,17 @@ cross-origin redirect the browser can't follow), and the function follows the re
     the `places` table has no rating/price/phone/website columns, those premium fields
     are **folded into the place's `notes`** (★rating · $price / ☎phone / 🔗website /
     description) so the paid-for data isn't lost. Card also shows a Google **Maps ↗**
-    link. The top box stays "search a place by name" (Nominatim) — distinct from
-    discovery. Map adapter has `getBounds()` + per-marker `color`; `MapView` exposes
-    `MapApi`.
+    link. The top box stays "search a place by name" (Stadia/Nominatim) — distinct from
+    discovery; it **searches on submit** (Enter or the 🔍 button), not as a debounced
+    autocomplete, to save per-request geocoding cost. Map adapter has `getBounds()` +
+    per-marker `color`; `MapView` exposes `MapApi`.
     **Layout (`.places-layout`):** map + lists sit **side by side** like the itinerary
     day view — discovery results + wishlist on the left (each a **capped internal-scroll
-    box**), the **sticky map on the right** (default 380px, a **"⤢ Bigger map" toggle**
-    grows it to ~78vh). Stacks to one column under 820px with the map on top (so tapping
+    box**), the **sticky map on the right** at a fixed **380px** (the "⤢ Bigger map"
+    toggle was removed). Stacks to one column under 820px with the map on top (so tapping
     a place still shows it on a visible map — key on mobile). The map keeps an opaque bg +
     bottom shadow for the stacked case. `MapView` runs a `ResizeObserver` → renderer
-    `invalidateSize()` so the map re-renders cleanly on resize/expand/reflow.
+    `invalidateSize()` so the map re-renders cleanly on stacking/orientation reflow.
   - **Place list interaction:** clicking a wishlist row **selects it + focuses the
     map** (no longer opens the editor); a dedicated **✏️ Edit** button per row opens
     the editor — so on mobile the editor modal no longer covers the map on every tap.
