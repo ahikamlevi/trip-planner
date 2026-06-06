@@ -340,6 +340,10 @@ export interface Database {
         Args: { _trip_id: string; _delta_days: number }
         Returns: number
       }
+      delete_account: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
     }
     Enums: {
       place_category: PlaceCategory

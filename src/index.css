@@ -2490,6 +2490,40 @@ button.secondary.danger {
   font-weight: 600;
   margin: 0 0 0.1rem;
 }
+.help-footer {
+  margin: 0.85rem 0 0;
+  text-align: center;
+}
+
+/* Landing footer + legal page */
+.landing-footer {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+.legal {
+  max-width: 760px;
+}
+.legal h1 {
+  margin-top: 1.5rem;
+}
+.legal h2 {
+  margin-top: 1.25rem;
+}
+.legal ul {
+  padding-inline-start: 1.25rem;
+}
+.legal li {
+  margin: 0.25rem 0;
+}
+.legal hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
 
 /* Loading skeletons */
 .skeleton {

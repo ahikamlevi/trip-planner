@@ -5,6 +5,7 @@ import { useT } from './i18n/I18nProvider'
 import { Landing } from './routes/Landing'
 import { Dashboard } from './routes/Dashboard'
 import { TripView } from './routes/TripView'
+import { Legal } from './routes/Legal'
 
 export function App() {
   const { t } = useT()
@@ -19,19 +20,25 @@ export function App() {
     return <PasswordRecoveryScreen onDone={endPasswordRecovery} />
   }
 
-  if (!session) {
-    return <Landing />
-  }
-
   return (
     <>
-      <a className="skip-link" href="#main">
-        {t('a11y.skip')}
-      </a>
+      {session && (
+        <a className="skip-link" href="#main">
+          {t('a11y.skip')}
+        </a>
+      )}
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/trips/:tripId" element={<TripView />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Public — reachable signed out (footer link) and signed in. */}
+        <Route path="/legal" element={<Legal />} />
+        {session ? (
+          <>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/trips/:tripId" element={<TripView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        ) : (
+          <Route path="*" element={<Landing />} />
+        )}
       </Routes>
     </>
   )

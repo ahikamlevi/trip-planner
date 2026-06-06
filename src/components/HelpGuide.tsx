@@ -1,6 +1,7 @@
 // "How it works" guide — a static, scrollable reference of the main features, opened from
 // the account ⚙️ menu. Content is data-driven so it stays in sync with the empty-tip copy
 // and is easy to translate (each section is two i18n keys).
+import { Link } from 'react-router-dom'
 import { useT } from '../i18n/I18nProvider'
 
 const SECTIONS: { emoji: string; key: string }[] = [
@@ -38,6 +39,11 @@ export function HelpGuide({ onClose }: { onClose: () => void }) {
             </li>
           ))}
         </ul>
+        <p className="help-footer">
+          <Link to="/legal" className="muted small" onClick={onClose}>
+            {t('legal.link')}
+          </Link>
+        </p>
       </div>
     </div>
   )

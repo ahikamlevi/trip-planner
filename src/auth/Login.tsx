@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n/I18nProvider'
 
@@ -20,6 +20,22 @@ export function Login() {
     setNotice(null)
     setStatus('idle')
   }
+
+  // A failed OAuth round-trip or an expired email link redirects back here with the
+  // reason in the URL (query for PKCE, hash for implicit) and no session — without this
+  // the user would just see a blank login form and assume nothing happened. Surface it,
+  // then strip the params so a refresh doesn't replay the error.
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search)
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const desc = query.get('error_description') ?? hash.get('error_description')
+    const code = query.get('error') ?? hash.get('error')
+    if (desc || code) {
+      setError(desc || code)
+      setStatus('error')
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
 
   async function forgotPassword() {
     if (!email.trim()) {
@@ -71,17 +87,6 @@ export function Login() {
     // With email confirmation on, there's no session yet → ask them to verify.
     // With it off, a session exists and the auth listener swaps to the app.
     if (!data.session) setStatus('verify')
-  }
-
-  async function oauth(provider: 'google' | 'facebook') {
-    setError(null)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: window.location.origin },
-    })
-    // On success the browser redirects to the provider; on failure (e.g. provider not
-    // enabled in Supabase) we surface the message instead of a silent no-op.
-    if (error) setError(error.message)
   }
 
   async function sendMagicLink(e: FormEvent) {
@@ -179,18 +184,6 @@ export function Login() {
               onClick={() => switchMode(mode === 'signup' ? 'password' : 'signup')}
             >
               {mode === 'signup' ? t('auth.haveAccount') : t('auth.noAccount')}
-            </button>
-          </div>
-
-          <div className="auth-divider">
-            <span>{t('auth.orContinue')}</span>
-          </div>
-          <div className="auth-oauth">
-            <button type="button" className="oauth-btn" onClick={() => void oauth('google')}>
-              <span aria-hidden="true">G</span> {t('auth.continueGoogle')}
-            </button>
-            <button type="button" className="oauth-btn" onClick={() => void oauth('facebook')}>
-              <span aria-hidden="true">f</span> {t('auth.continueFacebook')}
             </button>
           </div>
         </form>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Login } from '../auth/Login'
 import { useT } from '../i18n/I18nProvider'
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher'
@@ -59,6 +60,11 @@ export function Landing() {
           ))}
         </div>
       </section>
+
+      <footer className="landing-footer">
+        <span className="muted small">© {t('appName')}</span>
+        <Link to="/legal" className="muted small">{t('legal.link')}</Link>
+      </footer>
     </div>
   )
 }

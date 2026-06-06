@@ -18,6 +18,7 @@ export function AppHeader() {
   const [editing, setEditing] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -95,6 +96,14 @@ export function AppHeader() {
               >
                 🚪 {t('common.signOut')}
               </button>
+              <button
+                type="button"
+                className="menu-item danger"
+                role="menuitem"
+                onClick={() => { close(); setShowDelete(true) }}
+              >
+                🗑️ {t('account.delete')}
+              </button>
             </>
           )}
         </Menu>
@@ -114,6 +123,49 @@ export function AppHeader() {
       )}
 
       {showHelp && <HelpGuide onClose={() => setShowHelp(false)} />}
+
+      {showDelete && <DeleteAccountModal onClose={() => setShowDelete(false)} />}
     </header>
+  )
+}
+
+function DeleteAccountModal({ onClose }: { onClose: () => void }) {
+  const { t } = useT()
+  const { signOut } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function remove() {
+    setBusy(true)
+    setError(null)
+    const { error } = await supabase.rpc('delete_account')
+    if (error) {
+      setError(error.message)
+      setBusy(false)
+      return
+    }
+    // Account row is gone; clear the local session and return to the login screen.
+    await signOut()
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <strong>{t('account.deleteTitle')}</strong>
+          <button className="linklike" onClick={onClose}>{t('common.close')}</button>
+        </div>
+        <p className="muted small">{t('account.deleteWarning')}</p>
+        {error && <p className="auth-error">{error}</p>}
+        <div className="button-row">
+          <button className="danger" onClick={remove} disabled={busy}>
+            {busy ? t('account.deleting') : t('account.deleteConfirm')}
+          </button>
+          <button className="secondary" onClick={onClose} disabled={busy}>
+            {t('common.cancel')}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }

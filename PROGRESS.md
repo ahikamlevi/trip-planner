@@ -32,6 +32,25 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Publish-prep: account deletion + legal page:** (1) **Account deletion** — migration
+    `0024` adds `delete_account()` (SECURITY DEFINER, `delete from auth.users where
+    id = auth.uid()`; EXECUTE → `authenticated` only); FK cascades erase the user's profile,
+    owned trips + content, and shared-trip memberships. UI = "🗑️ Delete account" in the ⚙️
+    account menu → confirm modal (`DeleteAccountModal` in `AppHeader.tsx`) → RPC → sign out.
+    (2) **Privacy Policy + Terms** — static `routes/Legal.tsx` at the public `/legal` route
+    (App.tsx now renders `/legal` regardless of auth; signed-out → footer link on Landing,
+    signed-in → link in the Help guide). English starter text with bracketed placeholders
+    (contact email, governing law) + an allergy "not medical advice" disclaimer — **review
+    before relying on it.**
+  - **Email-only sign-up decision (dropped social login):** decided to launch with
+    **email+password only** — the inert Google/Facebook `signInWithOAuth` buttons + divider
+    were **removed** from `Login.tsx` (and the unapplied OAuth `handle_new_user` migration
+    was dropped). Kept the useful piece: `Login.tsx` now **surfaces auth redirect errors** —
+    an expired magic/reset/confirmation link comes back with the reason in the URL query/
+    hash and no session; we read it, show it, and strip the params (previously a silent
+    blank form). Public email sign-up is still gated on dashboard config (enable Supabase
+    sign-ups) + **verifying a Resend sending domain** so confirmation/reset mails reach
+    real users — see §5.
   - **Discovery viewport guard:** Foursquare "Search this area" now refuses a zoomed-out
     view — if the larger viewport dimension exceeds `MAX_DISCOVERY_SPAN_KM` (50 km), it
     shows `disco.zoomIn` ("zoom in to a focused area") and makes **no paid call** instead
@@ -138,9 +157,10 @@ live.
   ✏️ Edit button on wishlist (click row = select+focus only).
 
 ### ⚠️ Operational state / pending for production (read this on a fresh start)
-- **All Supabase migrations `0001`–`0023` are applied.** The Dietary tab's "Other
-  travelers" (companions, `0023`) and the "Shift all days" prompt (`shift_trip_days`,
-  `0022`) both work.
+- **Supabase migrations `0001`–`0023` are applied.** ⚠️ **`0024` (account deletion RPC)
+  is NOT yet applied** — run [supabase/migrations/0024_delete_account.sql](supabase/migrations/0024_delete_account.sql) so the
+  "Delete account" action in the ⚙️ menu works. The Dietary "Other travelers"
+  (companions, `0023`) and "Shift all days" (`shift_trip_days`, `0022`) both work.
 - **`discover` and `resolve-place` Edge Functions are both deployed.** Foursquare
   discovery + short-Maps-link resolution are live.
 - **`VITE_STADIA_API_KEY` is set in Vercel** → Stadia tiles + geocoding + routing all
@@ -255,6 +275,7 @@ They are mostly idempotent.
 | `0021_day_references.sql` | `day_references` table (per-day reference places — a place tracked for distance on a specific day without being on its route) + RLS via `is_day_member` + realtime; also idempotently ensures `places.phone` |
 | `0022_shift_trip_days.sql` | `shift_trip_days(_trip_id,_delta_days)` SECURITY DEFINER RPC (atomic `update days set date = date + N` — used by the trip editor when the start date moves, e.g. anchoring a cloned template to the user's real dates) |
 | `0023_trip_companions.sql` | `trip_companions` table (per-trip people **without an app account** — children/companions — with `name`, `dietary_restrictions[]`, `dietary_note`; any member rw via `is_trip_member`; realtime) so their allergies appear on the allergy card |
+| `0024_delete_account.sql` | `delete_account()` SECURITY DEFINER RPC (`delete from auth.users where id = auth.uid()`) for GDPR self-service account deletion; cascades remove the user's profile, owned trips + content, and memberships. EXECUTE granted to `authenticated` only |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
@@ -580,7 +601,8 @@ routing/     RouteProvider.ts (interface), stadia.ts (Valhalla), osrm.ts (fallba
 budget/      BudgetPanel.tsx, money.ts (Intl currency)
 packing/     PackingPanel.tsx
 dietary/     DietaryPanel.tsx (self-editor + members overview + printable allergy card)
-routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes)
+routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes),
+             Landing.tsx (logged-out marketing + Login; footer → /legal), Legal.tsx (Privacy + Terms, public /legal)
 weather/     openMeteo.ts (keyless per-day forecast; useTripWeather + weatherMeta)
 
 supabase/functions/discover/index.ts        Deno Edge Function (Foursquare) — see §4.1
