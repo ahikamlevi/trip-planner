@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+# Private, login-gated app routes — nothing to index there.
+Disallow: /trips/
+
+Sitemap: https://trippio.app/sitemap.xml

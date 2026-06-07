@@ -33,6 +33,15 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **SEO / social tags:** `index.html` got a keyword-rich title + description, **canonical**
+    (`https://trippio.app/`), `robots` meta, and **Open Graph + Twitter Card** tags so shared
+    links show a real preview (title/description/image). Added `public/robots.txt`
+    (allows all, disallows `/trips/`, points to the sitemap) and `public/sitemap.xml`
+    (`/` + `/legal`). Public display name kept as **"Trip Planner"** (the domain is
+    `trippio.app`, but that name is already taken as a product, so brand ≠ domain for now).
+    **Two manual follow-ups:** (1) drop a real `public/og-image.png` (1200×630) — the OG
+    tags reference it but the file isn't created yet, so previews show no image until added;
+    (2) verify the site in **Google Search Console** and submit the sitemap.
   - **Code-splitting (Vercel bandwidth + load speed):** `App.tsx` now lazy-loads
     `Dashboard`/`TripView`/`Legal` via `React.lazy` + `<Suspense>`, and `vite.config.ts`
     splits `leaflet`/`@dnd-kit`/`@supabase`/`@sentry` into their own chunks. Net: the
