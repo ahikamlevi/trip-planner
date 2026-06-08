@@ -33,6 +33,21 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **UI redesign — Phase 1: visual foundation** (in response to user testers finding the
+    app cluttered/cramped; goal = welcoming, spacious, self-explanatory; **PC first**).
+    Bolder refresh of the design system in `index.css`, which re-skins every screen at
+    once via the shared tokens/classes: refreshed **palette** (cleaner light ground, more
+    vivid teal accent, coral highlight), new **spacing / radius / shadow scales**
+    (`--space-*`, `--radius-*`, `--shadow-*`), **16 px base font + bigger heading scale +
+    1.6 line-height**, bolder **buttons** (weight, radius, hover shadow, active press),
+    larger **inputs** with a focus ring, **cards** with soft shadow + `--space-5` padding +
+    `--radius-lg`, **segmented-pill tabs** (replaced the thin underline), bigger **chips**,
+    a **sticky header**, wider `.page-body.wide` (1040→1200) and airier panel gaps.
+    Verified the light + dark landing page via the preview tool (`.claude/launch.json`
+    added for `preview_start`). **Still TODO (Phase 2+):** declutter the dense in-app panels
+    themselves (Places/Itinerary/Budget) via progressive disclosure — fewer controls
+    visible at once, move secondary actions behind menus — which is where the testers'
+    "too many buttons" pain mostly lives. Mobile pass comes after PC.
   - **SEO / social tags:** `index.html` got a keyword-rich title + description, **canonical**
     (`https://trippio.app/`), `robots` meta, and **Open Graph + Twitter Card** tags so shared
     links show a real preview (title/description/image). Added `public/robots.txt`
