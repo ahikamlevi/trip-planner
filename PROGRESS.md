@@ -39,9 +39,9 @@ live.
     actions) is **collapsed behind a "🔎 Find places nearby" toggle** (auto-opens when
     results exist), and the secondary **"📍 Add from a Maps link"** box is **hidden behind a
     toggle** so the name-search is the single clear add field. Pure show/hide — no logic
-    change. (Itinerary panel declutter still to do.) Pin-merge for revisited cities is
-    **parked** (logic is unit-tested/correct in `markers.test.ts`; the two pins still
-    overlapped in the user's data — likely a name/coords nuance to revisit).
+    change. (Itinerary panel declutter still to do.) Revisited-city **pin merge works**
+    (one pin shows all stop numbers, e.g. "1·4"; `buildRouteMarkers` in `route/markers.ts`,
+    unit-tested in `markers.test.ts`) — the earlier "still only 4" was deploy/cache lag.
   - **Trip "Route" overview (multi-city journey)** — new default trip tab. Testers (incl.
     a Hebrew speaker) couldn't see how to express a cross-city trip like Rio → Santiago →
     Concepción → Santiago → Madrid → home — the app jumped straight into within-city
