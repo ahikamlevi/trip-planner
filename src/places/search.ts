@@ -18,6 +18,14 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
   return STADIA_KEY ? searchStadia(q, signal) : searchNominatim(q, signal)
 }
 
+// City-level search for the trip Route: restricts results to cities/towns (not streets or
+// businesses), so typing "Bangkok" suggests the city. Powers the add-city autocomplete.
+export async function searchCities(query: string, signal?: AbortSignal): Promise<SearchResult[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  return STADIA_KEY ? citiesStadia(q, signal) : citiesNominatim(q, signal)
+}
+
 // Reverse-geocode a dropped pin to a city name (best effort; returns undefined on
 // failure so a place can still be created without one).
 export async function reverseCity(lat: number, lng: number, signal?: AbortSignal): Promise<string | undefined> {
@@ -68,6 +76,30 @@ async function searchStadia(q: string, signal?: AbortSignal): Promise<SearchResu
     .filter((r): r is SearchResult => r !== null)
 }
 
+// Pelias `layers=locality,localadmin` keeps only city/town-level results.
+async function citiesStadia(q: string, signal?: AbortSignal): Promise<SearchResult[]> {
+  const url =
+    `https://api.stadiamaps.com/geocoding/v1/autocomplete?size=6&layers=locality,localadmin&text=${encodeURIComponent(q)}` +
+    `&api_key=${STADIA_KEY}`
+  const res = await fetch(url, { signal })
+  if (!res.ok) throw new Error(`Search failed (${res.status})`)
+  const data: { features?: PeliasFeature[] } = await res.json()
+  return (data.features ?? [])
+    .map((f): SearchResult | null => {
+      const c = f.geometry?.coordinates
+      const p = f.properties ?? {}
+      if (!c || !p.name) return null
+      return {
+        name: p.name,
+        detail: [p.region, p.country].filter(Boolean).join(', '),
+        lat: c[1],
+        lng: c[0],
+        city: peliasCity(p),
+      }
+    })
+    .filter((r): r is SearchResult => r !== null)
+}
+
 async function reverseStadia(lat: number, lng: number, signal?: AbortSignal): Promise<string | undefined> {
   try {
     const url =
@@ -99,6 +131,27 @@ const nominatimCity = (a?: NominatimAddress): string | undefined =>
 async function searchNominatim(q: string, signal?: AbortSignal): Promise<SearchResult[]> {
   const url =
     'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&q=' +
+    encodeURIComponent(q)
+  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error(`Search failed (${res.status})`)
+  const data: Array<{ display_name: string; lat: string; lon: string; name?: string; address?: NominatimAddress }> =
+    await res.json()
+  return data.map((d) => {
+    const parts = d.display_name.split(',')
+    return {
+      name: d.name?.trim() || parts[0].trim(),
+      detail: parts.slice(1).join(',').trim(),
+      lat: Number(d.lat),
+      lng: Number(d.lon),
+      city: nominatimCity(d.address),
+    }
+  })
+}
+
+// Nominatim `featuretype=settlement` keeps only cities/towns/villages.
+async function citiesNominatim(q: string, signal?: AbortSignal): Promise<SearchResult[]> {
+  const url =
+    'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&featuretype=settlement&q=' +
     encodeURIComponent(q)
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Search failed (${res.status})`)

@@ -68,6 +68,10 @@ live.
     the two date inputs are now labelled **Arrive / Leave**; and the map re-fits when cities
     change plus a **"🗺️ Fit map to route"** button (`MapView` gained an opt-in `fitKey` prop)
     — previously it only framed the first city, so later cities/route fell off-screen.
+    **Add-city autocomplete:** typing now shows live **city-level suggestions** (debounced)
+    so you get feedback and pick the right place; new `searchCities` in `places/search.ts`
+    restricts results to cities/towns (Stadia Pelias `layers=locality,localadmin`; Nominatim
+    `featuretype=settlement`).
   - **UI redesign — Phase 1: visual foundation** (in response to user testers finding the
     app cluttered/cramped; goal = welcoming, spacious, self-explanatory; **PC first**).
     Bolder refresh of the design system in `index.css`, which re-skins every screen at

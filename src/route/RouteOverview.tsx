@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
-import { searchPlaces } from '../places/search'
+import { searchCities, type SearchResult } from '../places/search'
 import { MapView } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
 import { EmptyTip } from '../components/EmptyTip'
@@ -80,6 +80,8 @@ export function RouteOverview({
   const [city, setCity] = useState('')
   const [adding, setAdding] = useState(false)
   const [fitBump, setFitBump] = useState(0)
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -118,22 +120,51 @@ export function RouteOverview({
     ? { lat: located[0].lat!, lng: located[0].lng! }
     : { lat: 20, lng: 0 }
 
-  async function addCity() {
-    const name = city.trim()
-    if (!name || adding) return
-    setAdding(true)
-    let lat: number | null = null
-    let lng: number | null = null
-    let label = name
-    try {
-      const results = await searchPlaces(name)
-      if (results[0]) {
-        lat = results[0].lat
-        lng = results[0].lng
-        label = results[0].name || name
+  // Live city suggestions as you type (debounced), so you get feedback and pick the right
+  // city instead of hoping the typed name geocoded.
+  useEffect(() => {
+    const q = city.trim()
+    if (q.length < 2) {
+      setSuggestions([])
+      return
+    }
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        setSuggestions(await searchCities(q, controller.signal))
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') setSuggestions([])
+      } finally {
+        setSearching(false)
       }
-    } catch {
-      /* geocoding failed — add the city without a map position */
+    }, 450)
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
+  }, [city])
+
+  // Add a city. With a picked suggestion we use its coords directly; otherwise we geocode
+  // the typed text (first city match).
+  async function addCity(resolved?: SearchResult) {
+    const typed = city.trim()
+    if ((!resolved && !typed) || adding) return
+    setAdding(true)
+    let lat: number | null = resolved?.lat ?? null
+    let lng: number | null = resolved?.lng ?? null
+    let label = resolved?.name ?? typed
+    if (!resolved) {
+      try {
+        const results = await searchCities(typed)
+        if (results[0]) {
+          lat = results[0].lat
+          lng = results[0].lng
+          label = results[0].name || typed
+        }
+      } catch {
+        /* geocoding failed — add the city without a map position */
+      }
     }
     const sortOrder = list.length ? Math.max(...list.map((d) => d.sort_order)) + 1 : 0
     // Default the new city's start to the day after the previous city's end (or start),
@@ -156,6 +187,7 @@ export function RouteOverview({
       return
     }
     setCity('')
+    setSuggestions([])
     if (lat == null) toast.info(t('route.notLocated'))
     else toast.success(t('route.added', { name: label }))
     void load()
@@ -210,21 +242,39 @@ export function RouteOverview({
       </div>
       <p className="muted">{t('route.intro')}</p>
 
-      <div className="route-add">
-        <input
-          value={city}
-          placeholder={t('route.addCity')}
-          onChange={(e) => setCity(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              void addCity()
-            }
-          }}
-        />
-        <button onClick={() => void addCity()} disabled={adding || !city.trim()}>
-          {adding ? t('auth.saving') : t('common.add')}
-        </button>
+      <div className="route-add-wrap">
+        <div className="route-add">
+          <input
+            value={city}
+            placeholder={t('route.addCity')}
+            autoComplete="off"
+            onChange={(e) => setCity(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void addCity(suggestions[0])
+              }
+            }}
+          />
+          <button onClick={() => void addCity(suggestions[0])} disabled={adding || !city.trim()}>
+            {adding ? t('auth.saving') : t('common.add')}
+          </button>
+        </div>
+        {searching && city.trim().length >= 2 && (
+          <p className="muted small route-searching">{t('places.searching')}</p>
+        )}
+        {suggestions.length > 0 && (
+          <ul className="search-results route-suggestions">
+            {suggestions.map((s, i) => (
+              <li key={i}>
+                <button type="button" onClick={() => void addCity(s)} disabled={adding}>
+                  <span className="result-name">{s.name}</span>
+                  {s.detail && <span className="muted small">{s.detail}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="route-layout">
