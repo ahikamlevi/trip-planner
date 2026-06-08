@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { AppHeader } from '../components/AppHeader'
 import { Menu } from '../components/Menu'
 import { EmojiPicker, DEFAULT_COVER } from '../components/EmojiPicker'
+import { RouteOverview } from '../route/RouteOverview'
 import { PlacesWorkspace } from '../places/PlacesWorkspace'
 import { ItineraryBoard } from '../itinerary/ItineraryBoard'
 import { BudgetPanel } from '../budget/BudgetPanel'
@@ -17,7 +18,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
 
-type Tab = 'places' | 'itinerary' | 'budget' | 'packing' | 'dietary'
+type Tab = 'route' | 'places' | 'itinerary' | 'budget' | 'packing' | 'dietary'
 
 interface MemberRow {
   user_id: string
@@ -37,7 +38,7 @@ export function TripView() {
   const [members, setMembers] = useState<MemberRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('places')
+  const [tab, setTab] = useState<Tab>('route')
   const autoTab = useRef(false)
 
   const isOwner = trip?.owner_id === uid
@@ -99,6 +100,13 @@ export function TripView() {
 
         <nav className="tabs" aria-label={t('tab.sections')}>
           <button
+            className={`tab${tab === 'route' ? ' active' : ''}`}
+            aria-current={tab === 'route' ? 'page' : undefined}
+            onClick={() => setTab('route')}
+          >
+            {t('tab.route')}
+          </button>
+          <button
             className={`tab${tab === 'places' ? ' active' : ''}`}
             aria-current={tab === 'places' ? 'page' : undefined}
             onClick={() => setTab('places')}
@@ -135,6 +143,9 @@ export function TripView() {
           </button>
         </nav>
 
+        {tab === 'route' && (
+          <RouteOverview tripId={trip.id} onPlanDestination={() => setTab('itinerary')} />
+        )}
         {tab === 'places' && <PlacesWorkspace tripId={trip.id} />}
         {tab === 'itinerary' && (
           <ItineraryBoard

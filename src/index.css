@@ -2626,6 +2626,112 @@ button.secondary.danger {
   border-top: 1px solid var(--border);
 }
 
+/* Route / destinations overview */
+.route-add {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-5);
+}
+.route-add input {
+  flex: 1;
+  min-width: 0;
+}
+.route-add button {
+  margin-top: 0;
+}
+
+.route-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 1.1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.route-dest {
+  margin: 0;
+  padding: var(--space-4);
+}
+.route-dest-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.route-num {
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.route-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.route-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+.route-dates {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.route-dates input {
+  flex: 1;
+  min-width: 0;
+}
+.route-dest-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.route-reorder {
+  display: flex;
+  gap: var(--space-2);
+}
+.route-reorder button {
+  margin-top: 0;
+  padding: 0.4rem 0.7rem;
+}
+.route-map-wrap {
+  position: sticky;
+  top: 76px;
+}
+.route-map-wrap .map {
+  height: 70vh;
+  min-height: 360px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+@media (max-width: 820px) {
+  .route-layout {
+    grid-template-columns: 1fr;
+  }
+  .route-map-wrap {
+    position: static;
+    order: -1;
+  }
+  .route-map-wrap .map {
+    height: 320px;
+  }
+}
+
 /* Loading skeletons */
 .skeleton {
   display: inline-block;

@@ -190,9 +190,51 @@ export interface Database {
         Relationships: []
       }
       areas: {
-        Row: { id: string; trip_id: string; name: string; sort_order: number; created_at: string }
-        Insert: { id?: string; trip_id: string; name: string; sort_order?: number; created_at?: string }
-        Update: { id?: string; trip_id?: string; name?: string; sort_order?: number; created_at?: string }
+        Row: {
+          id: string
+          trip_id: string
+          name: string
+          sort_order: number
+          created_at: string
+          country: string | null
+          lat: number | null
+          lng: number | null
+          start_date: string | null
+          end_date: string | null
+          transport_mode: string | null
+          transport_note: string | null
+          transport_cost: number | null
+        }
+        Insert: {
+          id?: string
+          trip_id: string
+          name: string
+          sort_order?: number
+          created_at?: string
+          country?: string | null
+          lat?: number | null
+          lng?: number | null
+          start_date?: string | null
+          end_date?: string | null
+          transport_mode?: string | null
+          transport_note?: string | null
+          transport_cost?: number | null
+        }
+        Update: {
+          id?: string
+          trip_id?: string
+          name?: string
+          sort_order?: number
+          created_at?: string
+          country?: string | null
+          lat?: number | null
+          lng?: number | null
+          start_date?: string | null
+          end_date?: string | null
+          transport_mode?: string | null
+          transport_note?: string | null
+          transport_cost?: number | null
+        }
         Relationships: []
       }
       days: {

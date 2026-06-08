@@ -33,6 +33,18 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **Trip "Route" overview (multi-city journey)** — new default trip tab. Testers (incl.
+    a Hebrew speaker) couldn't see how to express a cross-city trip like Rio → Santiago →
+    Concepción → Santiago → Madrid → home — the app jumped straight into within-city
+    day-planning. New **Route** tab (`src/route/RouteOverview.tsx`): an ordered list of
+    destinations (cities) with the travel leg into each (✈/🚆/🚌/🚗/⛴), drawn on a map as
+    the journey; add a city (geocoded via `searchPlaces`), reorder (↑/↓), edit name/dates,
+    delete, and "Plan days" → Itinerary. Built on **`areas`** (migration `0025`) since
+    `days.area_id` already links days to a destination. Made the **default tab** (was
+    Places). Also fixed a Hebrew naming clash: the Itinerary tab was labelled **מסלול**
+    ("route") — renamed to **לוח זמנים**, freeing **מסלול** for the new Route tab (likely
+    part of the confusion). ⚠️ needs migration `0025`. Per-destination day filtering in the
+    Itinerary is a follow-up (today "Plan days" just opens the Itinerary tab).
   - **UI redesign — Phase 1: visual foundation** (in response to user testers finding the
     app cluttered/cramped; goal = welcoming, spacious, self-explanatory; **PC first**).
     Bolder refresh of the design system in `index.css`, which re-skins every screen at
@@ -190,10 +202,10 @@ live.
   ✏️ Edit button on wishlist (click row = select+focus only).
 
 ### ⚠️ Operational state / pending for production (read this on a fresh start)
-- **Supabase migrations `0001`–`0023` are applied.** ⚠️ **`0024` (account deletion RPC)
-  is NOT yet applied** — run [supabase/migrations/0024_delete_account.sql](supabase/migrations/0024_delete_account.sql) so the
-  "Delete account" action in the ⚙️ menu works. The Dietary "Other travelers"
-  (companions, `0023`) and "Shift all days" (`shift_trip_days`, `0022`) both work.
+- **Supabase migrations `0001`–`0024` are applied** (incl. account deletion). ⚠️ **`0025`
+  (destinations — extends `areas`) is NOT yet applied** — run [supabase/migrations/0025_destinations.sql](supabase/migrations/0025_destinations.sql)
+  or the new **Route** tab can't save city coords/dates/transport. The "Delete account"
+  action, Dietary "Other travelers" (`0023`), and "Shift all days" (`0022`) all work.
 - **`discover` and `resolve-place` Edge Functions are both deployed.** Foursquare
   discovery + short-Maps-link resolution are live.
 - **`VITE_STADIA_API_KEY` is set in Vercel** → Stadia tiles + geocoding + routing all
@@ -308,12 +320,13 @@ They are mostly idempotent.
 | `0022_shift_trip_days.sql` | `shift_trip_days(_trip_id,_delta_days)` SECURITY DEFINER RPC (atomic `update days set date = date + N` — used by the trip editor when the start date moves, e.g. anchoring a cloned template to the user's real dates) |
 | `0023_trip_companions.sql` | `trip_companions` table (per-trip people **without an app account** — children/companions — with `name`, `dietary_restrictions[]`, `dietary_note`; any member rw via `is_trip_member`; realtime) so their allergies appear on the allergy card |
 | `0024_delete_account.sql` | `delete_account()` SECURITY DEFINER RPC (`delete from auth.users where id = auth.uid()`) for GDPR self-service account deletion; cascades remove the user's profile, owned trips + content, and memberships. EXECUTE granted to `authenticated` only |
+| `0025_destinations.sql` | promotes `areas` into trip **destinations**: adds `country`, `lat`, `lng`, `start_date`, `end_date`, `transport_mode`/`_note`/`_cost` (the travel leg *into* the city). Powers the **Route** tab (ordered cities + map route). All optional; existing areas unaffected. RLS/realtime already cover `areas` |
 
 **Data model (tables):**
 - `profiles` (id→auth.users, display_name, email[mirrored from auth.users], dietary_restrictions[], dietary_note)
 - `trips` (name, country, start_date, end_date, owner_id, currency, notes, cover_emoji)
 - `trip_members` (trip_id, user_id, role: owner|editor)
-- `areas` (trip_id, name, sort_order)
+- `areas` (trip_id, name, sort_order, **+ country, lat, lng, start_date, end_date, transport_mode/_note/_cost** from `0025`) — doubles as trip **destinations** (cities) for the Route tab; `days.area_id` links each day to its destination
 - `days` (trip_id, date, area_id, note)
 - `places` (trip_id, name, lat, lng, category[food|cafe|bar|sight|museum|outdoors|beach|hotel|shopping|transport|pharmacy|hospital|police|other], category_other[free-text label when category=other], google_place_id, notes, opening_hours, dietary_notes, color, city, est_cost, phone, is_reference[UNUSED — superseded by day_references], scheduled[UNUSED now])
 - `stops` (day_id, place_id, sort_order, arrival_time, duration_min, cost, reminder_min, travel_mode, travel_min, travel_dist_m, travel_note, travel_cost)
@@ -633,7 +646,8 @@ routing/     RouteProvider.ts (interface), stadia.ts (Valhalla), osrm.ts (fallba
 budget/      BudgetPanel.tsx, money.ts (Intl currency)
 packing/     PackingPanel.tsx
 dietary/     DietaryPanel.tsx (self-editor + members overview + printable allergy card)
-routes/      Dashboard.tsx, TripView.tsx (tabs: places/itinerary/budget/packing/dietary + members + notes),
+route/       RouteOverview.tsx (Route tab — ordered destinations/cities + map journey line)
+routes/      Dashboard.tsx, TripView.tsx (tabs: route/places/itinerary/budget/packing/dietary + members + notes),
              Landing.tsx (logged-out marketing + Login; footer → /legal), Legal.tsx (Privacy + Terms, public /legal)
 weather/     openMeteo.ts (keyless per-day forecast; useTripWeather + weatherMeta)
 
