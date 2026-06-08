@@ -106,6 +106,10 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
   // A searched-but-not-yet-saved candidate place (preview with an "Add" button).
   const [pending, setPending] = useState<{ name: string; lat: number; lng: number; city?: string } | null>(null)
   const [dropMode, setDropMode] = useState(false)
+  // Progressive disclosure: keep the Places tab calm by hiding the secondary "add from
+  // link" box and the whole "find nearby" chip cluster until the user asks for them.
+  const [showPaste, setShowPaste] = useState(false)
+  const [showDiscover, setShowDiscover] = useState(false)
   const [catFilter, setCatFilter] = useState<PlaceCategory | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
 
@@ -457,54 +461,75 @@ export function PlacesWorkspace({ tripId }: { tripId: string }) {
 
       <div className="places-top">
         <PlaceSearch onSelect={selectSearchResult} />
-        <PasteMapsLink onSelect={selectSearchResult} />
+        <button
+          type="button"
+          className="linklike places-add-link"
+          aria-expanded={showPaste}
+          onClick={() => setShowPaste((v) => !v)}
+        >
+          {t('places.addFromLink')}
+        </button>
       </div>
+      {showPaste && <PasteMapsLink onSelect={selectSearchResult} />}
 
-      <div className="discovery-bar">
-        <span className="discovery-label small">{t('disco.find')}</span>
-        <div className="cat-chips">
-          {DISCO_CATEGORIES.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              className={`cat-chip${catKey === c.key ? ' active' : ''}`}
-              aria-pressed={catKey === c.key}
-              onClick={() => setCatKey(c.key)}
-            >
-              {c.icon} {t(`disco.cat.${c.key}`)}
-            </button>
-          ))}
-        </div>
-        {isFood && (
-          <div className="cat-chips diet-chips">
-            {DIET_FILTERS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`cat-chip${diets.includes(d) ? ' active' : ''}`}
-                aria-pressed={diets.includes(d)}
-                onClick={() => toggleDiet(d)}
-              >
-                {t(`disco.diet.${d}`)}
+      <div className="places-discover">
+        <button
+          type="button"
+          className={`secondary disco-toggle${showDiscover || discoveries.length > 0 ? ' active' : ''}`}
+          aria-expanded={showDiscover || discoveries.length > 0}
+          onClick={() => setShowDiscover((v) => !v)}
+        >
+          {t('disco.findNearby')}
+        </button>
+
+        {(showDiscover || discoveries.length > 0) && (
+          <div className="discovery-bar">
+            <span className="discovery-label small">{t('disco.find')}</span>
+            <div className="cat-chips">
+              {DISCO_CATEGORIES.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  className={`cat-chip${catKey === c.key ? ' active' : ''}`}
+                  aria-pressed={catKey === c.key}
+                  onClick={() => setCatKey(c.key)}
+                >
+                  {c.icon} {t(`disco.cat.${c.key}`)}
+                </button>
+              ))}
+            </div>
+            {isFood && (
+              <div className="cat-chips diet-chips">
+                {DIET_FILTERS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`cat-chip${diets.includes(d) ? ' active' : ''}`}
+                    aria-pressed={diets.includes(d)}
+                    onClick={() => toggleDiet(d)}
+                  >
+                    {t(`disco.diet.${d}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="discovery-actions">
+              <button onClick={() => void runDiscovery(catKey, diets)} disabled={discoBusy}>
+                {discoBusy ? t('disco.searching') : t('disco.searchArea')}
               </button>
-            ))}
+              {isFood && myDietFilters.length > 0 && (
+                <button className="secondary" onClick={matchMyRestrictions} disabled={discoBusy}>
+                  {t('disco.matchMine')}
+                </button>
+              )}
+              {discoveries.length > 0 && (
+                <button className="linklike" onClick={() => setDiscoveries([])}>
+                  {t('disco.clear')}
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <div className="discovery-actions">
-          <button onClick={() => void runDiscovery(catKey, diets)} disabled={discoBusy}>
-            {discoBusy ? t('disco.searching') : t('disco.searchArea')}
-          </button>
-          {isFood && myDietFilters.length > 0 && (
-            <button className="secondary" onClick={matchMyRestrictions} disabled={discoBusy}>
-              {t('disco.matchMine')}
-            </button>
-          )}
-          {discoveries.length > 0 && (
-            <button className="linklike" onClick={() => setDiscoveries([])}>
-              {t('disco.clear')}
-            </button>
-          )}
-        </div>
       </div>
       {discoMsg && <p className="muted small">{discoMsg}</p>}
 

@@ -214,6 +214,7 @@ const en: Dict = {
   // Places
   'places.title': 'Places',
   'places.search': 'Search a place by name…',
+  'places.addFromLink': '📍 Add from a Maps link',
   'places.searching': 'Searching…',
   'places.searchFailed': 'Search failed, try again.',
   'places.pasteLink': 'Paste a Google/Apple Maps link…',
@@ -465,6 +466,7 @@ const en: Dict = {
   'dash.step4': 'Invite a travel partner to plan together',
 
   // Discovery (find places nearby)
+  'disco.findNearby': '🔎 Find places nearby',
   'disco.find': 'Find nearby:',
   'disco.cat.food': 'Food',
   'disco.cat.cafe': 'Cafés',
@@ -681,6 +683,7 @@ const he: Dict = {
 
   'places.title': 'מקומות',
   'places.search': 'חיפוש מקום לפי שם…',
+  'places.addFromLink': '📍 הוספה מקישור מפה',
   'places.pasteLink': 'הדביקו קישור מ-Google/Apple Maps…',
   'places.pasteLinkAdd': '📍 הוספה מקישור',
   'places.pasteLinkHelp': 'במפות לחצו שיתוף ← העתקת קישור, והדביקו כאן.',
@@ -928,6 +931,7 @@ const he: Dict = {
   'dash.step4': 'הזמינו שותף/ה לתכנן יחד',
 
   // גילוי מקומות בקרבת מקום
+  'disco.findNearby': '🔎 מצא מקומות בקרבת מקום',
   'disco.find': 'מצא בקרבת מקום:',
   'disco.cat.food': 'אוכל',
   'disco.cat.cafe': 'בתי קפה',

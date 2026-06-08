@@ -33,6 +33,15 @@ live.
   discovery, dietary/allergy card, stop reminders + calendar export, editable travel
   legs, per-place colors, and many mobile/UX fixes.
 - **Recent work — current arc** (most recent at top):
+  - **UI redesign — Phase 2: declutter Places (progressive disclosure)** — the Places tab
+    crammed add-by-name + add-by-link + the whole "Find nearby" chip cluster + map toolbar +
+    dual lists all at once. Now the **"Find nearby" discovery** (category + diet chips +
+    actions) is **collapsed behind a "🔎 Find places nearby" toggle** (auto-opens when
+    results exist), and the secondary **"📍 Add from a Maps link"** box is **hidden behind a
+    toggle** so the name-search is the single clear add field. Pure show/hide — no logic
+    change. (Itinerary panel declutter still to do.) Pin-merge for revisited cities is
+    **parked** (logic is unit-tested/correct in `markers.test.ts`; the two pins still
+    overlapped in the user's data — likely a name/coords nuance to revisit).
   - **Trip "Route" overview (multi-city journey)** — new default trip tab. Testers (incl.
     a Hebrew speaker) couldn't see how to express a cross-city trip like Rio → Santiago →
     Concepción → Santiago → Madrid → home — the app jumped straight into within-city

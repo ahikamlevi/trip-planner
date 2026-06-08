@@ -915,7 +915,25 @@ button.secondary.danger {
 }
 
 .places-top {
-  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.places-top .place-search {
+  flex: 1;
+}
+.places-add-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.places-discover {
+  margin-bottom: var(--space-4);
+}
+.disco-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* List + editor below the full-width map; wrap to stack on narrow screens. */
