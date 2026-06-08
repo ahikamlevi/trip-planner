@@ -16,7 +16,16 @@ import { useT } from '../i18n/I18nProvider'
 import { useToast } from '../components/Toast'
 import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
+import { TripProgress } from '../components/TripProgress'
+import { TripReadyCelebration } from '../components/TripReadyCelebration'
+import { computeTripProgress, type TripProgress as Progress } from '../progress/tripProgress'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
+
+interface TripStats {
+  days: number
+  cities: number
+  stops: number
+}
 
 type Tab = 'route' | 'places' | 'itinerary' | 'budget' | 'packing' | 'dietary'
 
@@ -36,6 +45,9 @@ export function TripView() {
 
   const [trip, setTrip] = useState<Trip | null>(null)
   const [members, setMembers] = useState<MemberRow[]>([])
+  const [progress, setProgress] = useState<Progress | null>(null)
+  const [stats, setStats] = useState<TripStats>({ days: 0, cities: 0, stops: 0 })
+  const [showCelebration, setShowCelebration] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('route')
@@ -47,17 +59,47 @@ export function TripView() {
 
   const load = useCallback(async () => {
     if (!tripId) return
-    const [tripRes, memberRes] = await Promise.all([
+    const [tripRes, memberRes, areaRes, placeRes, budgetRes, packingRes] = await Promise.all([
       supabase.from('trips').select('*').eq('id', tripId).maybeSingle(),
       supabase
         .from('trip_members')
         .select('user_id, role, profile:profiles(display_name, email)')
         .eq('trip_id', tripId)
         .returns<MemberRow[]>(),
+      supabase.from('areas').select('start_date, end_date, transport_mode').eq('trip_id', tripId),
+      supabase.from('places').select('scheduled, est_cost').eq('trip_id', tripId),
+      supabase.from('budget_entries').select('id', { count: 'exact', head: true }).eq('trip_id', tripId),
+      supabase.from('packing_items').select('id', { count: 'exact', head: true }).eq('trip_id', tripId),
     ])
     if (tripRes.error) setError(tripRes.error.message)
     else setTrip(tripRes.data)
     if (!memberRes.error) setMembers(memberRes.data ?? [])
+
+    // Completion meter — derive from already-fetched counts (no extra round-trips).
+    if (tripRes.data) {
+      const td = tripRes.data
+      const areas = areaRes.data ?? []
+      const places = placeRes.data ?? []
+      const stopCount = places.filter((p) => p.scheduled).length
+      setProgress(
+        computeTripProgress({
+          started: true,
+          destinationCount: areas.length,
+          hasTripDates: !!(td.start_date && td.end_date),
+          datedDestinations: areas.filter((a) => a.start_date && a.end_date).length,
+          scheduledPlaces: stopCount,
+          transportSet: areas.filter((a) => a.transport_mode).length,
+          budgetEntries: budgetRes.count ?? 0,
+          pricedPlaces: places.filter((p) => p.est_cost != null).length,
+          packingItems: packingRes.count ?? 0,
+        }),
+      )
+      setStats({
+        days: td.start_date && td.end_date ? daysBetween(td.start_date, td.end_date) + 1 : 0,
+        cities: areas.length,
+        stops: stopCount,
+      })
+    }
     setLoading(false)
   }, [tripId])
 
@@ -66,6 +108,35 @@ export function TripView() {
   }, [load])
 
   useTripRealtime(tripId, load)
+
+  // Fire the "trip ready" celebration once when a plan first crosses the ready
+  // threshold. A per-trip localStorage flag keeps it from re-firing on reload;
+  // dropping back below the threshold clears the flag so a genuine re-completion
+  // can celebrate again.
+  useEffect(() => {
+    if (!tripId || !progress) return
+    const key = `tp:celebrated:${tripId}`
+    let done = false
+    try {
+      done = localStorage.getItem(key) === '1'
+    } catch {
+      /* ignore */
+    }
+    if (progress.ready && !done) {
+      setShowCelebration(true)
+      try {
+        localStorage.setItem(key, '1')
+      } catch {
+        /* ignore */
+      }
+    } else if (!progress.ready && done) {
+      try {
+        localStorage.removeItem(key)
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [tripId, progress])
 
   // Auto-open to the itinerary when today falls within the trip (the "Today" feel).
   useEffect(() => {
@@ -99,6 +170,8 @@ export function TripView() {
         <Link to="/" className="back-link">→ {t('tripview.allTrips')}</Link>
 
         <TripHeader trip={trip} isOwner={isOwner} onChange={load} onDeleted={() => navigate('/')} />
+
+        {progress && <TripProgress progress={progress} onGoToTab={setTab} />}
 
         <nav className="tabs" aria-label={t('tab.sections')}>
           <button
@@ -217,6 +290,20 @@ export function TripView() {
           {isOwner && <InviteForm tripId={trip.id} onInvited={load} />}
         </details>
       </main>
+
+      {showCelebration && (
+        <TripReadyCelebration
+          tripName={trip.name}
+          days={stats.days}
+          cities={stats.cities}
+          stops={stats.stops}
+          onShare={() => {
+            setShowCelebration(false)
+            setTab('itinerary')
+          }}
+          onClose={() => setShowCelebration(false)}
+        />
+      )}
     </div>
   )
 }

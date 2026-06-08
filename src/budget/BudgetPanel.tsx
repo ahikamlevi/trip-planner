@@ -4,6 +4,7 @@ import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { useT } from '../i18n/I18nProvider'
 import { EmptyTip } from '../components/EmptyTip'
+import { useCountUp } from '../lib/useCountUp'
 import type { BudgetEntry, Day, Place, Stop } from '../lib/database.types'
 import { CATEGORIES } from '../places/categories'
 import { formatDayLabel } from '../itinerary/dates'
@@ -60,6 +61,8 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
   )
   const entriesTotal = useMemo(() => entries.reduce((sum, e) => sum + Number(e.amount), 0), [entries])
   const total = stopTotal + entriesTotal
+  // The "hero" number counts up — a small, satisfying sense of momentum as costs change.
+  const animatedTotal = useCountUp(total)
 
   // Unified category breakdown: place-visit costs by place category + entries by
   // category. Keyed by the translated label so equivalent buckets merge.
@@ -128,7 +131,7 @@ export function BudgetPanel({ tripId, currency }: { tripId: string; currency: st
 
       <div className="budget-total card">
         <span className="muted">{t('budget.total')}</span>
-        <span className="budget-total-amount">{formatMoney(total, currency, locale)}</span>
+        <span className="budget-total-amount display">{formatMoney(animatedTotal, currency, locale)}</span>
         <span className="muted small">
           {t('budget.breakdown', {
             stops: formatMoney(stopTotal, currency, locale),

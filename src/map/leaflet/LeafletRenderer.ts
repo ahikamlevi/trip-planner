@@ -21,7 +21,8 @@ function pinIcon(marker: MapMarker): L.DivIcon {
     : ''
   return L.divIcon({
     className: 'map-pin',
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:50%;${ring}">${inner}</span>`,
+    // The inner span carries a "drop & settle" animation (see .map-pin-dot in index.css).
+    html: `<span class="map-pin-dot" style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:50%;${ring}">${inner}</span>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   })
@@ -64,7 +65,7 @@ export function createLeafletRenderer(opts: MapRendererOptions): MapRenderer {
       if (points.length >= 2) {
         pathLine = L.polyline(
           points.map((p) => [p.lat, p.lng] as [number, number]),
-          { color: '#3b82f6', weight: 3, opacity: 0.7, dashArray: '6 7' },
+          { color: '#2563eb', weight: 3, opacity: 0.75, dashArray: '6 7', className: 'route-line' },
         ).addTo(map)
       }
     },

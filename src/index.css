@@ -1,26 +1,49 @@
-/* ---- Theme: "Daylight Teal" ----
+/* ---- Self-hosted fonts (no third-party request, privacy- & cost-friendly) ---- */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus-jakarta-sans.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/fraunces.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+/* ---- Theme: "Horizon" ----
+   Trust-blue resting state + sunset-warm action/celebration accent.
+   Blue is the calm, trustworthy base (the experience feels "safe and handled");
+   warm coral/amber is reserved for action and delight so it stays special.
    Light is the default; dark is opted into via <html data-theme="dark">
    (set by ThemeProvider). All component colors flow from these tokens. */
 :root {
-  /* Palette — "Daylight Teal", refreshed: cleaner light ground, more vivid accent. */
-  --bg: #f3f6f5; /* cool light ground */
+  /* Palette — "Horizon". */
+  --bg: #f6f8fb; /* cool, calm light ground */
   --surface: #ffffff; /* cards */
-  --surface-2: #edf2f0; /* hover / raised / inset */
-  --border: #e3e9e6;
-  --text: #112019; /* deep teal-ink */
-  --muted: #5a6b64; /* AA on --bg */
-  --accent: #0d9488; /* teal-600 — vivid, AA for white text */
-  --accent-hover: #0f766e;
-  --accent-soft: #d8f1ec; /* tinted active state */
+  --surface-2: #eef2f7; /* hover / raised / inset */
+  --border: #e2e8f0;
+  --text: #0f1b2d; /* deep navy ink */
+  --muted: #5b6b80; /* AA on --bg */
+  --accent: #2563eb; /* trust blue-600 — AA for white text */
+  --accent-hover: #1d4ed8;
+  --accent-soft: #dbe7fe; /* tinted active state */
   --on-accent: #ffffff; /* text/icon on an accent fill */
-  --highlight: #f97316; /* vivid coral-orange */
-  --highlight-soft: #ffe7d4;
+  --warm: #f97316; /* sunset coral-orange — action & delight */
+  --warm-hover: #ea640c;
+  --warm-soft: #ffe7d4;
+  --highlight: var(--warm); /* legacy alias → warm */
+  --highlight-soft: var(--warm-soft);
+  --sunset: linear-gradient(135deg, #fb7185 0%, #f97316 55%, #f59e0b 100%);
   --error: #dc2626;
-  --ok: #15803d;
-  --warn: #b45309;
+  --ok: #16a34a;
+  --warn: #d97706;
   --danger-border: #eccaca;
-  --map-bg: #e6ece9;
-  --overlay: rgba(17, 24, 39, 0.5);
+  --map-bg: #e6ecf3;
+  --overlay: rgba(15, 27, 45, 0.5);
 
   /* Spacing scale (use these instead of ad-hoc rems for consistent rhythm). */
   --space-1: 0.25rem;
@@ -40,35 +63,49 @@
   --radius-pill: 999px;
 
   /* Soft, layered shadows for depth. */
-  --shadow-sm: 0 1px 2px rgba(17, 32, 25, 0.06), 0 1px 3px rgba(17, 32, 25, 0.07);
-  --shadow-md: 0 4px 14px rgba(17, 32, 25, 0.08), 0 2px 5px rgba(17, 32, 25, 0.05);
-  --shadow-lg: 0 16px 40px rgba(17, 32, 25, 0.14);
+  --shadow-sm: 0 1px 2px rgba(15, 27, 45, 0.06), 0 1px 3px rgba(15, 27, 45, 0.07);
+  --shadow-md: 0 4px 14px rgba(15, 27, 45, 0.08), 0 2px 5px rgba(15, 27, 45, 0.05);
+  --shadow-lg: 0 16px 40px rgba(15, 27, 45, 0.16);
   --shadow: var(--shadow-sm); /* legacy alias */
 
+  /* Motion — shared easing & durations for delightful, consistent micro-interactions. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot "pop" */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 440ms;
+
+  /* Type families. UI = humanist sans; display = warm serif for emotional moments. */
+  --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
   color-scheme: light;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-ui);
   color: var(--text);
   background: var(--bg);
 }
 
 :root[data-theme='dark'] {
-  --bg: #0b1512; /* deep teal-black */
-  --surface: #122019;
-  --surface-2: #1a2c25;
-  --border: #243a32;
-  --text: #e8f0ec;
-  --muted: #9db3aa;
-  --accent: #2dd4bf; /* brighter teal for dark bg */
-  --accent-hover: #5eead4;
-  --accent-soft: #14302a;
-  --on-accent: #04231f; /* dark text on the bright teal */
-  --highlight: #fb923c;
-  --highlight-soft: #3a2414;
+  --bg: #0b1220; /* deep navy night */
+  --surface: #121b2e;
+  --surface-2: #1b2740;
+  --border: #243149;
+  --text: #e8eef7;
+  --muted: #93a4bd;
+  --accent: #60a5fa; /* brighter blue for dark bg */
+  --accent-hover: #93c5fd;
+  --accent-soft: #16244a;
+  --on-accent: #07142b; /* dark text on the bright blue */
+  --warm: #fb923c;
+  --warm-hover: #fdba74;
+  --warm-soft: #3a2414;
+  --highlight: var(--warm);
+  --highlight-soft: var(--warm-soft);
   --error: #f87171;
   --ok: #4ade80;
   --warn: #fbbf24;
   --danger-border: #5a2a2a;
-  --map-bg: #0b1310;
+  --map-bg: #0a111f;
   --overlay: rgba(0, 0, 0, 0.62);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -138,6 +175,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  font-family: var(--font-ui);
   font-size: 1rem; /* 16px base — was implicitly ~15px via small component sizes */
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -151,6 +189,15 @@ h3 {
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+/* Display utility — warm serif for substantial, emotional moments only
+   (landing hero, trip-ready celebration, big hero numbers). Reserving it
+   keeps it special, per the peak-end rule. */
+.display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
 }
 h1 {
   font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.1rem);
@@ -3317,4 +3364,354 @@ button.secondary.danger {
   @page {
     margin: 1.5cm;
   }
+}
+
+/* ===================================================================
+   Completion meter — goal-gradient progress with an endowed head-start.
+   =================================================================== */
+.trip-progress {
+  margin: var(--space-4) 0 var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.trip-progress-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.trip-progress-pct {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur) var(--ease-out);
+}
+.trip-progress.near-goal .trip-progress-pct {
+  color: var(--warm);
+}
+.trip-progress.is-complete .trip-progress-pct {
+  color: var(--ok);
+}
+.trip-progress-label {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.trip-progress-next {
+  margin-inline-start: auto;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
+}
+.trip-progress-next:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  transform: translateY(-1px);
+}
+:root[data-theme='dark'] .trip-progress-next {
+  color: var(--accent);
+}
+:root[data-theme='dark'] .trip-progress-next:hover {
+  color: var(--on-accent);
+}
+.trip-progress-track {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.trip-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  /* Goal-gradient: the bar eases toward the goal, springing slightly as it grows. */
+  transition: width var(--dur-slow) var(--ease-spring), background var(--dur) var(--ease-out);
+}
+.trip-progress.near-goal .trip-progress-fill {
+  background: var(--sunset);
+  background-size: 200% 100%;
+  animation: progress-shimmer 2.2s linear infinite;
+}
+.trip-progress.is-complete .trip-progress-fill {
+  background: var(--ok);
+  animation: none;
+}
+@keyframes progress-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Compact bar for Dashboard trip cards. */
+.trip-progress-mini {
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.trip-progress-mini-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.trip-progress-mini.is-complete .trip-progress-mini-fill {
+  background: var(--ok);
+}
+
+/* ===================================================================
+   Micro-interactions & motion — small, fast, reduced-motion-safe.
+   =================================================================== */
+
+/* Map pins drop in and settle (spring) when the marker set changes. */
+.map-pin-dot {
+  animation: pin-drop 360ms var(--ease-spring) both;
+  transform-origin: 50% 100%;
+}
+@keyframes pin-drop {
+  0% { opacity: 0; transform: translateY(-10px) scale(0.4); }
+  60% { opacity: 1; transform: translateY(0) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Route polyline fades/grows in as the journey updates. */
+.route-line {
+  animation: route-fade 600ms var(--ease-out) both;
+}
+@keyframes route-fade {
+  from { opacity: 0; }
+  to { opacity: 0.75; }
+}
+
+/* Packing checkbox: a satisfying pop when an item gets ticked. */
+.packing-list input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+.packing-list input[type='checkbox']:checked {
+  animation: check-pop var(--dur) var(--ease-spring);
+}
+@keyframes check-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.32); }
+  100% { transform: scale(1); }
+}
+
+/* Reusable entrance "pop" for newly added / revealed elements. */
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.92) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Confetti + reveal keyframes used by the trip-ready celebration (Phase 3). */
+@keyframes confetti-fall {
+  0% { opacity: 0; transform: translateY(-12vh) rotate(0deg); }
+  10% { opacity: 1; }
+  100% { opacity: 0.9; transform: translateY(86vh) rotate(540deg); }
+}
+@keyframes celebrate-pop {
+  0% { opacity: 0; transform: scale(0.8); }
+  60% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes route-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===================================================================
+   Trip-ready celebration — the engineered "peak" moment.
+   =================================================================== */
+.celebrate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--overlay);
+  animation: overlay-fade var(--dur) var(--ease-out);
+  overflow: hidden;
+}
+.celebrate-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.celebrate-confetti span {
+  position: absolute;
+  top: -5vh;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+.celebrate-card {
+  position: relative;
+  width: min(440px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  text-align: center;
+  animation: celebrate-pop var(--dur-slow) var(--ease-spring) both;
+}
+.celebrate-route {
+  width: 100%;
+  height: 90px;
+  display: block;
+  margin-bottom: var(--space-3);
+}
+.celebrate-route-path {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: route-draw 1.6s var(--ease-out) 200ms forwards;
+}
+.celebrate-plane {
+  font-size: 18px;
+  opacity: 0;
+  animation: celebrate-pop 400ms var(--ease-spring) 1.4s forwards;
+}
+.celebrate-title {
+  font-size: 1.9rem;
+  margin: 0 0 var(--space-2);
+  color: var(--text);
+}
+.celebrate-subtitle {
+  color: var(--muted);
+  margin: 0 0 var(--space-5);
+}
+.celebrate-stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.celebrate-stat {
+  flex: 1;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-2);
+}
+.celebrate-stat-value {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.celebrate-stat-label {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.celebrate-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+.celebrate-actions button {
+  min-width: 130px;
+}
+
+/* ===================================================================
+   First-run onboarding — guided path to a finished first plan.
+   =================================================================== */
+.first-run {
+  max-width: 520px;
+  margin: var(--space-6) auto;
+  padding: var(--space-6) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  animation: pop-in var(--dur-slow) var(--ease-out) both;
+}
+.first-run-emoji {
+  font-size: 3rem;
+  display: block;
+  line-height: 1;
+}
+.first-run-title {
+  font-size: 1.7rem;
+  margin: var(--space-3) 0 var(--space-2);
+}
+.first-run-subtitle {
+  color: var(--muted);
+  margin: 0 auto var(--space-4);
+  max-width: 36ch;
+}
+.first-run-progress {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+  margin-bottom: var(--space-5);
+}
+.first-run-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: first-run-fill 900ms var(--ease-spring) 200ms both;
+}
+@keyframes first-run-fill {
+  from { width: 0; }
+}
+.first-run-steps {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+  text-align: start;
+}
+.first-run-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+.first-run-step-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.first-run-step-emoji {
+  font-size: 1.2rem;
+}
+.first-run-cta {
+  font-size: 1.05rem;
+  padding: var(--space-3) var(--space-6);
 }

@@ -466,6 +466,36 @@ const en: Dict = {
   'dash.step3': 'Track your budget and packing list',
   'dash.step4': 'Invite a travel partner to plan together',
 
+  // Completion meter (goal-gradient progress).
+  'progress.aria': 'Trip planning progress',
+  'progress.planned': 'planned',
+  'progress.complete': 'Trip fully planned 🎉',
+  'progress.next': 'Next: {step}',
+  'progress.step.start': 'Trip started',
+  'progress.step.destinations': 'Add destinations',
+  'progress.step.dates': 'Set your dates',
+  'progress.step.stops': 'Plan your days',
+  'progress.step.transport': 'Connect your cities',
+  'progress.step.budget': 'Set a budget',
+  'progress.step.packing': 'Start a packing list',
+  // Trip-ready celebration (peak-end moment).
+  'celebrate.title': 'Your trip is ready',
+  'celebrate.subtitle': '{name} is all planned. Time to go.',
+  'celebrate.days': '{count} days',
+  'celebrate.cities': '{count} cities',
+  'celebrate.stops': '{count} stops',
+  'celebrate.share': 'Share & export',
+  'celebrate.close': 'Keep planning',
+  'celebrate.aria': 'Your trip is ready',
+  // First-run onboarding (guided first build).
+  'onboard.title': 'Plan your first trip',
+  'onboard.subtitle': 'Three quick steps to a trip you’ll love.',
+  'onboard.step1': 'Name it & pick where you’re going',
+  'onboard.step2': 'Choose your dates',
+  'onboard.step3': 'Add your first stop',
+  'onboard.start': 'Start planning',
+  'onboard.dismiss': 'Maybe later',
+
   // Discovery (find places nearby)
   'disco.findNearby': '🔎 Find places nearby',
   'disco.find': 'Find nearby:',

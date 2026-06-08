@@ -31,7 +31,7 @@ export function Landing() {
 
       <main className="landing-hero" id="main">
         <div className="landing-hero-text">
-          <h1>{t('landing.title')}</h1>
+          <h1 className="display">{t('landing.title')}</h1>
           <p className="landing-sub">{t('landing.subtitle')}</p>
           <ul className="landing-points">
             {points.map((p) => (

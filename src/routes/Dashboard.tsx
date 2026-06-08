@@ -5,6 +5,9 @@ import { AppHeader } from '../components/AppHeader'
 import { EmojiPicker, DEFAULT_COVER } from '../components/EmojiPicker'
 import { useT } from '../i18n/I18nProvider'
 import { supabase } from '../lib/supabase'
+import { TripProgressBar } from '../components/TripProgress'
+import { FirstRunGuide } from '../components/FirstRunGuide'
+import { computeTripProgress } from '../progress/tripProgress'
 import type { Trip, TripRole } from '../lib/database.types'
 
 interface MembershipRow {
@@ -12,11 +15,19 @@ interface MembershipRow {
   trip: Trip
 }
 
+/** Tally rows carrying a trip_id into a count-per-trip map. */
+function countByTrip(rows: { trip_id: string }[] | null): Record<string, number> {
+  const m: Record<string, number> = {}
+  for (const r of rows ?? []) m[r.trip_id] = (m[r.trip_id] ?? 0) + 1
+  return m
+}
+
 export function Dashboard() {
   const { t } = useT()
   const { session } = useAuth()
   const uid = session!.user.id
   const [rows, setRows] = useState<MembershipRow[] | null>(null)
+  const [progressById, setProgressById] = useState<Record<string, number>>({})
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
@@ -27,13 +38,49 @@ export function Dashboard() {
       .eq('user_id', uid)
       .returns<MembershipRow[]>()
 
-    if (error) setError(error.message)
-    else {
-      const sorted = (data ?? [])
-        .filter((r) => r.trip)
-        .sort((a, b) => (a.trip.start_date ?? '').localeCompare(b.trip.start_date ?? ''))
-      setRows(sorted)
+    if (error) {
+      setError(error.message)
+      return
     }
+    const sorted = (data ?? [])
+      .filter((r) => r.trip)
+      .sort((a, b) => (a.trip.start_date ?? '').localeCompare(b.trip.start_date ?? ''))
+    setRows(sorted)
+
+    // Per-trip completion %, fetched in 4 batched queries (not N+1) so each
+    // card can show how far along it is — pulling users back to unfinished trips.
+    const ids = sorted.map((r) => r.trip.id)
+    if (ids.length === 0) {
+      setProgressById({})
+      return
+    }
+    const [areaRes, placeRes, budgetRes, packingRes] = await Promise.all([
+      supabase.from('areas').select('trip_id, start_date, end_date, transport_mode').in('trip_id', ids),
+      supabase.from('places').select('trip_id, scheduled, est_cost').in('trip_id', ids),
+      supabase.from('budget_entries').select('trip_id').in('trip_id', ids),
+      supabase.from('packing_items').select('trip_id').in('trip_id', ids),
+    ])
+    const areas = areaRes.data ?? []
+    const places = placeRes.data ?? []
+    const budgetCounts = countByTrip(budgetRes.data)
+    const packingCounts = countByTrip(packingRes.data)
+    const map: Record<string, number> = {}
+    for (const { trip } of sorted) {
+      const tAreas = areas.filter((a) => a.trip_id === trip.id)
+      const tPlaces = places.filter((p) => p.trip_id === trip.id)
+      map[trip.id] = computeTripProgress({
+        started: true,
+        destinationCount: tAreas.length,
+        hasTripDates: !!(trip.start_date && trip.end_date),
+        datedDestinations: tAreas.filter((a) => a.start_date && a.end_date).length,
+        scheduledPlaces: tPlaces.filter((p) => p.scheduled).length,
+        transportSet: tAreas.filter((a) => a.transport_mode).length,
+        budgetEntries: budgetCounts[trip.id] ?? 0,
+        pricedPlaces: tPlaces.filter((p) => p.est_cost != null).length,
+        packingItems: packingCounts[trip.id] ?? 0,
+      }).percent
+    }
+    setProgressById(map)
   }, [uid])
 
   useEffect(() => {
@@ -58,27 +105,16 @@ export function Dashboard() {
         {error && <p className="auth-error">{error}</p>}
         {rows === null && !error && <TripListSkeleton />}
 
-        {rows !== null && owned.length === 0 && shared.length === 0 && (
-          <div className="empty-state welcome">
-            <span className="empty-emoji" aria-hidden="true">🧳</span>
-            <p className="empty-title">{t('dash.welcomeTitle')}</p>
-            <p className="muted">{t('dash.createFirst')}</p>
-            <ol className="welcome-steps">
-              <li><span aria-hidden="true">📍</span> {t('dash.step1')}</li>
-              <li><span aria-hidden="true">🗓️</span> {t('dash.step2')}</li>
-              <li><span aria-hidden="true">💰</span> {t('dash.step3')}</li>
-              <li><span aria-hidden="true">👥</span> {t('dash.step4')}</li>
-            </ol>
-            {!creating && <button onClick={() => setCreating(true)}>{t('dash.newTrip')}</button>}
-          </div>
+        {rows !== null && owned.length === 0 && shared.length === 0 && !creating && (
+          <FirstRunGuide onStart={() => setCreating(true)} />
         )}
 
-        {owned.length > 0 && <TripGroup trips={owned} />}
+        {owned.length > 0 && <TripGroup trips={owned} progressById={progressById} />}
 
         {shared.length > 0 && (
           <>
             <h3 className="group-label">{t('dash.sharedWithYou')}</h3>
-            <TripGroup trips={shared} />
+            <TripGroup trips={shared} progressById={progressById} />
           </>
         )}
       </main>
@@ -101,7 +137,7 @@ function TripListSkeleton() {
   )
 }
 
-function TripGroup({ trips }: { trips: MembershipRow[] }) {
+function TripGroup({ trips, progressById }: { trips: MembershipRow[]; progressById: Record<string, number> }) {
   const { t } = useT()
   return (
     <ul className="trip-list">
@@ -113,6 +149,7 @@ function TripGroup({ trips }: { trips: MembershipRow[] }) {
               <span className="trip-name">{trip.name}</span>
               {trip.country && <span className="muted"> · {trip.country}</span>}
               <span className="trip-dates muted">{formatRange(trip.start_date, trip.end_date)}</span>
+              {progressById[trip.id] != null && <TripProgressBar percent={progressById[trip.id]} />}
             </span>
             <span className={`role-badge role-${role}`}>{t(`role.${role}`)}</span>
           </Link>
