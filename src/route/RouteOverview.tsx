@@ -98,14 +98,16 @@ export function RouteOverview({
   const list = dests ?? []
   const located = useMemo(() => list.filter((d) => d.lat != null && d.lng != null), [list])
 
-  // Merge destinations that sit at the same coordinates (a revisited city) into one pin,
-  // showing all their stop numbers together (e.g. "1·4") so a later visit doesn't hide an
-  // earlier one. Numbers come from the position in the full route, not the located subset.
+  // Merge destinations for the same city (a revisit) into one pin, showing all their stop
+  // numbers together (e.g. "1·4") so a later visit doesn't hide an earlier one. Group by
+  // city NAME (not coordinates): two separate geocodes of the same city can land a few
+  // hundred metres apart, which a coordinate match would miss. Numbers come from the full
+  // route position, not the located subset.
   const markers: MapMarker[] = useMemo(() => {
     const groups = new Map<string, { lat: number; lng: number; name: string; nums: number[] }>()
     list.forEach((d, idx) => {
       if (d.lat == null || d.lng == null) return
-      const key = `${d.lat.toFixed(4)},${d.lng.toFixed(4)}`
+      const key = d.name.trim().toLowerCase()
       const g = groups.get(key)
       if (g) g.nums.push(idx + 1)
       else groups.set(key, { lat: d.lat, lng: d.lng, name: d.name, nums: [idx + 1] })
