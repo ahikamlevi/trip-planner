@@ -67,6 +67,9 @@ export function ItineraryBoard({
   notes,
   startDate,
   endDate,
+  focusDate,
+  focusLabel,
+  onClearFocus,
 }: {
   tripId: string
   tripName: string
@@ -74,6 +77,11 @@ export function ItineraryBoard({
   notes: string | null
   startDate: string | null
   endDate: string | null
+  /** When set (e.g. from "Plan days" on a Route destination), jump the calendar here. */
+  focusDate?: string | null
+  /** City name shown in the focus banner. */
+  focusLabel?: string | null
+  onClearFocus?: () => void
 }) {
   const { t, locale } = useT()
   const toast = useToast()
@@ -95,6 +103,14 @@ export function ItineraryBoard({
   // When the trip is happening now, open straight to today's day (the "Today" feel).
   const [view, setView] = useState<ViewMode>(todayInTrip ? 'day' : 'month')
   const [cursor, setCursor] = useState<string>(todayInTrip ? todayIso : startDate ?? todayIso)
+
+  // "Plan days" on a Route destination jumps the calendar to that city's start date.
+  useEffect(() => {
+    if (focusDate) {
+      setCursor(focusDate)
+      setView('week')
+    }
+  }, [focusDate])
 
   const load = useCallback(async () => {
     const [daysRes, areasRes, placesRes, entriesRes, packingRes] = await Promise.all([
@@ -640,6 +656,16 @@ export function ItineraryBoard({
           <PlacesPalette places={places} counts={scheduleCounts} />
 
           <div className="cal-area">
+            {focusLabel && (
+              <div className="plan-focus">
+                <span>🧭 {t('route.planningCity', { name: focusLabel })}</span>
+                {onClearFocus && (
+                  <button type="button" className="linklike" onClick={onClearFocus}>
+                    {t('route.showWholeTrip')}
+                  </button>
+                )}
+              </div>
+            )}
             {stops.length === 0 && (
               <EmptyTip emoji="🗓️" title={t('tip.itinerary.title')} body={t('tip.itinerary.body')} />
             )}

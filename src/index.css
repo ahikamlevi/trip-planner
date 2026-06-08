@@ -2626,6 +2626,23 @@ button.secondary.danger {
   border-top: 1px solid var(--border);
 }
 
+/* Itinerary "planning {city}" focus banner (from Route → Plan days). */
+.plan-focus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+.plan-focus .linklike {
+  font-weight: 600;
+}
+
 /* Route / destinations overview */
 .route-add {
   display: flex;

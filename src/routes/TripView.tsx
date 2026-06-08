@@ -39,6 +39,8 @@ export function TripView() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('route')
+  // When you tap "Plan days" on a Route destination, focus the Itinerary on that city.
+  const [planFocus, setPlanFocus] = useState<{ date: string | null; label: string } | null>(null)
   const autoTab = useRef(false)
 
   const isOwner = trip?.owner_id === uid
@@ -144,7 +146,13 @@ export function TripView() {
         </nav>
 
         {tab === 'route' && (
-          <RouteOverview tripId={trip.id} onPlanDestination={() => setTab('itinerary')} />
+          <RouteOverview
+            tripId={trip.id}
+            onPlanDestination={(dest) => {
+              setPlanFocus({ date: dest.start_date, label: dest.name })
+              setTab('itinerary')
+            }}
+          />
         )}
         {tab === 'places' && <PlacesWorkspace tripId={trip.id} />}
         {tab === 'itinerary' && (
@@ -155,6 +163,9 @@ export function TripView() {
             notes={trip.notes}
             startDate={trip.start_date}
             endDate={trip.end_date}
+            focusDate={planFocus?.date ?? null}
+            focusLabel={planFocus?.label ?? null}
+            onClearFocus={() => setPlanFocus(null)}
           />
         )}
         {tab === 'budget' && <BudgetPanel tripId={trip.id} currency={trip.currency} />}

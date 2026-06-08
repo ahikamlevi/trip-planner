@@ -43,8 +43,14 @@ live.
     `days.area_id` already links days to a destination. Made the **default tab** (was
     Places). Also fixed a Hebrew naming clash: the Itinerary tab was labelled **מסלול**
     ("route") — renamed to **לוח זמנים**, freeing **מסלול** for the new Route tab (likely
-    part of the confusion). ⚠️ needs migration `0025`. Per-destination day filtering in the
-    Itinerary is a follow-up (today "Plan days" just opens the Itinerary tab).
+    part of the confusion). The map route between cities renders as a **curved great-circle
+    arc** (flight-route look), not a straight line (`arcBetween`/`routePath` in
+    `RouteOverview.tsx`). **Smart date defaults**: a new city's start = day after the
+    previous city's end; setting an end auto-fills the next empty start; pickers `min`-guard
+    backwards ranges. **"Plan days" drill-in**: jumps the Itinerary to the city's start date
+    (week view) with a "🧭 Planning {city} · Show whole trip" focus banner
+    (`focusDate`/`focusLabel`/`onClearFocus` props on `ItineraryBoard`). Full hide-other-days
+    filtering (calendar is date-centric, not list) is still a possible follow-up.
   - **UI redesign — Phase 1: visual foundation** (in response to user testers finding the
     app cluttered/cramped; goal = welcoming, spacious, self-explanatory; **PC first**).
     Bolder refresh of the design system in `index.css`, which re-skins every screen at

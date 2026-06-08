@@ -177,6 +177,8 @@ const en: Dict = {
   'route.mode.car': '🚗 Car',
   'route.mode.ferry': '⛴️ Ferry',
   'route.mode.other': '• Other',
+  'route.planningCity': 'Planning {name}',
+  'route.showWholeTrip': 'Show whole trip',
 
   // Trip view
   'tripview.allTrips': 'All trips',
@@ -642,6 +644,8 @@ const he: Dict = {
   'route.mode.car': '🚗 רכב',
   'route.mode.ferry': '⛴️ מעבורת',
   'route.mode.other': '• אחר',
+  'route.planningCity': 'מתכננים את {name}',
+  'route.showWholeTrip': 'הצג את כל הטיול',
 
   'tripview.allTrips': 'כל הטיולים',
   'tripview.backToTrips': 'חזרה לטיולים',

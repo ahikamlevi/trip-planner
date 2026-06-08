@@ -15,6 +15,46 @@ import type { Area } from '../lib/database.types'
 
 const TRANSPORT_MODES = ['flight', 'train', 'bus', 'car', 'ferry', 'other'] as const
 
+const toRad = (d: number) => (d * Math.PI) / 180
+const toDeg = (r: number) => (r * 180) / Math.PI
+
+// Great-circle interpolation between two points — the natural curved "flight arc" you see
+// on travel maps. Not road-accurate (flights don't follow roads), but not a stark straight
+// line either. Returns `segments + 1` points along the arc.
+function arcBetween(a: LatLng, b: LatLng, segments: number): LatLng[] {
+  const lat1 = toRad(a.lat)
+  const lon1 = toRad(a.lng)
+  const lat2 = toRad(b.lat)
+  const lon2 = toRad(b.lng)
+  const h =
+    Math.sin((lat2 - lat1) / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2
+  const d = 2 * Math.asin(Math.min(1, Math.sqrt(h))) // angular distance
+  if (d < 1e-9) return [a, b]
+  const pts: LatLng[] = []
+  for (let i = 0; i <= segments; i++) {
+    const f = i / segments
+    const A = Math.sin((1 - f) * d) / Math.sin(d)
+    const B = Math.sin(f * d) / Math.sin(d)
+    const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2)
+    const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2)
+    const z = A * Math.sin(lat1) + B * Math.sin(lat2)
+    pts.push({ lat: toDeg(Math.atan2(z, Math.hypot(x, y))), lng: toDeg(Math.atan2(y, x)) })
+  }
+  return pts
+}
+
+// Stitch the cities into one curved path (skip the duplicate join point between legs).
+function routePath(cities: LatLng[]): LatLng[] {
+  if (cities.length < 2) return cities
+  const out: LatLng[] = []
+  for (let i = 0; i < cities.length - 1; i++) {
+    const seg = arcBetween(cities[i], cities[i + 1], 32)
+    out.push(...(i > 0 ? seg.slice(1) : seg))
+  }
+  return out
+}
+
 // Add n days to an ISO date ('YYYY-MM-DD'), using local components so it never shifts a
 // day across time zones (unlike toISOString, which converts to UTC).
 function addDays(iso: string, n: number): string {
@@ -31,7 +71,7 @@ export function RouteOverview({
   onPlanDestination,
 }: {
   tripId: string
-  onPlanDestination?: () => void
+  onPlanDestination?: (dest: Area) => void
 }) {
   const { t } = useT()
   const toast = useToast()
@@ -65,7 +105,7 @@ export function RouteOverview({
     badge: i + 1,
     color: 'var(--accent)',
   }))
-  const path: LatLng[] = located.map((d) => ({ lat: d.lat!, lng: d.lng! }))
+  const path: LatLng[] = routePath(located.map((d) => ({ lat: d.lat!, lng: d.lng! })))
   const center: LatLng = located[0]
     ? { lat: located[0].lat!, lng: located[0].lng! }
     : { lat: 20, lng: 0 }
@@ -267,7 +307,7 @@ export function RouteOverview({
                   </button>
                 </span>
                 {onPlanDestination && (
-                  <button type="button" className="secondary" onClick={onPlanDestination}>
+                  <button type="button" className="secondary" onClick={() => onPlanDestination(d)}>
                     {t('route.planDays')} →
                   </button>
                 )}
