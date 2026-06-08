@@ -39,7 +39,10 @@ live.
     actions) is **collapsed behind a "🔎 Find places nearby" toggle** (auto-opens when
     results exist), and the secondary **"📍 Add from a Maps link"** box is **hidden behind a
     toggle** so the name-search is the single clear add field. Pure show/hide — no logic
-    change. (Itinerary panel declutter still to do.) Revisited-city **pin merge works**
+    change. **Itinerary toolbar:** the always-visible "Add to calendar" + "Print" buttons +
+    the row of 4 print-include checkboxes are now tucked into a single **"⤓ Export" dropdown**
+    (reuses `Menu`; checkboxes live inside it), leaving just nav + day/week/month in the
+    toolbar. Revisited-city **pin merge works**
     (one pin shows all stop numbers, e.g. "1·4"; `buildRouteMarkers` in `route/markers.ts`,
     unit-tested in `markers.test.ts`) — the earlier "still only 4" was deploy/cache lag.
   - **Trip "Route" overview (multi-city journey)** — new default trip tab. Testers (incl.

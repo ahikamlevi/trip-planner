@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { useToast } from '../components/Toast'
 import { EmptyTip } from '../components/EmptyTip'
+import { Menu } from '../components/Menu'
 import { useT } from '../i18n/I18nProvider'
 import type { Area, BudgetEntry, Day, DayReference, PackingItem, Place, PlaceCategory, Stop } from '../lib/database.types'
 import { CATEGORIES, categoryMeta, placeColor } from '../places/categories'
@@ -687,42 +688,53 @@ export function ItineraryBoard({
                   </button>
                 ))}
               </div>
-              <button
-                className="secondary cal-export"
-                onClick={exportCalendar}
-                disabled={timedEvents.length === 0}
-                title={t('itin.addToCalendarHint')}
-              >
-                {t('itin.addToCalendar')}
-              </button>
-              <span className="print-group">
-                <button
-                  className="secondary cal-export"
-                  onClick={printItinerary}
-                  disabled={printDays.length === 0}
-                  title={t('itin.printHint')}
-                >
-                  {t('itin.print')}
-                </button>
-                <span className="print-opts">
-                  <span className="muted small">{t('itin.printInclude')}</span>
-                  {([
-                    ['notes', 'itin.printNotes'],
-                    ['budget', 'itin.printBudget'],
-                    ['packing', 'itin.printPacking'],
-                    ['dayCosts', 'itin.printDayCosts'],
-                  ] as const).map(([key, label]) => (
-                    <label key={key} className="print-opt">
-                      <input
-                        type="checkbox"
-                        checked={printOpts[key]}
-                        onChange={(e) => setPrintOpts((o) => ({ ...o, [key]: e.target.checked }))}
-                      />
-                      {t(label)}
-                    </label>
-                  ))}
-                </span>
-              </span>
+              <Menu label={t('itin.export')} icon={`⤓ ${t('itin.export')}`}>
+                {(close) => (
+                  <>
+                    <button
+                      type="button"
+                      className="menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        close()
+                        exportCalendar()
+                      }}
+                      disabled={timedEvents.length === 0}
+                    >
+                      📅 {t('itin.addToCalendar')}
+                    </button>
+                    <div className="menu-divider" />
+                    <span className="menu-label">{t('itin.printInclude')}</span>
+                    {([
+                      ['notes', 'itin.printNotes'],
+                      ['budget', 'itin.printBudget'],
+                      ['packing', 'itin.printPacking'],
+                      ['dayCosts', 'itin.printDayCosts'],
+                    ] as const).map(([key, label]) => (
+                      <label key={key} className="menu-check">
+                        <input
+                          type="checkbox"
+                          checked={printOpts[key]}
+                          onChange={(e) => setPrintOpts((o) => ({ ...o, [key]: e.target.checked }))}
+                        />
+                        {t(label)}
+                      </label>
+                    ))}
+                    <button
+                      type="button"
+                      className="menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        close()
+                        printItinerary()
+                      }}
+                      disabled={printDays.length === 0}
+                    >
+                      🖨️ {t('itin.print')}
+                    </button>
+                  </>
+                )}
+              </Menu>
             </div>
 
             {view === 'month' && (
