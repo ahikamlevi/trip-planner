@@ -11,6 +11,7 @@ import { searchPlaces } from '../places/search'
 import { MapView } from '../map/MapView'
 import type { LatLng, MapMarker } from '../map/index'
 import { EmptyTip } from '../components/EmptyTip'
+import { buildRouteMarkers } from './markers'
 import type { Area } from '../lib/database.types'
 
 const TRANSPORT_MODES = ['flight', 'train', 'bus', 'car', 'ferry', 'other'] as const
@@ -98,29 +99,20 @@ export function RouteOverview({
   const list = dests ?? []
   const located = useMemo(() => list.filter((d) => d.lat != null && d.lng != null), [list])
 
-  // Merge destinations for the same city (a revisit) into one pin, showing all their stop
-  // numbers together (e.g. "1·4") so a later visit doesn't hide an earlier one. Group by
-  // city NAME (not coordinates): two separate geocodes of the same city can land a few
-  // hundred metres apart, which a coordinate match would miss. Numbers come from the full
-  // route position, not the located subset.
-  const markers: MapMarker[] = useMemo(() => {
-    const groups = new Map<string, { lat: number; lng: number; name: string; nums: number[] }>()
-    list.forEach((d, idx) => {
-      if (d.lat == null || d.lng == null) return
-      const key = d.name.trim().toLowerCase()
-      const g = groups.get(key)
-      if (g) g.nums.push(idx + 1)
-      else groups.set(key, { lat: d.lat, lng: d.lng, name: d.name, nums: [idx + 1] })
-    })
-    return [...groups.values()].map((g, i) => ({
-      id: `dest-${i}`,
-      position: { lat: g.lat, lng: g.lng },
-      category: 'transport' as const,
-      label: g.name,
-      badge: g.nums.join('·'),
-      color: 'var(--accent)',
-    }))
-  }, [list])
+  // Merge repeat visits to the same city into one pin showing every stop number (e.g.
+  // "1·4"). Logic lives in buildRouteMarkers (unit-tested in markers.test.ts).
+  const markers: MapMarker[] = useMemo(
+    () =>
+      buildRouteMarkers(list).map((m, i) => ({
+        id: `dest-${i}`,
+        position: { lat: m.lat, lng: m.lng },
+        category: 'transport' as const,
+        label: m.name,
+        badge: m.badge,
+        color: 'var(--accent)',
+      })),
+    [list],
+  )
   const path: LatLng[] = routePath(located.map((d) => ({ lat: d.lat!, lng: d.lng! })))
   const center: LatLng = located[0]
     ? { lat: located[0].lat!, lng: located[0].lng! }
