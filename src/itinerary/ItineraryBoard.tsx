@@ -1453,15 +1453,30 @@ function ItineraryDayMap({
 
   if (located.length === 0) return null
 
-  const markers: MapMarker[] = located.map((s, i) => ({
-    id: s.id,
-    position: { lat: s.place.lat!, lng: s.place.lng! },
-    category: s.place.category,
-    color: s.place.color ?? undefined,
-    badge: i + 1,
-    label: `${i + 1}. ${s.place.name}`,
-    selected: s.id === selectedId,
-  }))
+  // Merge stops at the same place (e.g. returning to the hotel) into one pin showing all
+  // their stop numbers (e.g. "1·4"), so a repeat visit doesn't hide the earlier number.
+  const stopGroups = new Map<string, { stop: BoardStop; nums: number[]; selected: boolean }>()
+  located.forEach((s, i) => {
+    const g = stopGroups.get(s.place.id)
+    if (g) {
+      g.nums.push(i + 1)
+      g.selected = g.selected || s.id === selectedId
+    } else {
+      stopGroups.set(s.place.id, { stop: s, nums: [i + 1], selected: s.id === selectedId })
+    }
+  })
+  const markers: MapMarker[] = [...stopGroups.values()].map((g) => {
+    const nums = g.nums.join('·')
+    return {
+      id: g.stop.id,
+      position: { lat: g.stop.place.lat!, lng: g.stop.place.lng! },
+      category: g.stop.place.category,
+      color: g.stop.place.color ?? undefined,
+      badge: nums,
+      label: `${nums}. ${g.stop.place.name}`,
+      selected: g.selected,
+    }
+  })
   // Reference places (not on the route) shown as distinct red pins for context.
   for (const p of references) {
     if (p.lat == null || p.lng == null) continue
