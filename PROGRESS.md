@@ -202,10 +202,9 @@ live.
   ✏️ Edit button on wishlist (click row = select+focus only).
 
 ### ⚠️ Operational state / pending for production (read this on a fresh start)
-- **Supabase migrations `0001`–`0024` are applied** (incl. account deletion). ⚠️ **`0025`
-  (destinations — extends `areas`) is NOT yet applied** — run [supabase/migrations/0025_destinations.sql](supabase/migrations/0025_destinations.sql)
-  or the new **Route** tab can't save city coords/dates/transport. The "Delete account"
-  action, Dietary "Other travelers" (`0023`), and "Shift all days" (`0022`) all work.
+- **All Supabase migrations `0001`–`0025` are applied.** The **Route** tab (destinations,
+  `0025`), account deletion (`0024`), Dietary "Other travelers" (`0023`), and "Shift all
+  days" (`0022`) all work.
 - **`discover` and `resolve-place` Edge Functions are both deployed.** Foursquare
   discovery + short-Maps-link resolution are live.
 - **`VITE_STADIA_API_KEY` is set in Vercel** → Stadia tiles + geocoding + routing all
