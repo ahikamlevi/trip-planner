@@ -2032,18 +2032,23 @@ button.secondary.danger {
 .budget-total {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+  padding: var(--space-6);
 }
 
 .budget-total-amount {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: clamp(2.2rem, 1.7rem + 2.2vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--accent);
 }
 
 .budget-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-5);
 }
 
 @media (max-width: 680px) {
