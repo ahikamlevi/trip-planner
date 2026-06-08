@@ -15,17 +15,23 @@ interface MapViewProps {
   path?: LatLng[]
   /** When this changes to a non-null value, the map recenters on it. */
   focus?: LatLng | null
+  /** When this value changes, re-fit the map to all current markers (opt-in; default keeps
+   *  the fit-once behaviour). Used by the Route map so adding cities reframes the journey. */
+  fitKey?: string | number
   onMapClick?: (pos: LatLng) => void
   onMarkerClick?: (id: string) => void
   /** Called once the map is created, handing back an imperative API. */
   onReady?: (api: MapApi) => void
 }
 
-export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, onMarkerClick, onReady }: MapViewProps) {
+export function MapView({ center, zoom = 12, markers, path, focus, fitKey, onMapClick, onMarkerClick, onReady }: MapViewProps) {
   const { t } = useT()
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<MapRenderer | null>(null)
   const didFit = useRef(false)
+  const markersRef = useRef(markers)
+  markersRef.current = markers
+  const firstFitKey = useRef(true)
 
   // Keep callbacks fresh without recreating the map.
   const onMapClickRef = useRef(onMapClick)
@@ -84,6 +90,18 @@ export function MapView({ center, zoom = 12, markers, path, focus, onMapClick, o
   useEffect(() => {
     rendererRef.current?.setPath(path ?? [])
   }, [path])
+
+  // Re-fit to all markers when fitKey changes (skip the very first render — the markers
+  // effect already fits once on initial load).
+  useEffect(() => {
+    if (fitKey === undefined) return
+    if (firstFitKey.current) {
+      firstFitKey.current = false
+      return
+    }
+    const r = rendererRef.current
+    if (r && markersRef.current.length) r.fitToMarkers(markersRef.current)
+  }, [fitKey])
 
   // Recenter when a focus target is set.
   useEffect(() => {

@@ -78,6 +78,7 @@ export function RouteOverview({
   const [dests, setDests] = useState<Area[] | null>(null)
   const [city, setCity] = useState('')
   const [adding, setAdding] = useState(false)
+  const [fitBump, setFitBump] = useState(0)
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -173,15 +174,19 @@ export function RouteOverview({
   }
 
   async function move(index: number, dir: -1 | 1) {
-    const a = list[index]
-    const b = list[index + dir]
-    if (!a || !b) return
-    // Swap sort_order with the neighbour.
-    await Promise.all([
-      supabase.from('areas').update({ sort_order: b.sort_order }).eq('id', a.id),
-      supabase.from('areas').update({ sort_order: a.sort_order }).eq('id', b.id),
-    ])
-    void load()
+    const target = index + dir
+    if (target < 0 || target >= list.length) return
+    // Reorder locally, then renumber the WHOLE list 0..n-1. Renumbering (vs swapping two
+    // values) is robust even if existing rows share a sort_order — which they do for any
+    // areas created before the Route feature, and was why reordering appeared stuck.
+    const reordered = [...list]
+    const [moved] = reordered.splice(index, 1)
+    reordered.splice(target, 0, moved)
+    const results = await Promise.all(
+      reordered.map((d, i) => supabase.from('areas').update({ sort_order: i }).eq('id', d.id)),
+    )
+    if (results.some((r) => r.error)) toast.error(t('common.saveFailed'))
+    else void load()
   }
 
   async function remove(d: Area) {
@@ -264,24 +269,26 @@ export function RouteOverview({
                 </label>
               )}
 
-              <label className="route-field">
-                <span className="muted small">{t('route.dates')}</span>
-                <span className="route-dates">
+              <div className="route-dates">
+                <label className="route-date">
+                  <span className="muted small">{t('route.arrive')}</span>
                   <input
                     type="date"
                     value={d.start_date ?? ''}
                     min={(list[i - 1]?.end_date ?? list[i - 1]?.start_date) || undefined}
                     onChange={(e) => void patch(d.id, { start_date: e.target.value || null })}
                   />
-                  <span className="muted">–</span>
+                </label>
+                <label className="route-date">
+                  <span className="muted small">{t('route.leave')}</span>
                   <input
                     type="date"
                     value={d.end_date ?? ''}
                     min={d.start_date ?? undefined}
                     onChange={(e) => void setEnd(i, d, e.target.value || null)}
                   />
-                </span>
-              </label>
+                </label>
+              </div>
 
               <div className="route-dest-actions">
                 <span className="route-reorder">
@@ -317,7 +324,21 @@ export function RouteOverview({
         </div>
 
         <div className="route-map-wrap">
-          <MapView center={center} zoom={located.length ? 4 : 2} markers={markers} path={path} />
+          <button
+            type="button"
+            className="secondary route-fit"
+            onClick={() => setFitBump((b) => b + 1)}
+            disabled={located.length === 0}
+          >
+            🗺️ {t('route.fitMap')}
+          </button>
+          <MapView
+            center={center}
+            zoom={located.length ? 4 : 2}
+            markers={markers}
+            path={path}
+            fitKey={`${located.length}-${fitBump}`}
+          />
         </div>
       </div>
     </section>

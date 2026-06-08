@@ -51,6 +51,11 @@ live.
     (week view) with a "🧭 Planning {city} · Show whole trip" focus banner
     (`focusDate`/`focusLabel`/`onClearFocus` props on `ItineraryBoard`). Full hide-other-days
     filtering (calendar is date-centric, not list) is still a possible follow-up.
+    **Tester-feedback refinements:** reorder now **renumbers the whole list** (the old
+    neighbour-swap got stuck when rows shared a `sort_order` — true for pre-Route areas);
+    the two date inputs are now labelled **Arrive / Leave**; and the map re-fits when cities
+    change plus a **"🗺️ Fit map to route"** button (`MapView` gained an opt-in `fitKey` prop)
+    — previously it only framed the first city, so later cities/route fell off-screen.
   - **UI redesign — Phase 1: visual foundation** (in response to user testers finding the
     app cluttered/cramped; goal = welcoming, spacious, self-explanatory; **PC first**).
     Bolder refresh of the design system in `index.css`, which re-skins every screen at
