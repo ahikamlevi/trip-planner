@@ -15,6 +15,17 @@ import type { Area } from '../lib/database.types'
 
 const TRANSPORT_MODES = ['flight', 'train', 'bus', 'car', 'ferry', 'other'] as const
 
+// Add n days to an ISO date ('YYYY-MM-DD'), using local components so it never shifts a
+// day across time zones (unlike toISOString, which converts to UTC).
+function addDays(iso: string, n: number): string {
+  const d = new Date(iso + 'T00:00:00')
+  d.setDate(d.getDate() + n)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function RouteOverview({
   tripId,
   onPlanDestination,
@@ -77,12 +88,18 @@ export function RouteOverview({
       /* geocoding failed — add the city without a map position */
     }
     const sortOrder = list.length ? Math.max(...list.map((d) => d.sort_order)) + 1 : 0
+    // Default the new city's start to the day after the previous city's end (or start),
+    // so a sequential route fills in fast.
+    const prev = list[list.length - 1]
+    const prevDate = prev?.end_date ?? prev?.start_date ?? null
+    const startDate = prevDate ? addDays(prevDate, 1) : null
     const { error } = await supabase.from('areas').insert({
       trip_id: tripId,
       name: label,
       sort_order: sortOrder,
       lat,
       lng,
+      start_date: startDate,
       transport_mode: list.length === 0 ? null : 'flight',
     })
     setAdding(false)
@@ -99,6 +116,19 @@ export function RouteOverview({
   async function patch(id: string, fields: Partial<Area>) {
     const { error } = await supabase.from('areas').update(fields).eq('id', id)
     if (error) toast.error(t('common.saveFailed'))
+    else void load()
+  }
+
+  // Set a city's end date, and if the next city has no start yet, default it to the day
+  // after — so dates flow down the route as you fill them in.
+  async function setEnd(index: number, d: Area, value: string | null) {
+    const next = list[index + 1]
+    const ops = [supabase.from('areas').update({ end_date: value }).eq('id', d.id)]
+    if (value && next && !next.start_date) {
+      ops.push(supabase.from('areas').update({ start_date: addDays(value, 1) }).eq('id', next.id))
+    }
+    const results = await Promise.all(ops)
+    if (results.some((r) => r.error)) toast.error(t('common.saveFailed'))
     else void load()
   }
 
@@ -200,6 +230,7 @@ export function RouteOverview({
                   <input
                     type="date"
                     value={d.start_date ?? ''}
+                    min={(list[i - 1]?.end_date ?? list[i - 1]?.start_date) || undefined}
                     onChange={(e) => void patch(d.id, { start_date: e.target.value || null })}
                   />
                   <span className="muted">–</span>
@@ -207,7 +238,7 @@ export function RouteOverview({
                     type="date"
                     value={d.end_date ?? ''}
                     min={d.start_date ?? undefined}
-                    onChange={(e) => void patch(d.id, { end_date: e.target.value || null })}
+                    onChange={(e) => void setEnd(i, d, e.target.value || null)}
                   />
                 </span>
               </label>
