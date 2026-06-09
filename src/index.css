@@ -75,6 +75,9 @@
   --dur: 200ms;
   --dur-slow: 440ms;
 
+  /* Mobile bottom-nav height — content reserves this much space at the bottom. */
+  --bottom-nav-h: 58px;
+
   /* Type families. UI = humanist sans; display = warm serif for emotional moments. */
   --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
@@ -3714,4 +3717,165 @@ button.secondary.danger {
 .first-run-cta {
   font-size: 1.05rem;
   padding: var(--space-3) var(--space-6);
+}
+
+/* ===================================================================
+   MOBILE / PHONE LAYER  —  "plain, easy, readable" (<= 640px)
+   Desktop (>= 641px) is unaffected: these elements are hidden by default
+   and only the phone media query turns them on.
+   =================================================================== */
+
+/* Bottom nav + menu backdrop are desktop-hidden by default. */
+.bottom-nav { display: none; }
+.menu-backdrop { display: none; }
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  /* ---- App shell: comfortable spacing, room for the bottom nav ---- */
+  .page-body,
+  .page-body.wide {
+    padding: var(--space-4) var(--space-3)
+      calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--space-5));
+  }
+
+  /* ---- Header: one compact row, never overflows ---- */
+  .app-header {
+    padding: 0.6rem 0.85rem;
+    gap: var(--space-2);
+    flex-wrap: nowrap;
+  }
+  .app-title { font-size: 1.1rem; }
+  .app-header-user { gap: 0.35rem; flex-wrap: nowrap; }
+  /* The name/email button is the widest item — truncate so it can't push the row. */
+  .app-header-user > .linklike {
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---- Navigation: hide top tabs, show the fixed bottom bar ---- */
+  .tabs { display: none; }
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 200;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15, 27, 45, 0.08);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottom-nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--bottom-nav-h);
+    padding: 6px 2px;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .bottom-nav-item.active { color: var(--accent); }
+  .bottom-nav-item.active .bottom-nav-icon { transform: translateY(-1px) scale(1.08); }
+  .bottom-nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: transform var(--dur) var(--ease-spring);
+  }
+  .bottom-nav-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---- Tap targets: comfortable for thumbs ---- */
+  button,
+  .menu-trigger,
+  input,
+  select,
+  textarea,
+  .seg,
+  .nav-btn {
+    min-height: 44px;
+  }
+  textarea { min-height: 88px; }
+  .menu-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---- Dropdown menus become bottom sheets (fixes right-edge clipping) ---- */
+  .menu-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    background: var(--overlay);
+    animation: overlay-fade var(--dur) var(--ease-out);
+  }
+  .menu-popover {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 1100;
+    min-width: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--space-2) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.28);
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: sheet-up var(--dur) var(--ease-out);
+  }
+
+  /* ---- Modals (account, place editor, help…) become bottom sheets ---- */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    max-width: none;
+    max-height: 88vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    animation: sheet-up var(--dur) var(--ease-out);
+  }
+
+  /* ---- Cards: single inset (page padding already provides the outer gap) ---- */
+  .card { padding: var(--space-4); }
+
+  /* ---- Completion meter: full-width, tappable next step ---- */
+  .trip-progress { padding: var(--space-4); }
+  .trip-progress-pct { font-size: 1.6rem; }
+  .trip-progress-next {
+    margin-inline-start: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* ---- Celebration: stacked, full-width actions ---- */
+  .celebrate-actions { flex-direction: column; }
+  .celebrate-actions button { width: 100%; }
+  .celebrate-stats { flex-wrap: wrap; }
+
+  /* ---- First-run onboarding: comfortable padding ---- */
+  .first-run { padding: var(--space-5) var(--space-4); }
 }

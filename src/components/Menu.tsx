@@ -47,9 +47,14 @@ export function Menu({
         {icon}
       </button>
       {open && (
-        <div className={`menu-popover menu-${align}`} role="menu">
-          {children(() => setOpen(false))}
-        </div>
+        <>
+          {/* Backdrop: invisible on desktop, a dim tap-to-close layer behind the
+              bottom-sheet on phones. */}
+          <div className="menu-backdrop" aria-hidden="true" onClick={() => setOpen(false)} />
+          <div className={`menu-popover menu-${align}`} role="menu">
+            {children(() => setOpen(false))}
+          </div>
+        </>
       )}
     </div>
   )

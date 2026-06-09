@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase'
 import { useTripRealtime } from '../lib/useTripRealtime'
 import { TripProgress } from '../components/TripProgress'
 import { TripReadyCelebration } from '../components/TripReadyCelebration'
+import { BottomNav, TABS, type Tab } from '../components/BottomNav'
 import { computeTripProgress, type TripProgress as Progress } from '../progress/tripProgress'
 import type { InviteResult, Trip, TripRole } from '../lib/database.types'
 
@@ -26,8 +27,6 @@ interface TripStats {
   cities: number
   stops: number
 }
-
-type Tab = 'route' | 'places' | 'itinerary' | 'budget' | 'packing' | 'dietary'
 
 interface MemberRow {
   user_id: string
@@ -174,48 +173,16 @@ export function TripView() {
         {progress && <TripProgress progress={progress} onGoToTab={setTab} />}
 
         <nav className="tabs" aria-label={t('tab.sections')}>
-          <button
-            className={`tab${tab === 'route' ? ' active' : ''}`}
-            aria-current={tab === 'route' ? 'page' : undefined}
-            onClick={() => setTab('route')}
-          >
-            {t('tab.route')}
-          </button>
-          <button
-            className={`tab${tab === 'places' ? ' active' : ''}`}
-            aria-current={tab === 'places' ? 'page' : undefined}
-            onClick={() => setTab('places')}
-          >
-            {t('tab.places')}
-          </button>
-          <button
-            className={`tab${tab === 'itinerary' ? ' active' : ''}`}
-            aria-current={tab === 'itinerary' ? 'page' : undefined}
-            onClick={() => setTab('itinerary')}
-          >
-            {t('tab.itinerary')}
-          </button>
-          <button
-            className={`tab${tab === 'budget' ? ' active' : ''}`}
-            aria-current={tab === 'budget' ? 'page' : undefined}
-            onClick={() => setTab('budget')}
-          >
-            {t('tab.budget')}
-          </button>
-          <button
-            className={`tab${tab === 'packing' ? ' active' : ''}`}
-            aria-current={tab === 'packing' ? 'page' : undefined}
-            onClick={() => setTab('packing')}
-          >
-            {t('tab.packing')}
-          </button>
-          <button
-            className={`tab${tab === 'dietary' ? ' active' : ''}`}
-            aria-current={tab === 'dietary' ? 'page' : undefined}
-            onClick={() => setTab('dietary')}
-          >
-            {t('tab.dietary')}
-          </button>
+          {TABS.map((s) => (
+            <button
+              key={s.key}
+              className={`tab${tab === s.key ? ' active' : ''}`}
+              aria-current={tab === s.key ? 'page' : undefined}
+              onClick={() => setTab(s.key)}
+            >
+              {t(s.labelKey)}
+            </button>
+          ))}
         </nav>
 
         {tab === 'route' && (
@@ -290,6 +257,8 @@ export function TripView() {
           {isOwner && <InviteForm tripId={trip.id} onInvited={load} />}
         </details>
       </main>
+
+      <BottomNav tab={tab} onSelect={(next) => { setTab(next); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
 
       {showCelebration && (
         <TripReadyCelebration

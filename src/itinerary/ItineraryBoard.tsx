@@ -101,8 +101,10 @@ export function ItineraryBoard({
 
   const todayIso = today()
   const todayInTrip = !!startDate && !!endDate && todayIso >= startDate && todayIso <= endDate
+  // On phones the month/week grids are cramped, so open in the readable Day view.
+  const isPhone = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)').matches
   // When the trip is happening now, open straight to today's day (the "Today" feel).
-  const [view, setView] = useState<ViewMode>(todayInTrip ? 'day' : 'month')
+  const [view, setView] = useState<ViewMode>(todayInTrip || isPhone ? 'day' : 'month')
   const [cursor, setCursor] = useState<string>(todayInTrip ? todayIso : startDate ?? todayIso)
 
   // "Plan days" on a Route destination jumps the calendar to that city's start date.
